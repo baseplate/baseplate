@@ -1,0 +1,24 @@
+{
+  "graphql": {
+    "handler": "functions/graphql.post",
+    "events": [
+      {
+        "http": {
+          "method": "post",
+          "path": "_graphql"
+        }
+      }
+    ]
+  },
+  "rest": {
+    "handler": "functions/router.handler",
+    "events": [
+      {
+        "http": {
+          "method": "any",
+          "path": "{path+}"
+        }
+      }
+    ]
+  }
+}

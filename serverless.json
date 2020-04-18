@@ -1,0 +1,9 @@
+{
+  "service": "baseplate-core",
+  "provider": {
+    "name": "aws",
+    "runtime": "nodejs12.x"
+  },
+  "functions": "${file(./routes.json)}",
+  "plugins": ["serverless-offline"]
+}
