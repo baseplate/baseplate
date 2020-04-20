@@ -1,10 +1,13 @@
-const {graphql, GraphQLObjectType, GraphQLSchema} = require('graphql')
+const graphql = require('graphql')
 
-const GraphQLModelStore = require('../lib/specs/graphql/modelStore')
+const GraphQLModel = require('../lib/specs/graphql/model')
+const graphQLSchemaStore = require('../lib/specs/graphql/schemaStore')
+const modelFactory = require('../lib/modelFactory')
 
-const modelStore = new GraphQLModelStore()
-const models = modelStore.getAll()
-
+const schemas = graphQLSchemaStore.getAll()
+const models = Object.entries(schemas).map(([name, schema]) => {
+  return modelFactory(name, schema, {ParentClass: GraphQLModel})
+})
 const queries = models.reduce(
   (result, Model) => ({
     ...result,
@@ -19,12 +22,12 @@ const mutations = models.reduce(
   }),
   {}
 )
-const schema = new GraphQLSchema({
-  query: new GraphQLObjectType({
+const schema = new graphql.GraphQLSchema({
+  query: new graphql.GraphQLObjectType({
     name: 'Query',
     fields: queries
   }),
-  mutation: new GraphQLObjectType({
+  mutation: new graphql.GraphQLObjectType({
     name: 'Mutation',
     fields: mutations
   })
@@ -32,7 +35,7 @@ const schema = new GraphQLSchema({
 
 module.exports.post = async event => {
   const body = JSON.parse(event.body)
-  const result = await graphql({
+  const result = await graphql.graphql({
     schema,
     source: body.query,
     variableValues: body.variables

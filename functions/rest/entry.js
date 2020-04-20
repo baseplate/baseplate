@@ -1,17 +1,20 @@
 const {JsonApiRequest, JsonApiResponse} = require('../../lib/specs/jsonApi')
 const {EntryNotFoundError, ModelNotFoundError} = require('../../lib/errors')
 const getEventToken = require('../../lib/acl/getEventToken')
+const modelFactory = require('../../lib/modelFactory')
+const schemaStore = require('../../lib/schemaStore')
 const validateAccess = require('../../lib/acl/validateAccess')
 
-module.exports.delete = async (req, res, {modelStore}) => {
+module.exports.delete = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const Model = modelStore.get(modelName)
+    const schema = schemaStore.get(modelName)
 
-    if (!Model) {
+    if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
+    const Model = modelFactory(modelName, schema)
     const id = req.url.getPathParameter('id')
     const {deleteCount} = await Model.delete({id})
 
@@ -38,18 +41,12 @@ module.exports.delete = async (req, res, {modelStore}) => {
   }
 }
 
-module.exports.get = async (req, res, {modelStore}) => {
-  const request = new JsonApiRequest({
-    methot: 'get',
-    modelStore,
-    url: req.url
-  })
-
+module.exports.get = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const Model = modelStore.get(modelName)
+    const schema = schemaStore.get(modelName)
 
-    if (!Model) {
+    if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
@@ -59,6 +56,7 @@ module.exports.get = async (req, res, {modelStore}) => {
     //   resource: `model:${modelName}`
     // })
 
+    const Model = modelFactory(modelName, schema)
     const id = req.url.getPathParameter('id')
     const entry = await Model.findOneById({
       id
@@ -68,6 +66,7 @@ module.exports.get = async (req, res, {modelStore}) => {
       throw new EntryNotFoundError({id})
     }
 
+    const request = new JsonApiRequest(req)
     const referencesHash = {}
 
     await request.resolveReferences({
@@ -99,17 +98,18 @@ module.exports.get = async (req, res, {modelStore}) => {
   }
 }
 
-module.exports.patch = async (req, res, {modelStore}) => {
+module.exports.patch = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const Model = modelStore.get(modelName)
+    const schema = schemaStore.get(modelName)
 
-    if (!Model) {
+    if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
+    const Model = modelFactory(modelName, schema)
     const id = req.url.getPathParameter('id')
-    const request = new JsonApiRequest({body: req.body, Model, url: req.url})
+    const request = new JsonApiRequest(req)
     const update = await request.getEntryFieldsFromBody()
     const entry = await Model.update({id, update})
     const referencesHash = {}

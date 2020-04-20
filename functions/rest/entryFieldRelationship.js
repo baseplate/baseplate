@@ -4,16 +4,19 @@ const {
   EntryNotFoundError,
   ModelNotFoundError
 } = require('../../lib/errors')
+const modelFactory = require('../../lib/modelFactory')
+const schemaStore = require('../../lib/schemaStore')
 
-module.exports.get = async (req, res, {modelStore}) => {
+module.exports.get = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const Model = modelStore.get(modelName)
+    const schema = schemaStore.get(modelName)
 
-    if (!Model) {
+    if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
+    const Model = modelFactory(modelName, schema)
     const fieldName = req.url.getPathParameter('fieldName')
 
     if (!Model.schema.fields[fieldName]) {
@@ -31,7 +34,8 @@ module.exports.get = async (req, res, {modelStore}) => {
     const isReferenceArray = Array.isArray(fieldValue)
     const referenceArray = isReferenceArray ? fieldValue : [fieldValue]
     const referenceEntries = referenceArray.map(({_id, _type}) => {
-      const ReferenceModel = modelStore.get(_type)
+      const referencedSchema = schemaStore.get(_type)
+      const ReferenceModel = modelFactory(_type, referencedSchema)
 
       return new ReferenceModel({_id})
     })

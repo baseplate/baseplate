@@ -4,22 +4,19 @@ const {
   EntryNotFoundError,
   ModelNotFoundError
 } = require('../../lib/errors')
+const modelFactory = require('../../lib/modelFactory')
+const schemaStore = require('../../lib/schemaStore')
 
-module.exports.get = async (req, res, {modelStore}) => {
-  const request = new JsonApiRequest({
-    methot: 'get',
-    modelStore,
-    url: req.url
-  })
-
+module.exports.get = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const Model = modelStore.get(modelName)
+    const schema = schemaStore.get(modelName)
 
-    if (!Model) {
+    if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
+    const Model = modelFactory(modelName, schema)
     const fieldName = req.url.getPathParameter('fieldName')
 
     if (!Model.schema.fields[fieldName]) {
@@ -33,13 +30,12 @@ module.exports.get = async (req, res, {modelStore}) => {
       throw new EntryNotFoundError({id})
     }
 
+    const request = new JsonApiRequest(req)
     const referencesByFieldName = await request.resolveReferences({
       entries: [entry],
       includeMap: {[fieldName]: true}
     })
     const entries = referencesByFieldName[fieldName]
-
-    // Resolving references on the referenced document.
     const referencesHash = {}
 
     await request.resolveReferences({

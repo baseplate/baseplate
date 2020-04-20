@@ -1,18 +1,21 @@
 const {JsonApiRequest, JsonApiResponse} = require('../../lib/specs/jsonApi')
 const {ModelNotFoundError} = require('../../lib/errors')
+const modelFactory = require('../../lib/modelFactory')
 const getEventToken = require('../../lib/acl/getEventToken')
 const QueryFilter = require('../../lib/queryFilter')
+const schemaStore = require('../../lib/schemaStore')
 const validateAccess = require('../../lib/acl/validateAccess')
 
-module.exports.get = async (req, res, {modelStore}) => {
+module.exports.get = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const Model = modelStore.get(modelName)
+    const schema = schemaStore.get(modelName)
 
-    if (!Model) {
+    if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
+    const Model = modelFactory(modelName, schema)
     const fieldSet = req.url.getQueryParameter('fields', {
       default: {},
       isCSV: true
@@ -36,10 +39,7 @@ module.exports.get = async (req, res, {modelStore}) => {
     //   query.and(access.filter)
     // }
 
-    const request = new JsonApiRequest({
-      modelStore,
-      url: req.url
-    })
+    const request = new JsonApiRequest(req)
     const {number: pageNumber, size: pageSize} = req.url.getQueryParameter(
       'page',
       {
@@ -83,17 +83,17 @@ module.exports.get = async (req, res, {modelStore}) => {
   }
 }
 
-module.exports.post = async (req, res, {modelStore}) => {
+module.exports.post = async (req, res) => {
   try {
-    console.log('------->')
     const modelName = req.url.getPathParameter('modelName')
-    const Model = modelStore.get(modelName)
+    const schema = schemaStore.get(modelName)
 
-    if (!Model) {
+    if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const request = new JsonApiRequest({body: req.body, Model, url: req.url})
+    const Model = modelFactory(modelName, schema)
+    const request = new JsonApiRequest(req)
     const entryFields = await request.getEntryFieldsFromBody()
     const model = await Model.create({entryFields})
     const response = new JsonApiResponse({

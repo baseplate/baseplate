@@ -1,11 +1,9 @@
 const RouteRecognizer = require('route-recognizer')
 
 const endpointStore = require('../lib/endpointStore')
-const ModelStore = require('../lib/modelStore')
 const patchContext = require('../lib/utils/patchContext')
 const requestResponseFactory = require('../lib/requestResponse/factory')
 
-const modelStore = new ModelStore()
 const router = new RouteRecognizer()
 
 endpointStore.endpoints.forEach(({handler, route}) => {
@@ -27,15 +25,15 @@ router.add([
   }
 ])
 
-modelStore.getAll({includeBaseUserModel: true}).forEach(Model => {
-  if (typeof Model.getRoutes === 'function') {
-    const routes = Model.getRoutes()
+// modelStore.getAll({includeBaseUserModel: true}).forEach(Model => {
+//   if (typeof Model.getRoutes === 'function') {
+//     const routes = Model.getRoutes()
 
-    Object.entries(routes).forEach(([path, handler]) => {
-      router.add([{path: `/${Model.name}${path}`, handler}])
-    })
-  }
-})
+//     Object.entries(routes).forEach(([path, handler]) => {
+//       router.add([{path: `/${Model.name}${path}`, handler}])
+//     })
+//   }
+// })
 
 module.exports.handler = (event, context, callback) => {
   patchContext(context)
@@ -55,8 +53,7 @@ module.exports.handler = (event, context, callback) => {
     return requestResponseFactory(match.handler[method])({
       callback,
       context,
-      event: patchedEvent,
-      modelStore
+      event: patchedEvent
     })
   }
 
