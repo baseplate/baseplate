@@ -1,5 +1,7 @@
 module.exports = {
   fields: {
+    _createdAt: Number,
+    _updatedAt: Number,
     firstName: {
       type: String,
       required: true,

@@ -25,9 +25,9 @@ module.exports.get = async (req, res) => {
         isNumber: true
       }) || {}
     const {entries, totalPages} = await Model.find({
+      filter: query,
       pageNumber,
-      pageSize,
-      query
+      pageSize
     })
     const {body, statusCode} = await JsonApiResponse.toObject({
       entries,

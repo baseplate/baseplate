@@ -41,9 +41,10 @@ module.exports.get = async (req, res) => {
         isNumber: true
       }) || {}
     const {entries, totalPages} = await Model.find({
+      fieldSet,
+      filter: query,
       pageNumber,
-      pageSize,
-      query
+      pageSize
     })
     const includeMap = req.url.getQueryParameter('include', {isDotPath: true})
 
@@ -63,6 +64,7 @@ module.exports.get = async (req, res) => {
 
     res.status(statusCode).json(body)
   } catch (errors) {
+    console.log(errors)
     const {body, statusCode} = await JsonApiResponse.toObject({
       errors,
       url: req.url

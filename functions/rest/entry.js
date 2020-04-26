@@ -73,11 +73,13 @@ module.exports.get = async (req, res) => {
     }
 
     const id = req.url.getPathParameter('id')
-    const urlFieldSet = (req.url.getQueryParameter('fields', {
-      isCSV: true
-    }) || {})[schema.name]
+    const urlFields =
+      req.url.getQueryParameter('fields', {
+        isCSV: true
+      }) || {}
+    const fieldSet = FieldSet.intersect(access.fields, urlFields[schema.name])
     const entry = await Model.findOneById({
-      fieldSet: FieldSet.intersect(access.fields, urlFieldSet),
+      fieldSet,
       filter: access.filter,
       id
     })
@@ -90,6 +92,7 @@ module.exports.get = async (req, res) => {
 
     await request.resolveReferences({
       entries: [entry],
+      fieldSets: urlFields,
       includeMap: req.url.getQueryParameter('include', {
         isCSV: true,
         isDotPath: true
