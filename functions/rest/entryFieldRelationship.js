@@ -1,9 +1,11 @@
-const {JsonApiResponse} = require('../../lib/specs/jsonApi')
 const {
   EntryFieldNotFoundError,
   EntryNotFoundError,
-  ModelNotFoundError
+  ForbiddenError,
+  ModelNotFoundError,
+  UnauthorizedError
 } = require('../../lib/errors')
+const JsonApiResponse = require('../../lib/specs/jsonApi/response')
 const modelFactory = require('../../lib/modelFactory')
 const schemaStore = require('../../lib/schemaStore')
 
@@ -17,9 +19,21 @@ module.exports.get = async (req, res) => {
     }
 
     const Model = modelFactory(modelName, schema)
+    const access = await Model.getAccessForUser({
+      accessType: 'read',
+      user: req.user
+    })
+
+    if (access.isDenied()) {
+      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+    }
+
     const fieldName = req.url.getPathParameter('fieldName')
 
-    if (!Model.schema.fields[fieldName]) {
+    if (
+      !Model.schema.fields[fieldName] ||
+      (access.fields && !access.fields.includes(fieldName))
+    ) {
       throw new EntryFieldNotFoundError({fieldName, modelName: Model.name})
     }
 
@@ -39,20 +53,18 @@ module.exports.get = async (req, res) => {
 
       return new ReferenceModel({_id})
     })
-    const response = new JsonApiResponse({
+    const {body, statusCode} = await JsonApiResponse.toObject({
       includeTopLevelLinks: true,
       relationships: isReferenceArray ? referenceEntries : referenceEntries[0],
       url: req.url
     })
-    const {body, statusCode} = await response.toObject()
 
     res.status(statusCode).json(body)
   } catch (errors) {
-    const response = new JsonApiResponse({
+    const {body, statusCode} = await JsonApiResponse.toObject({
       errors,
       url: req.url
     })
-    const {body, statusCode} = await response.toObject()
 
     res.status(statusCode).json(body)
   }

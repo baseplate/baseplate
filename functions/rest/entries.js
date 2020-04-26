@@ -1,83 +1,72 @@
-const {JsonApiRequest, JsonApiResponse} = require('../../lib/specs/jsonApi')
-const {ModelNotFoundError} = require('../../lib/errors')
+const {
+  ForbiddenError,
+  ModelNotFoundError,
+  UnauthorizedError
+} = require('../../lib/errors')
+const FieldSet = require('../../lib/fieldSet')
+const JsonApiRequest = require('../../lib/specs/jsonApi/request')
+const JsonApiResponse = require('../../lib/specs/jsonApi/response')
 const modelFactory = require('../../lib/modelFactory')
-const getEventToken = require('../../lib/acl/getEventToken')
 const QueryFilter = require('../../lib/queryFilter')
 const schemaStore = require('../../lib/schemaStore')
-const validateAccess = require('../../lib/acl/validateAccess')
 
 module.exports.get = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const schema = schemaStore.get(modelName)
+    const schema = schemaStore.get(modelName, true)
 
     if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(modelName, schema)
-    const fieldSet = req.url.getQueryParameter('fields', {
-      default: {},
+    const Model = modelFactory(schema.name, schema)
+    const access = await Model.getAccessForUser({
+      accessType: 'read',
+      user: req.user
+    })
+
+    if (access.isDenied()) {
+      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+    }
+
+    const urlFieldSet = (req.url.getQueryParameter('fields', {
       isCSV: true
-    })[modelName]
-
+    }) || {})[schema.name]
+    const fieldSet = FieldSet.intersect(access.fields, urlFieldSet)
     const filter = req.url.getQueryParameter('filter', {isJSON: true})
-    const query = QueryFilter.parse(filter, '$')
-    // const access = await validateAccess({
-    //   ...getEventToken(req),
-    //   accessType: 'read',
-    //   resource: `model:${modelName}`
-    // })
-
-    // if (access.fields) {
-    //   fieldSet = fieldSet
-    //     ? fieldSet.filter(name => access.fields.includes(name))
-    //     : Array.from(access.fields)
-    // }
-
-    // if (access.filter) {
-    //   query.and(access.filter)
-    // }
-
+    const query = QueryFilter.parse(filter, '$').intersectWith(access.filter)
     const request = new JsonApiRequest(req)
-    const {number: pageNumber, size: pageSize} = req.url.getQueryParameter(
-      'page',
-      {
-        default: {},
+    const {number: pageNumber, size: pageSize} =
+      req.url.getQueryParameter('page', {
         isNumber: true
-      }
-    )
+      }) || {}
     const {entries, totalPages} = await Model.find({
       pageNumber,
       pageSize,
       query
     })
-    const referencesHash = {}
     const includeMap = req.url.getQueryParameter('include', {isDotPath: true})
 
     await request.resolveReferences({
       entries,
-      includeMap,
-      referencesHash
+      includeMap
     })
 
-    const response = new JsonApiResponse({
+    const {body, statusCode} = await JsonApiResponse.toObject({
       entries,
       fieldSet,
-      includedReferences: Object.values(referencesHash),
+      includedReferences: Object.values(request.references),
       includeTopLevelLinks: true,
       totalPages,
       url: req.url
     })
-    const {body, statusCode} = await response.toObject()
 
     res.status(statusCode).json(body)
   } catch (errors) {
-    const response = new JsonApiResponse({
+    const {body, statusCode} = await JsonApiResponse.toObject({
       errors,
       url: req.url
     })
-    const {body, statusCode} = await response.toObject()
 
     res.status(statusCode).json(body)
   }
@@ -86,30 +75,37 @@ module.exports.get = async (req, res) => {
 module.exports.post = async (req, res) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
-    const schema = schemaStore.get(modelName)
+    const schema = schemaStore.get(modelName, true)
 
     if (!schema) {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(modelName, schema)
+    const Model = modelFactory(schema.name, schema)
+    const access = await Model.getAccessForUser({
+      accessType: 'create',
+      user: req.user
+    })
+
+    if (access.isDenied()) {
+      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+    }
+
     const request = new JsonApiRequest(req)
     const entryFields = await request.getEntryFieldsFromBody()
     const model = await Model.create({entryFields})
-    const response = new JsonApiResponse({
+    const {body, statusCode} = await JsonApiResponse.toObject({
       entries: model,
       statusCode: 201,
       url: req.url
     })
-    const {body, statusCode} = await response.toObject()
 
     res.status(statusCode).json(body)
   } catch (errors) {
-    const response = new JsonApiResponse({
+    const {body, statusCode} = await JsonApiResponse.toObject({
       errors,
       url: req.url
     })
-    const {body, statusCode} = await response.toObject()
 
     res.status(statusCode).json(body)
   }

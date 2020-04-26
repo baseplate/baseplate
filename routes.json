@@ -1,4 +1,15 @@
 {
+  "auth-token": {
+    "handler": "functions/auth/token.post",
+    "events": [
+      {
+        "http": {
+          "method": "post",
+          "path": "auth/token"
+        }
+      }
+    ]
+  },
   "graphql": {
     "handler": "functions/graphql.post",
     "events": [

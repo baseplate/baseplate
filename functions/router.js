@@ -1,6 +1,8 @@
 const RouteRecognizer = require('route-recognizer')
 
 const endpointStore = require('../lib/endpointStore')
+const getUserFromToken = require('../lib/acl/getUserFromToken')
+const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
 const patchContext = require('../lib/utils/patchContext')
 const requestResponseFactory = require('../lib/requestResponse/factory')
 
@@ -9,6 +11,10 @@ const router = new RouteRecognizer()
 endpointStore.endpoints.forEach(({handler, route}) => {
   router.add([{path: route, handler}])
 })
+
+router.add([{path: '/_user', handler: require('./user/user')}])
+router.add([{path: '/_users', handler: require('./user/users')}])
+router.add([{path: '/_users/token', handler: require('./user/token')}])
 
 router.add([{path: '/:modelName', handler: require('./rest/entries')}])
 router.add([{path: '/:modelName/:id', handler: require('./rest/entry')}])
@@ -49,11 +55,16 @@ module.exports.handler = (event, context, callback) => {
       ...event,
       pathParameters: match.params
     }
+    const authTokenData = parseAuthorizationHeader(event.headers.Authorization)
+    const requestProps = {
+      user: getUserFromToken(authTokenData)
+    }
 
     return requestResponseFactory(match.handler[method])({
       callback,
       context,
-      event: patchedEvent
+      event: patchedEvent,
+      requestProps
     })
   }
 

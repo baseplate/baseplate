@@ -12,9 +12,9 @@
     "bcrypt": "^4.0.1",
     "dataloader": "^2.0.0",
     "graphql": "^14.6.0",
+    "inflected": "^2.0.4",
     "jsonwebtoken": "^8.5.1",
     "mongo": "^0.1.0",
-    "pluralize": "^8.0.0",
     "route-recognizer": "^0.3.4"
   },
   "devDependencies": {
