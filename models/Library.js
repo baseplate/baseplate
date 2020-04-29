@@ -1,5 +1,6 @@
 module.exports = {
   fields: {
+    _updatedAt: Number,
     name: {
       type: String,
       required: true,
@@ -7,7 +8,9 @@ module.exports = {
       errorMessage: 'Must not start with an X'
     },
     city: String,
-    books: ['Book']
+    books: ['Book'],
+    owner: 'Author',
+    owner2: 'Author'
   },
   virtuals: {
     whatever: {

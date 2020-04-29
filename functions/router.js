@@ -1,5 +1,6 @@
 const RouteRecognizer = require('route-recognizer')
 
+const createDatastore = require('../lib/datastore/factory')
 const endpointStore = require('../lib/endpointStore')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
@@ -56,15 +57,15 @@ module.exports.handler = (event, context, callback) => {
       pathParameters: match.params
     }
     const authTokenData = parseAuthorizationHeader(event.headers.Authorization)
-    const requestProps = {
+    const requestContext = {
+      datastore: createDatastore(),
       user: getUserFromToken(authTokenData)
     }
 
     return requestResponseFactory(match.handler[method])({
       callback,
-      context,
-      event: patchedEvent,
-      requestProps
+      context: requestContext,
+      event: patchedEvent
     })
   }
 

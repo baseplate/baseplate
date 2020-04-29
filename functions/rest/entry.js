@@ -10,7 +10,7 @@ const JsonApiResponse = require('../../lib/specs/jsonApi/response')
 const modelFactory = require('../../lib/modelFactory')
 const schemaStore = require('../../lib/schemaStore')
 
-module.exports.delete = async (req, res) => {
+module.exports.delete = async (req, res, context) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
     const schema = schemaStore.get(modelName, true)
@@ -19,14 +19,16 @@ module.exports.delete = async (req, res) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema)
+    const Model = modelFactory(schema.name, schema, {
+      datastore: context.datastore
+    })
     const access = await Model.getAccessForUser({
       accessType: 'delete',
-      user: req.user
+      user: context.user
     })
 
     if (access.isDenied()) {
-      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.user ? new ForbiddenError() : new UnauthorizedError()
     }
 
     const id = req.url.getPathParameter('id')
@@ -53,7 +55,7 @@ module.exports.delete = async (req, res) => {
   }
 }
 
-module.exports.get = async (req, res) => {
+module.exports.get = async (req, res, context) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
     const schema = schemaStore.get(modelName, true)
@@ -62,14 +64,16 @@ module.exports.get = async (req, res) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema)
+    const Model = modelFactory(schema.name, schema, {
+      datastore: context.datastore
+    })
     const access = await Model.getAccessForUser({
       accessType: 'read',
-      user: req.user
+      user: context.user
     })
 
     if (access.isDenied()) {
-      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.user ? new ForbiddenError() : new UnauthorizedError()
     }
 
     const id = req.url.getPathParameter('id')
@@ -88,7 +92,7 @@ module.exports.get = async (req, res) => {
       throw new EntryNotFoundError({id})
     }
 
-    const request = new JsonApiRequest(req)
+    const request = new JsonApiRequest(req, context)
 
     await request.resolveReferences({
       entries: [entry],
@@ -101,6 +105,7 @@ module.exports.get = async (req, res) => {
 
     const {body, statusCode} = await JsonApiResponse.toObject({
       entries: entry,
+      fieldSet,
       includedReferences: Object.values(request.references),
       includeTopLevelLinks: true,
       url: req.url
@@ -117,7 +122,7 @@ module.exports.get = async (req, res) => {
   }
 }
 
-module.exports.patch = async (req, res) => {
+module.exports.patch = async (req, res, context) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
     const schema = schemaStore.get(modelName, true)
@@ -126,18 +131,20 @@ module.exports.patch = async (req, res) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema)
+    const Model = modelFactory(schema.name, schema, {
+      datastore: context.datastore
+    })
     const access = await Model.getAccessForUser({
       accessType: 'update',
-      user: req.user
+      user: context.user
     })
 
     if (access.isDenied()) {
-      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.user ? new ForbiddenError() : new UnauthorizedError()
     }
 
     const id = req.url.getPathParameter('id')
-    const request = new JsonApiRequest(req)
+    const request = new JsonApiRequest(req, context)
     const update = await request.getEntryFieldsFromBody()
     const entry = await Model.update({id, update})
 

@@ -9,7 +9,7 @@ const JsonApiResponse = require('../../lib/specs/jsonApi/response')
 const modelFactory = require('../../lib/modelFactory')
 const schemaStore = require('../../lib/schemaStore')
 
-module.exports.get = async (req, res) => {
+module.exports.get = async (req, res, context) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
     const schema = schemaStore.get(modelName)
@@ -18,14 +18,16 @@ module.exports.get = async (req, res) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(modelName, schema)
+    const Model = modelFactory(modelName, schema, {
+      datastore: context.datastore
+    })
     const access = await Model.getAccessForUser({
       accessType: 'read',
-      user: req.user
+      user: context.user
     })
 
     if (access.isDenied()) {
-      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.user ? new ForbiddenError() : new UnauthorizedError()
     }
 
     const fieldName = req.url.getPathParameter('fieldName')

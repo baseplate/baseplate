@@ -10,7 +10,7 @@ const modelFactory = require('../../lib/modelFactory')
 const QueryFilter = require('../../lib/queryFilter')
 const schemaStore = require('../../lib/schemaStore')
 
-module.exports.get = async (req, res) => {
+module.exports.get = async (req, res, context) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
     const schema = schemaStore.get(modelName, true)
@@ -19,14 +19,16 @@ module.exports.get = async (req, res) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema)
+    const Model = modelFactory(schema.name, schema, {
+      datastore: context.datastore
+    })
     const access = await Model.getAccessForUser({
       accessType: 'read',
-      user: req.user
+      user: context.user
     })
 
     if (access.isDenied()) {
-      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.user ? new ForbiddenError() : new UnauthorizedError()
     }
 
     const urlFieldSet = (req.url.getQueryParameter('fields', {
@@ -35,7 +37,7 @@ module.exports.get = async (req, res) => {
     const fieldSet = FieldSet.intersect(access.fields, urlFieldSet)
     const filter = req.url.getQueryParameter('filter', {isJSON: true})
     const query = QueryFilter.parse(filter, '$').intersectWith(access.filter)
-    const request = new JsonApiRequest(req)
+    const request = new JsonApiRequest(req, context)
     const {number: pageNumber, size: pageSize} =
       req.url.getQueryParameter('page', {
         isNumber: true
@@ -64,7 +66,6 @@ module.exports.get = async (req, res) => {
 
     res.status(statusCode).json(body)
   } catch (errors) {
-    console.log(errors)
     const {body, statusCode} = await JsonApiResponse.toObject({
       errors,
       url: req.url
@@ -74,7 +75,7 @@ module.exports.get = async (req, res) => {
   }
 }
 
-module.exports.post = async (req, res) => {
+module.exports.post = async (req, res, context) => {
   try {
     const modelName = req.url.getPathParameter('modelName')
     const schema = schemaStore.get(modelName, true)
@@ -83,17 +84,19 @@ module.exports.post = async (req, res) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema)
+    const Model = modelFactory(schema.name, schema, {
+      datastore: context.datastore
+    })
     const access = await Model.getAccessForUser({
       accessType: 'create',
-      user: req.user
+      user: context.user
     })
 
     if (access.isDenied()) {
-      throw req.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.user ? new ForbiddenError() : new UnauthorizedError()
     }
 
-    const request = new JsonApiRequest(req)
+    const request = new JsonApiRequest(req, context)
     const entryFields = await request.getEntryFieldsFromBody()
     const model = await Model.create({entryFields})
     const {body, statusCode} = await JsonApiResponse.toObject({
