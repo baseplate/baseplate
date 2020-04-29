@@ -3,19 +3,17 @@ const RouteRecognizer = require('route-recognizer')
 const createDatastore = require('../lib/datastore/factory')
 const endpointStore = require('../lib/endpointStore')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
+const modelFactory = require('../lib/modelFactory')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
 const patchContext = require('../lib/utils/patchContext')
 const requestResponseFactory = require('../lib/requestResponse/factory')
+const schemaStore = require('../lib/schemaStore')
 
 const router = new RouteRecognizer()
 
 endpointStore.endpoints.forEach(({handler, route}) => {
   router.add([{path: route, handler}])
 })
-
-router.add([{path: '/_user', handler: require('./user/user')}])
-router.add([{path: '/_users', handler: require('./user/users')}])
-router.add([{path: '/_users/token', handler: require('./user/token')}])
 
 router.add([{path: '/:modelName', handler: require('./rest/entries')}])
 router.add([{path: '/:modelName/:id', handler: require('./rest/entry')}])
@@ -32,15 +30,22 @@ router.add([
   }
 ])
 
-// modelStore.getAll({includeBaseUserModel: true}).forEach(Model => {
-//   if (typeof Model.getRoutes === 'function') {
-//     const routes = Model.getRoutes()
+schemaStore.getExtendedSchemas().forEach(schema => {
+  const Model = modelFactory(schema)
 
-//     Object.entries(routes).forEach(([path, handler]) => {
-//       router.add([{path: `/${Model.name}${path}`, handler}])
-//     })
-//   }
-// })
+  Object.entries(Model.routes).forEach(([path, handler]) => {
+    const boundHandlers = Object.keys(handler).reduce((boundHandlers, verb) => {
+      return {
+        ...boundHandlers,
+        [verb]: handler[verb].bind(Model)
+      }
+    }, {})
+
+    router.add([
+      {path: `/${Model.schema.plural}${path}`, handler: boundHandlers}
+    ])
+  })
+})
 
 module.exports.handler = (event, context, callback) => {
   patchContext(context)

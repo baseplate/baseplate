@@ -19,9 +19,7 @@ module.exports.get = async (req, res, context) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(modelName, schema, {
-      datastore: context.datastore
-    })
+    const Model = modelFactory(schema, {context})
     const access = await Model.getAccessForUser({
       accessType: 'read',
       user: context.user

@@ -36,9 +36,9 @@ module.exports.post = async (req, res) => {
     })
 
     const {username, password} = data
-    const Model = modelFactory('_user', UserSchema)
+    const Model = modelFactory(UserSchema)
     const user = await Model.findOne({
-      query: QueryFilter.parse({username})
+      filter: QueryFilter.parse({username})
     })
 
     if (!user) {

@@ -14,7 +14,7 @@ module.exports.get = async (req, res) => {
       throw new ForbiddenError()
     }
 
-    const Model = modelFactory('_user', UserSchema)
+    const Model = modelFactory(UserSchema)
     const fieldSet = (req.url.getQueryParameter('fields', {
       isCSV: true
     }) || {})['_user']

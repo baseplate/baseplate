@@ -19,9 +19,7 @@ module.exports.delete = async (req, res, context) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema, {
-      datastore: context.datastore
-    })
+    const Model = modelFactory(schema, {context})
     const access = await Model.getAccessForUser({
       accessType: 'delete',
       user: context.user
@@ -64,9 +62,7 @@ module.exports.get = async (req, res, context) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema, {
-      datastore: context.datastore
-    })
+    const Model = modelFactory(schema, {context})
     const access = await Model.getAccessForUser({
       accessType: 'read',
       user: context.user
@@ -131,9 +127,7 @@ module.exports.patch = async (req, res, context) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema, {
-      datastore: context.datastore
-    })
+    const Model = modelFactory(schema, {context})
     const access = await Model.getAccessForUser({
       accessType: 'update',
       user: context.user

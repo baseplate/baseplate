@@ -1,7 +1,7 @@
 const graphql = require('graphql')
 
 const createDatastore = require('../lib/datastore/factory')
-const GraphQLModel = require('../lib/specs/graphql/model')
+const extendModelWithGraphQL = require('../lib/specs/graphql/extendModel')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
 const graphQLSchemaStore = require('../lib/specs/graphql/schemaStore')
 const modelFactory = require('../lib/modelFactory')
@@ -11,13 +11,14 @@ const schemas = graphQLSchemaStore.getAll()
 
 module.exports.post = async event => {
   const authTokenData = parseAuthorizationHeader(event.headers.Authorization)
-  const user = getUserFromToken(authTokenData)
-  const datastore = createDatastore()
+  const context = {
+    datastore: createDatastore(),
+    user: getUserFromToken(authTokenData)
+  }
   const models = Object.values(schemas).map(schema => {
-    return modelFactory(schema.name, schema, {
-      datastore,
-      ParentClass: GraphQLModel
-    })
+    const Model = modelFactory(schema, {context})
+
+    return extendModelWithGraphQL(Model)
   })
   const queries = models.reduce(
     (result, Model) => ({
@@ -45,10 +46,7 @@ module.exports.post = async event => {
   })
   const body = JSON.parse(event.body)
   const result = await graphql.graphql({
-    contextValue: {
-      datastore,
-      user
-    },
+    contextValue: context,
     schema,
     source: body.query,
     variableValues: body.variables

@@ -18,9 +18,7 @@ module.exports.get = async (req, res, context) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(modelName, schema, {
-      datastore: context.datastore
-    })
+    const Model = modelFactory(schema, {context})
     const access = await Model.getAccessForUser({
       accessType: 'read',
       user: context.user
@@ -51,7 +49,7 @@ module.exports.get = async (req, res, context) => {
     const referenceArray = isReferenceArray ? fieldValue : [fieldValue]
     const referenceEntries = referenceArray.map(({_id, _type}) => {
       const referencedSchema = schemaStore.get(_type)
-      const ReferenceModel = modelFactory(_type, referencedSchema)
+      const ReferenceModel = modelFactory(referencedSchema, {context})
 
       return new ReferenceModel({_id})
     })

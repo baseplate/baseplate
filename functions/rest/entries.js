@@ -19,9 +19,7 @@ module.exports.get = async (req, res, context) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema, {
-      datastore: context.datastore
-    })
+    const Model = modelFactory(schema, {context})
     const access = await Model.getAccessForUser({
       accessType: 'read',
       user: context.user
@@ -84,9 +82,7 @@ module.exports.post = async (req, res, context) => {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Model = modelFactory(schema.name, schema, {
-      datastore: context.datastore
-    })
+    const Model = modelFactory(schema, {context})
     const access = await Model.getAccessForUser({
       accessType: 'create',
       user: context.user
