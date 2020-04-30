@@ -21,10 +21,32 @@
    npm run dev
    ```
 
-1. Access sample model
+1. Create a user
+
+   ```sh
+   BASEPLATE_ACCESS_LEVEL=admin BASEPLATE_USERNAME=<your-username> BASEPLATE_PASSWORD=<your-password> node scripts/createUser.js
+   ```
+
+1. Obtain an access token for the user you've just created
+
+   ```sh
+   POST http://localhost:3000/_users/token
+
+   {
+      "grant_type": "password",
+      "username": "<your-username>",
+      "password": "<your-password>"
+   }
+   ```
+
+1. Grab the access token in the `access_token` field from the response
+
+1. Access sample model, passing the access token in the `Authorization` header
 
    ```
    GET http://localhost:3000/book
+
+   Authorization: Bearer <your-access-token>
    ```
 
 ## Contributing

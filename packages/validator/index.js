@@ -104,7 +104,8 @@ class Validator {
       if (
         fieldName === '_id' ||
         ignoreFields.includes(fieldName) ||
-        (fieldName[0] === '_' && !validateMetaFields)
+        (fieldName[0] === '_' && !validateMetaFields) ||
+        object[fieldName] === undefined
       ) {
         return result
       }
