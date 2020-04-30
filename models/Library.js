@@ -1,6 +1,5 @@
 module.exports = {
   fields: {
-    _updatedAt: Number,
     name: {
       type: String,
       required: true,
