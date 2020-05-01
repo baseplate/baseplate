@@ -22,7 +22,7 @@
     ]
   },
   "rest": {
-    "handler": "functions/router.handler",
+    "handler": "functions/rest.handler",
     "events": [
       {
         "http": {
