@@ -3,31 +3,29 @@ const graphql = require('graphql')
 const createDatastore = require('../lib/datastore/factory')
 const extendModelWithGraphQL = require('../lib/specs/graphql/extendModel')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
-const graphQLSchemaStore = require('../lib/specs/graphql/schemaStore')
-const modelFactory = require('../lib/modelFactory')
+const modelStore = require('../lib/specs/graphql/modelStore')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
+const userInternalSchema = require('../lib/internalSchemas/user')
 
-const schemas = graphQLSchemaStore.getAll()
+modelStore.add(userInternalSchema, {loadFieldHandlers: true})
 
 module.exports.post = async event => {
   const authTokenData = parseAuthorizationHeader(event.headers.Authorization)
   const context = {
     datastore: createDatastore(),
-    user: getUserFromToken(authTokenData)
+    user: getUserFromToken(authTokenData, modelStore)
   }
-  const models = Object.values(schemas).map(schema => {
-    const Model = modelFactory(schema, {context})
-
+  const modelsWithGraphQL = modelStore.getAll().map(Model => {
     return extendModelWithGraphQL(Model)
   })
-  const queries = models.reduce(
+  const queries = modelsWithGraphQL.reduce(
     (result, Model) => ({
       ...result,
       ...Model.getGraphQLQueries()
     }),
     {}
   )
-  const mutations = models.reduce(
+  const mutations = modelsWithGraphQL.reduce(
     (result, Model) => ({
       ...result,
       ...Model.getGraphQLMutations()

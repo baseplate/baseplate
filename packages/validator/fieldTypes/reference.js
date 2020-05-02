@@ -1,8 +1,9 @@
 const {CastError, FieldValidationError} = require('../validation-errors')
 
 class ValidatorTypeReference {
-  constructor({options, schemas, subType}) {
+  constructor({modelStore, options, schemas, subType}) {
     this.modelNames = Array.isArray(subType) ? subType : [subType]
+    this.modelStore = modelStore
     this.options = options
     this.schemas = schemas
   }

@@ -1,7 +1,6 @@
-const modelFactory = require('../lib/modelFactory')
-const schemaStore = require('../lib/schemaStore')
+const modelStore = require('../lib/modelStore')
 
-const User = modelFactory(schemaStore.get('_user'))
+const User = modelStore.get('_user')
 const newUser = new User({
   accessLevel: process.env.BASEPLATE_ACCESS_LEVEL,
   username: process.env.BASEPLATE_USERNAME,
@@ -10,7 +9,7 @@ const newUser = new User({
 
 newUser
   .save()
-  .then(response => {
+  .then(() => {
     console.log('Done!')
 
     process.exit(0)
