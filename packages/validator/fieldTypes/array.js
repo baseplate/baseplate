@@ -1,4 +1,4 @@
-const {CastError, FieldValidationError} = require('../validation-errors')
+const {CastError, FieldValidationError} = require('../validationErrors')
 
 class ValidatorTypeArray {
   constructor({children, options, validator}) {

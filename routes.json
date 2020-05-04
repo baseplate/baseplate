@@ -31,5 +31,16 @@
         }
       }
     ]
+  },
+  "setup": {
+    "handler": "functions/setup.handler",
+    "events": [
+      {
+        "http": {
+          "method": "post",
+          "path": "_setup"
+        }
+      }
+    ]
   }
 }

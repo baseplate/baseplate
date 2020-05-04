@@ -1,4 +1,6 @@
-class CastError extends Error {
+class CustomError extends Error {}
+
+class CastError extends CustomError {
   constructor({path, type, value}) {
     const pathStr = path.join('.')
     const valueStr = value.toString()
@@ -14,7 +16,7 @@ class CastError extends Error {
   }
 }
 
-class EntryValidationError extends Error {
+class EntryValidationError extends CustomError {
   constructor({fieldErrors, path}) {
     super('Entry validation error')
 
@@ -24,7 +26,7 @@ class EntryValidationError extends Error {
   }
 }
 
-class FieldValidationError extends Error {
+class FieldValidationError extends CustomError {
   constructor({
     detail,
     expected,
@@ -65,6 +67,7 @@ class FieldValidationError extends Error {
 
 module.exports = {
   CastError,
+  CustomError,
   EntryValidationError,
   FieldValidationError
 }
