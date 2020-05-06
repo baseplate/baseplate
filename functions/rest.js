@@ -67,11 +67,7 @@ router.add([
         return require('../lib/specs/jsonApi/controllers/findResource')
       }
 
-      if (
-        Model &&
-        method === 'update' &&
-        !Model.disableUpdateResourceEndpoint
-      ) {
+      if (Model && method === 'patch' && !Model.disableUpdateResourceEndpoint) {
         return require('../lib/specs/jsonApi/controllers/updateResource')
       }
     }

@@ -10,9 +10,9 @@ const modelStore = require('../lib/modelStore')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
 const patchContext = require('../lib/utils/patchContext')
 const requestResponseFactory = require('../lib/requestResponse/factory')
-const userInternalSchema = require('../lib/internalSchemas/user')
+const userInternalModel = require('../lib/internalModels/user')
 
-modelStore.add(userInternalSchema, {loadFieldHandlers: true})
+modelStore.add(userInternalModel, {loadFieldHandlers: true})
 
 async function setupController(req, res, context) {
   try {
@@ -33,11 +33,7 @@ async function setupController(req, res, context) {
 
       return Model
     })
-    const result = await Promise.all(
-      models.map(Model => {
-        return typeof Model.setup === 'function' ? Model.setup() : null
-      })
-    )
+    const result = await Promise.all(models.map(Model => Model.setup()))
 
     res.status(200).json({data: result})
   } catch (errors) {
