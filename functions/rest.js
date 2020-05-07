@@ -9,15 +9,6 @@ const requestResponseFactory = require('../lib/requestResponse/factory')
 const modelStore = require('../lib/modelStore/')
 
 const router = new RouteRecognizer()
-const internalModels = [
-  require('../lib/internalModels/model'),
-  require('../lib/internalModels/user'),
-  require('../lib/internalModels/modelAccess')
-]
-
-internalModels.forEach(Model => {
-  modelStore.add(Model, {loadFieldHandlers: true})
-})
 
 endpointStore.endpoints.forEach(({handler, route}) => {
   router.add([

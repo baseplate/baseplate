@@ -6,16 +6,6 @@ const getUserFromToken = require('../lib/acl/getUserFromToken')
 const modelStore = require('../lib/specs/graphql/modelStore')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
 
-const internalModels = [
-  require('../lib/internalModels/model'),
-  require('../lib/internalModels/user'),
-  require('../lib/internalModels/modelAccess')
-]
-
-internalModels.forEach(Model => {
-  modelStore.add(Model, {loadFieldHandlers: true})
-})
-
 module.exports.post = async event => {
   const authTokenData = parseAuthorizationHeader(event.headers.Authorization)
   const context = {
