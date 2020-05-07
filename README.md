@@ -22,8 +22,6 @@ There are two existing users with different access levels:
    npm install
    ```
 
-1. Edit database details in [`lib/datastore/index.js`](https://github.com/baseplatejs/core/blob/master/lib/datastore/index.js#L4-L5)
-
 1. Run development server
 
    ```sh
