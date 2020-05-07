@@ -7,13 +7,18 @@ const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
 const patchContext = require('../lib/utils/patchContext')
 const requestResponseFactory = require('../lib/requestResponse/factory')
 const modelStore = require('../lib/modelStore/')
-const schemaInternalSchema = require('../lib/internalSchemas/schema')
-const userInternalSchema = require('../lib/internalSchemas/user')
+
+const INTERNAL_MODELS = [
+  require('../lib/internalModels/model'),
+  require('../lib/internalModels/user'),
+  require('../lib/internalModels/modelAccess')
+]
 
 const router = new RouteRecognizer()
 
-modelStore.add(schemaInternalSchema, {loadFieldHandlers: true})
-modelStore.add(userInternalSchema, {loadFieldHandlers: true})
+INTERNAL_MODELS.forEach(Model => {
+  modelStore.add(Model, {loadFieldHandlers: true})
+})
 
 endpointStore.endpoints.forEach(({handler, route}) => {
   router.add([
@@ -34,11 +39,11 @@ router.add([
     handler: (method, params) => {
       const Model = modelStore.get(params.modelName, {isPlural: true})
 
-      if (method === 'get' && !Model.disableFindResourcesEndpoint) {
+      if (Model && method === 'get' && !Model.disableFindResourcesEndpoint) {
         return require('../lib/specs/jsonApi/controllers/findResources')
       }
 
-      if (method === 'post' && !Model.disableCreateResourceEndpoint) {
+      if (Model && method === 'post' && !Model.disableCreateResourceEndpoint) {
         return require('../lib/specs/jsonApi/controllers/createResource')
       }
     }
@@ -50,15 +55,19 @@ router.add([
     handler: (method, params) => {
       const Model = modelStore.get(params.modelName, {isPlural: true})
 
-      if (method === 'delete' && !Model.disableDeleteResourceEndpoint) {
+      if (
+        Model &&
+        method === 'delete' &&
+        !Model.disableDeleteResourceEndpoint
+      ) {
         return require('../lib/specs/jsonApi/controllers/deleteResource')
       }
 
-      if (method === 'get' && !Model.disableFindResourceEndpoint) {
+      if (Model && method === 'get' && !Model.disableFindResourceEndpoint) {
         return require('../lib/specs/jsonApi/controllers/findResource')
       }
 
-      if (method === 'update' && !Model.disableUpdateResourceEndpoint) {
+      if (Model && method === 'patch' && !Model.disableUpdateResourceEndpoint) {
         return require('../lib/specs/jsonApi/controllers/updateResource')
       }
     }
@@ -70,7 +79,11 @@ router.add([
     handler: (method, params) => {
       const Model = modelStore.get(params.modelName, {isPlural: true})
 
-      if (method === 'get' && !Model.disableFindResourceFieldEndpoint) {
+      if (
+        Model &&
+        method === 'get' &&
+        !Model.disableFindResourceFieldEndpoint
+      ) {
         return require('../lib/specs/jsonApi/controllers/findResourceField')
       }
     }
@@ -96,7 +109,7 @@ modelStore.models.forEach(Model => {
   Object.entries(Model.customRoutes || {}).forEach(([path, customRoute]) => {
     router.add([
       {
-        path: `/${Model.schema.plural}${path}`,
+        path,
         handler: (method, _, context) => {
           if (typeof customRoute[method] !== 'function') {
             return

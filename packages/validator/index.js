@@ -1,22 +1,8 @@
 const {
   EntryValidationError,
-  FieldValidationError,
-  InvalidQueryFilterParameterError,
-  InvalidQueryFilterError
-} = require('./validation-errors')
+  FieldValidationError
+} = require('./validationErrors')
 const types = require('./fieldTypes')
-
-const COMPARISON_OPERATORS = [
-  '$eq',
-  '$gt',
-  '$gte',
-  '$in',
-  '$lt',
-  '$lte',
-  '$ne',
-  '$nin'
-]
-const LOGICAL_OPERATORS = ['$and', '$not', '$nor', '$or']
 
 class Validator {
   static validateField({field, path, value}) {
@@ -185,64 +171,6 @@ class Validator {
     }
 
     return validatedObject
-  }
-
-  static validateQuery({query}) {
-    if (query.toString() !== '[object Object]') {
-      throw new InvalidQueryFilterError()
-    }
-
-    const fieldErrors = Object.entries(query).reduce(
-      (errors, [fieldName, value]) => {
-        if (fieldName[0] === '$') {
-          throw new InvalidQueryFilterParameterError({
-            path: [fieldName],
-            value
-          })
-        }
-
-        try {
-          this.validateQueryField({
-            fieldName,
-            path: [fieldName],
-            value
-          })
-
-          return errors
-        } catch (error) {
-          return errors.concat(error)
-        }
-      },
-      []
-    )
-
-    if (fieldErrors.length > 0) {
-      throw new InvalidQueryFilterError({fieldErrors})
-    }
-
-    return query
-  }
-
-  static validateQueryField({fieldName, path, value}) {
-    if (value.toString() !== '[object Object]') {
-      return value
-    }
-
-    if (Object.keys(value).length > 1) {
-      throw new InvalidQueryFilterParameterError({
-        path,
-        value
-      })
-    }
-
-    const operator = Object.keys(value)[0]
-
-    if (LOGICAL_OPERATORS.includes(operator)) {
-      return this.validateQueryField
-    }
-
-    if (COMPARISON_OPERATORS.includes(operator)) {
-    }
   }
 }
 

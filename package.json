@@ -9,12 +9,15 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "aws-sdk": "^2.670.0",
     "bcrypt": "^4.0.1",
     "graphql": "^14.6.0",
     "inflected": "^2.0.4",
     "jsonwebtoken": "^8.5.1",
     "mongo": "^0.1.0",
-    "route-recognizer": "^0.3.4"
+    "pg": "^8.0.3",
+    "route-recognizer": "^0.3.4",
+    "uuid": "^8.0.0"
   },
   "devDependencies": {
     "@eduardoboucas/eslint-config": "^1.1.0",
