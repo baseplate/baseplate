@@ -8,17 +8,7 @@ const patchContext = require('../lib/utils/patchContext')
 const requestResponseFactory = require('../lib/requestResponse/factory')
 const modelStore = require('../lib/modelStore/')
 
-const INTERNAL_MODELS = [
-  require('../lib/internalModels/model'),
-  require('../lib/internalModels/user'),
-  require('../lib/internalModels/modelAccess')
-]
-
 const router = new RouteRecognizer()
-
-INTERNAL_MODELS.forEach(Model => {
-  modelStore.add(Model, {loadFieldHandlers: true})
-})
 
 endpointStore.endpoints.forEach(({handler, route}) => {
   router.add([
