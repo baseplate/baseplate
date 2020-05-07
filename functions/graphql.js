@@ -5,9 +5,16 @@ const extendModelWithGraphQL = require('../lib/specs/graphql/extendModel')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
 const modelStore = require('../lib/specs/graphql/modelStore')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
-const userInternalModel = require('../lib/internalModels/user')
 
-modelStore.add(userInternalModel, {loadFieldHandlers: true})
+const internalModels = [
+  require('../lib/internalModels/model'),
+  require('../lib/internalModels/user'),
+  require('../lib/internalModels/modelAccess')
+]
+
+internalModels.forEach(Model => {
+  modelStore.add(Model, {loadFieldHandlers: true})
+})
 
 module.exports.post = async event => {
   const authTokenData = parseAuthorizationHeader(event.headers.Authorization)
@@ -15,8 +22,9 @@ module.exports.post = async event => {
     datastore: createDatastore(),
     user: getUserFromToken(authTokenData, modelStore)
   }
+  const Access = modelStore.get('base_modelAccess', {context})
   const modelsWithGraphQL = modelStore.getAll().map(Model => {
-    return extendModelWithGraphQL(Model)
+    return extendModelWithGraphQL({Access, Model})
   })
   const queries = modelsWithGraphQL.reduce(
     (result, Model) => ({
