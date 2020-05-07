@@ -5,9 +5,9 @@ const extendModelWithGraphQL = require('../lib/specs/graphql/extendModel')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
 const modelStore = require('../lib/specs/graphql/modelStore')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
-const userInternalSchema = require('../lib/internalSchemas/user')
+const userInternalModel = require('../lib/internalModels/user')
 
-modelStore.add(userInternalSchema, {loadFieldHandlers: true})
+modelStore.add(userInternalModel, {loadFieldHandlers: true})
 
 module.exports.post = async event => {
   const authTokenData = parseAuthorizationHeader(event.headers.Authorization)

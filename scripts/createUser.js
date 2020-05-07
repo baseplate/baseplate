@@ -1,6 +1,15 @@
-const modelStore = require('../lib/modelStore')
+const config = require('../serverless.json')
 
-const User = modelStore.get('_user')
+Object.entries(config.provider.environment).forEach(([key, value]) => {
+  process.env[key] = value
+})
+
+const modelStore = require('../lib/modelStore')
+const userInternalModel = require('../lib/internalModels/user')
+
+modelStore.add(userInternalModel, {loadFieldHandlers: true})
+
+const User = modelStore.get('base_user')
 const newUser = new User({
   accessLevel: process.env.BASEPLATE_ACCESS_LEVEL,
   username: process.env.BASEPLATE_USERNAME,

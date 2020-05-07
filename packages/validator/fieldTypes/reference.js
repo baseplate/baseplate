@@ -13,7 +13,9 @@ class ValidatorTypeReference {
 
     const normalizedValue = Array.isArray(value) ? value : [value]
     const isValid = normalizedValue.every(({_id, _type}) => {
-      return _id && _id instanceof String && _type && typeof _type === 'string'
+      return (
+        _id && typeof _id === 'string' && _type && typeof _type === 'string'
+      )
     })
 
     if (!isValid) {
