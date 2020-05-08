@@ -16,20 +16,18 @@ module.exports.post = async event => {
   const modelsWithGraphQL = modelStore.getAll().map(Model => {
     return extendModelWithGraphQL({Access, Model})
   })
-  const queries = modelsWithGraphQL.reduce(
-    (result, Model) => ({
-      ...result,
+  const queries = modelsWithGraphQL.reduce((queries, Model) => {
+    return {
+      ...queries,
       ...Model.getGraphQLQueries()
-    }),
-    {}
-  )
-  const mutations = modelsWithGraphQL.reduce(
-    (result, Model) => ({
+    }
+  }, {})
+  const mutations = modelsWithGraphQL.reduce((result, Model) => {
+    return {
       ...result,
       ...Model.getGraphQLMutations()
-    }),
-    {}
-  )
+    }
+  }, {})
   const schema = new graphql.GraphQLSchema({
     query: new graphql.GraphQLObjectType({
       name: 'Query',

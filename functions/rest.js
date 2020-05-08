@@ -29,11 +29,11 @@ router.add([
     handler: (method, params) => {
       const Model = modelStore.get(params.modelName, {isPlural: true})
 
-      if (Model && method === 'get' && !Model.disableFindResourcesEndpoint) {
+      if (Model && method === 'get' && Model.restRoutes.fetchResources) {
         return require('../lib/specs/jsonApi/controllers/findResources')
       }
 
-      if (Model && method === 'post' && !Model.disableCreateResourceEndpoint) {
+      if (Model && method === 'post' && Model.restRoutes.createResource) {
         return require('../lib/specs/jsonApi/controllers/createResource')
       }
     }
@@ -45,19 +45,15 @@ router.add([
     handler: (method, params) => {
       const Model = modelStore.get(params.modelName, {isPlural: true})
 
-      if (
-        Model &&
-        method === 'delete' &&
-        !Model.disableDeleteResourceEndpoint
-      ) {
+      if (Model && method === 'delete' && Model.restRoutes.deleteResource) {
         return require('../lib/specs/jsonApi/controllers/deleteResource')
       }
 
-      if (Model && method === 'get' && !Model.disableFindResourceEndpoint) {
+      if (Model && method === 'get' && Model.restRoutes.fetchResource) {
         return require('../lib/specs/jsonApi/controllers/findResource')
       }
 
-      if (Model && method === 'patch' && !Model.disableUpdateResourceEndpoint) {
+      if (Model && method === 'patch' && Model.restRoutes.updateResource) {
         return require('../lib/specs/jsonApi/controllers/updateResource')
       }
     }
@@ -69,11 +65,7 @@ router.add([
     handler: (method, params) => {
       const Model = modelStore.get(params.modelName, {isPlural: true})
 
-      if (
-        Model &&
-        method === 'get' &&
-        !Model.disableFindResourceFieldEndpoint
-      ) {
+      if (Model && method === 'get' && Model.restRoutes.fetchResourceField) {
         return require('../lib/specs/jsonApi/controllers/findResourceField')
       }
     }
@@ -85,10 +77,7 @@ router.add([
     handler: (method, params) => {
       const Model = modelStore.get(params.modelName, {isPlural: true})
 
-      if (
-        method === 'get' &&
-        !Model.disableFindResourceFieldRelationshipEndpoint
-      ) {
+      if (method === 'get' && Model.restRoutes.fetchResourceFieldRelationship) {
         return require('../lib/specs/jsonApi/controllers/findResourceFieldRelationship')
       }
     }
