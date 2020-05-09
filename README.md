@@ -3,6 +3,7 @@
 ## Prerequisites
 
 - [Node.js](https://nodejs.org/en/download/) and npm
+- [Serverless](https://github.com/serverless/serverless)
 - (Optional) A [MongoDB database](https://docs.mongodb.com/manual/installation/) if you want to run your database locally. Alternatively, you can use the self-hosted, development database for testing purposes. Read below for more details.
 
 ## Development database
