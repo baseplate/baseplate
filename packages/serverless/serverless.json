@@ -1,0 +1,19 @@
+{
+  "org": "eduardoboucas",
+  "app": "baseplate-core",
+  "service": "baseplate-core",
+  "provider": {
+    "name": "aws",
+    "runtime": "nodejs12.x",
+    "timeout": 25,
+    "environment": {
+      "DATA_API_DATABASE_NAME": "baseplate_dev",
+      "DATA_API_RESOURCE_ARN": "arn:aws:rds:us-east-1:304679938908:cluster:baseplate-dev",
+      "DATA_API_SECRET_ARN": "arn:aws:secretsmanager:us-east-1:304679938908:secret:rds-db-credentials/cluster-Q3BM65OJGRAGOYI6HJJWMDJZJE/baseplate-nlxSEK",
+      "DATABASE_PACKAGE": "../../../postgres/",
+      "IS_LOCAL": "true"
+    }
+  },
+  "functions": "${file(./routes.json)}",
+  "plugins": ["serverless-offline"]
+}

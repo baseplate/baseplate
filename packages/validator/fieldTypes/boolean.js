@@ -1,4 +1,4 @@
-const {CastError} = require('../validationErrors')
+const {CastError} = require('../errors')
 
 class ValidatorTypeBoolean {
   constructor({options}) {

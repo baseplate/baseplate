@@ -1,33 +1,17 @@
 {
-  "name": "baseplate-core",
+  "name": "baseplate",
   "version": "1.0.0",
-  "description": "",
   "scripts": {
-    "dev": "nodemon --exec serverless offline start --skipCacheInvalidation",
     "format": "eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}'"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "aws-sdk": "^2.670.0",
-    "bcrypt": "^4.0.1",
-    "graphql": "^14.6.0",
-    "inflected": "^2.0.4",
-    "jsonwebtoken": "^8.5.1",
-    "mongo": "^0.1.0",
-    "pg": "^8.0.3",
-    "route-recognizer": "^0.3.4",
-    "uuid": "^8.0.0"
   },
   "devDependencies": {
     "@eduardoboucas/eslint-config": "^1.1.0",
     "@eduardoboucas/prettier-config": "^1.1.0",
     "eslint": "^6.7.0",
     "husky": "^3.1.0",
+    "lerna": "^3.21.0",
     "lint-staged": "^9.4.3",
-    "nodemon": "^2.0.2",
-    "prettier": "^1.19.1",
-    "serverless-offline": "^5.12.0"
+    "prettier": "^1.19.1"
   },
   "husky": {
     "hooks": {
@@ -39,5 +23,6 @@
       "prettier --write",
       "git add"
     ]
-  }
+  },
+  "dependencies": {}
 }
