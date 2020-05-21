@@ -1,7 +1,4 @@
-const {
-  EntryValidationError,
-  FieldValidationError
-} = require('./validationErrors')
+const {EntryValidationError, FieldValidationError} = require('./errors')
 const types = require('./fieldTypes')
 
 class Validator {

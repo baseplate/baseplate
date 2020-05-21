@@ -1,0 +1,17 @@
+{
+  "name": "@baseplate/server",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "watch": "nodemon --watch ../core --watch ../validator index.js"
+  },
+  "directories": {
+    "lib": "lib"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0"
+  }
+}

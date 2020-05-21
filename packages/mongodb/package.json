@@ -1,0 +1,8 @@
+{
+  "name": "@baseplate/mongodb",
+  "version": "1.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "mongodb": "^3.5.7"
+  }
+}

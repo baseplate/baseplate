@@ -1,0 +1,16 @@
+{
+  "name": "@baseplate/core",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "graphql": "^14.6.0",
+    "inflected": "^2.0.4",
+    "jsonwebtoken": "^8.5.1",
+    "route-recognizer": "^0.3.4",
+    "uuid": "^8.0.0"
+  }
+}

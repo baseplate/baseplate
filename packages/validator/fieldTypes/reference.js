@@ -1,4 +1,4 @@
-const {CastError, FieldValidationError} = require('../validationErrors')
+const {CastError, FieldValidationError} = require('../errors')
 
 class ValidatorTypeReference {
   constructor({modelStore, options, schemas, subType}) {
