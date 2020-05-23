@@ -12,10 +12,8 @@ class ValidatorTypeReference {
     if (!value) return value
 
     const normalizedValue = Array.isArray(value) ? value : [value]
-    const isValid = normalizedValue.every(({_id, _type}) => {
-      return (
-        _id && typeof _id === 'string' && _type && typeof _type === 'string'
-      )
+    const isValid = normalizedValue.every(({id, type}) => {
+      return id && typeof id === 'string' && type && typeof type === 'string'
     })
 
     if (!isValid) {
@@ -27,8 +25,8 @@ class ValidatorTypeReference {
 
   validate({path, value}) {
     const normalizedValue = Array.isArray(value) ? value : [value]
-    const isValid = normalizedValue.every(({_type}) =>
-      this.modelNames.includes(_type)
+    const isValid = normalizedValue.every(({type}) =>
+      this.modelNames.includes(type)
     )
 
     if (!isValid) {

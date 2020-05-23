@@ -71,8 +71,8 @@ class JsonApiResponse {
         : [this.relationships]
       const formattedRelationships = relationshipsArray.map(entry =>
         this.formatRelationshipObject({
-          _id: entry.id,
-          _type: entry.constructor.name
+          id: entry.id,
+          type: entry.constructor.name
         })
       )
 
@@ -225,8 +225,8 @@ class JsonApiResponse {
 
   formatRelationshipObject(object) {
     const result = {
-      type: object._type,
-      id: object._id
+      type: object.type,
+      id: object.id
     }
 
     return result

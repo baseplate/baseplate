@@ -29,51 +29,49 @@ class GraphQLTypeReference extends TypeReference {
       const referencesArray = Array.isArray(references)
         ? references
         : [references]
-      const referenceModels = referencesArray.map(
-        async ({_id: id, _type: type}) => {
-          if (
-            !id ||
-            !type ||
-            typeof id !== 'string' ||
-            typeof type !== 'string'
-          ) {
-            return null
-          }
-
-          const referenceSchema = this.schemas.find(
-            schema => schema.name === type
-          )
-
-          if (!referenceSchema) {
-            return null
-          }
-
-          const Access = this.modelStore.get('base_modelAccess', {context})
-          const access = await Access.getAccess({
-            accessType: 'create',
-            modelName: referenceSchema.name,
-            user: context.user
-          })
-
-          if (access.toObject() === false) {
-            return null
-          }
-
-          const ReferencedModel = this.modelStore.get(referenceSchema.name, {
-            context
-          })
-          const ReferencedGraphQLModel = getGraphQLModel({
-            Access,
-            Model: ReferencedModel
-          })
-
-          return ReferencedGraphQLModel.findOneById({
-            fieldSet: access.fields,
-            filter: access.filter,
-            id
-          })
+      const referenceModels = referencesArray.map(async ({id, type}) => {
+        if (
+          !id ||
+          !type ||
+          typeof id !== 'string' ||
+          typeof type !== 'string'
+        ) {
+          return null
         }
-      )
+
+        const referenceSchema = this.schemas.find(
+          schema => schema.name === type
+        )
+
+        if (!referenceSchema) {
+          return null
+        }
+
+        const Access = this.modelStore.get('base_modelAccess', {context})
+        const access = await Access.getAccess({
+          accessType: 'create',
+          modelName: referenceSchema.name,
+          user: context.user
+        })
+
+        if (access.toObject() === false) {
+          return null
+        }
+
+        const ReferencedModel = this.modelStore.get(referenceSchema.name, {
+          context
+        })
+        const ReferencedGraphQLModel = getGraphQLModel({
+          Access,
+          Model: ReferencedModel
+        })
+
+        return ReferencedGraphQLModel.findOneById({
+          fieldSet: access.fields,
+          filter: access.filter,
+          id
+        })
+      })
       const entries = await Promise.all(referenceModels)
       const objects = entries
         .filter(Boolean)

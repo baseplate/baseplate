@@ -47,8 +47,8 @@ class JsonApiRequest {
 
   castRelationshipObject(object) {
     const result = {
-      _id: object.id,
-      _type: object.type
+      id: object.id,
+      type: object.type
     }
 
     return result
@@ -164,10 +164,10 @@ class JsonApiRequest {
     const fieldValue = entry.get(fieldName)
     const isReferenceArray = Array.isArray(fieldValue)
     const referenceArray = isReferenceArray ? fieldValue : [fieldValue]
-    const referenceEntries = referenceArray.map(({_id, _type}) => {
-      const ReferenceModel = Model.store.get(_type, {context: this.context})
+    const referenceEntries = referenceArray.map(({id, type}) => {
+      const ReferenceModel = Model.store.get(type, {context: this.context})
 
-      return new ReferenceModel({_id})
+      return new ReferenceModel({_id: id})
     })
 
     return JsonApiResponse.toObject({
@@ -245,7 +245,7 @@ class JsonApiRequest {
     const isArrayValue = Array.isArray(fieldValue)
     const queue = (isArrayValue ? fieldValue : [fieldValue])
       .filter(Boolean)
-      .map(async ({_id: id, _type: type}) => {
+      .map(async ({id, type}) => {
         const ReferencedModel = modelStore.get(type, {
           context: this.context
         })

@@ -45,7 +45,7 @@ class PostgreSQLStore {
     const fieldPath = fieldName.split('.')
 
     if (fieldPath.length > 1) {
-      return `data#>'{${fieldPath.join(',')}}'`
+      return `data#>>'{${fieldPath.join(',')}}'`
     }
 
     return `data->>'${fieldPath[0]}'`

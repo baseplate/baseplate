@@ -215,7 +215,7 @@ class base_access extends Model {
       return 'public'
     }
 
-    return `${user._type}_${user._id}`
+    return `${user.type}_${user.id}`
   }
 
   static async getAccess({
@@ -252,8 +252,8 @@ class base_access extends Model {
 
     if (user) {
       const userFilter = QueryFilter.parse({
-        'user._id': user.id,
-        'user._type': user.constructor.name
+        'user.id': user.id,
+        'user.type': user.constructor.name
       })
 
       filter = filter ? filter.uniteWith(userFilter) : userFilter
@@ -285,8 +285,8 @@ class base_access extends Model {
 
     if (user) {
       const userQuery = {
-        'user._id': user.id,
-        'user._type': user.constructor.name
+        'user.id': user.id,
+        'user.type': user.constructor.name
       }
 
       filter.intersectWith(QueryFilter.parse(userQuery))
