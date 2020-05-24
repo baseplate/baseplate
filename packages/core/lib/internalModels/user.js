@@ -97,7 +97,7 @@ const tokenEndpointSchema = new Schema({
 })
 
 BaseUser.customRoutes = {
-  '/BaseUsers/token': {
+  '/base_users/token': {
     async post(req, res, context) {
       try {
         const data = req.body
