@@ -1,47 +1,44 @@
 const {EntryNotFoundError} = require('../errors')
 const Model = require('../model')
 
-class base_model extends Model {
-  static async find() {
-    const schemas = this.store
-      .getAll({context: this.context})
-      .map(async Model => {
-        if (Model.isBaseModel) {
-          return
-        }
+class BaseModel extends Model {
+  static async find({context}) {
+    const schemas = this.store.getAll().map(async Model => {
+      if (Model.isBaseModel) {
+        return
+      }
 
-        const Access = this.store.get('base_access', {
-          context: this.context
-        })
-        const access = await Access.getAccess({
-          accessType: 'create',
-          modelName: Model.name,
-          user: this.context.user
-        })
-
-        if (access.toObject() === false) {
-          return
-        }
-
-        const fields = Object.keys(Model.schema.fields).reduce(
-          (allowedFields, fieldName) => {
-            if (access.fields && !access.fields.includes(fieldName)) {
-              return allowedFields
-            }
-
-            return {
-              ...allowedFields,
-              [fieldName]: Model.schema.fields[fieldName]
-            }
-          },
-          {}
-        )
-
-        return new this({
-          _id: Model.name,
-          fields
-        })
+      const Access = this.store.get('base_access')
+      const access = await Access.getAccess({
+        accessType: 'create',
+        context,
+        modelName: Model.handle,
+        user: context.user
       })
+
+      if (access.toObject() === false) {
+        return
+      }
+
+      const fields = Object.keys(Model.schema.fields).reduce(
+        (allowedFields, fieldName) => {
+          if (access.fields && !access.fields.includes(fieldName)) {
+            return allowedFields
+          }
+
+          return {
+            ...allowedFields,
+            [fieldName]: Model.schema.fields[fieldName]
+          }
+        },
+        {}
+      )
+
+      return new this({
+        _id: Model.handle,
+        fields
+      })
+    })
     const entries = await Promise.all(schemas)
 
     return {entries: entries.filter(Boolean), totalPages: 1}
@@ -54,17 +51,19 @@ class base_model extends Model {
       throw new EntryNotFoundError({id})
     }
 
-    return new this({_id: Model.name, fields: Model.schema.fields})
+    return new this({_id: Model.handle, fields: Model.schema.fields})
   }
 }
 
-base_model.restRoutes = {
-  fetchResource: true,
-  fetchResources: true
-}
-
-base_model.fields = {
+BaseModel.fields = {
   fields: 'Mixed'
 }
 
-module.exports = base_model
+BaseModel.handle = 'base_model'
+
+BaseModel.interfaces = {
+  jsonApiFetchResource: true,
+  jsonApiFetchResources: true
+}
+
+module.exports = BaseModel

@@ -55,7 +55,10 @@ class JsonApiRequest {
   }
 
   async createResource({Model}) {
-    const model = await Model.create({entryFields: this.bodyFields})
+    const model = await Model.create({
+      context: this.context,
+      entryFields: this.bodyFields
+    })
 
     return JsonApiResponse.toObject({
       entries: model,
@@ -66,7 +69,7 @@ class JsonApiRequest {
 
   async deleteResource({Model}) {
     const id = this.params.id
-    const {deleteCount} = await Model.delete({id})
+    const {deleteCount} = await Model.delete({context: this.context, id})
 
     if (deleteCount === 0) {
       throw new EntryNotFoundError({id})
@@ -79,12 +82,10 @@ class JsonApiRequest {
   }
 
   async fetchResource({accessFields, accessFilter, Model}) {
-    const fieldSet = FieldSet.intersect(
-      accessFields,
-      this.fields[Model.schema.name]
-    )
+    const fieldSet = FieldSet.intersect(accessFields, this.fields[Model.handle])
     const id = this.params.id
     const entry = await Model.findOneById({
+      context: this.context,
       fieldSet,
       filter: accessFilter,
       id
@@ -112,11 +113,11 @@ class JsonApiRequest {
       !Model.schema.fields[fieldName] ||
       (accessFields && !accessFields.includes(fieldName))
     ) {
-      throw new EntryFieldNotFoundError({fieldName, modelName: Model.name})
+      throw new EntryFieldNotFoundError({fieldName, modelName: Model.handle})
     }
 
     const id = this.params.id
-    const entry = await Model.findOneById({id})
+    const entry = await Model.findOneById({context: this.context, id})
 
     if (!entry || !entry.get(fieldName)) {
       throw new EntryNotFoundError({id})
@@ -151,11 +152,11 @@ class JsonApiRequest {
       !Model.schema.fields[fieldName] ||
       (accessFields && !accessFields.includes(fieldName))
     ) {
-      throw new EntryFieldNotFoundError({fieldName, modelName: Model.name})
+      throw new EntryFieldNotFoundError({fieldName, modelName: Model.handle})
     }
 
     const id = this.params.id
-    const entry = await Model.findOneById({id})
+    const entry = await Model.findOneById({context: this.context, id})
 
     if (!entry) {
       throw new EntryNotFoundError({id})
@@ -165,7 +166,7 @@ class JsonApiRequest {
     const isReferenceArray = Array.isArray(fieldValue)
     const referenceArray = isReferenceArray ? fieldValue : [fieldValue]
     const referenceEntries = referenceArray.map(({id, type}) => {
-      const ReferenceModel = Model.store.get(type, {context: this.context})
+      const ReferenceModel = Model.store.get(type)
 
       return new ReferenceModel({_id: id})
     })
@@ -181,11 +182,9 @@ class JsonApiRequest {
     const query = QueryFilter.parse(this.filter, '$').intersectWith(
       accessFilter
     )
-    const fieldSet = FieldSet.intersect(
-      this.fields[Model.schema.name],
-      accessFields
-    )
+    const fieldSet = FieldSet.intersect(this.fields[Model.handle], accessFields)
     const {entries, totalPages} = await Model.find({
+      context: this.context,
       fieldSet,
       filter: query,
       pageNumber: this.pageNumber,
@@ -254,7 +253,8 @@ class JsonApiRequest {
 
         const access = await Access.getAccess({
           accessType: 'read',
-          modelName: ReferencedModel.name,
+          context: this.context,
+          modelName: ReferencedModel.handle,
           user: this.context.user
         })
 
@@ -264,6 +264,7 @@ class JsonApiRequest {
 
         const fieldSet = FieldSet.intersect(access.fields, this.fields[type])
         const referencedEntry = await ReferencedModel.findOneById({
+          context: this.context,
           fieldSet,
           filter: access.filter,
           id
@@ -305,9 +306,7 @@ class JsonApiRequest {
   }
 
   async resolveReferences({entries, includeMap = this.includeMap, Model}) {
-    const Access = Model.store.get('base_access', {
-      context: this.context
-    })
+    const Access = Model.store.get('base_access')
     const referencesHash = {}
     const errors = {}
     const referenceQueue = entries.reduce((queue, entry) => {
@@ -353,7 +352,11 @@ class JsonApiRequest {
 
   async updateResource({Model}) {
     const id = this.params.id
-    const entry = await Model.update({id, update: this.bodyFields})
+    const entry = await Model.update({
+      context: this.context,
+      id,
+      update: this.bodyFields
+    })
     const references = await this.resolveReferences({entries: [entry], Model})
 
     return JsonApiResponse.toObject({

@@ -15,11 +15,11 @@ class GraphQLTypeReference extends TypeReference {
     const isMultiple =
       Array.isArray(this.options) || Array.isArray(this.options.type)
     const type =
-      this.schemas.length === 1
-        ? this.schemas[0].graphQLType
+      this.models.length === 1
+        ? this.models[0].schema.graphQLType
         : new GraphQLUnionType({
             name: camelize(`${modelName}_${fieldName}_output`),
-            types: this.schemas.map(schema => schema.graphQLType)
+            types: this.models.map(({schema}) => schema.graphQLType)
           })
     const resolve = async (root, args, context) => {
       const references = root[fieldName]
@@ -39,18 +39,17 @@ class GraphQLTypeReference extends TypeReference {
           return null
         }
 
-        const referenceSchema = this.schemas.find(
-          schema => schema.name === type
-        )
+        const ReferencedModel = this.models.find(Model => Model.handle === type)
 
-        if (!referenceSchema) {
+        if (!ReferencedModel) {
           return null
         }
 
-        const Access = this.modelStore.get('base_modelAccess', {context})
+        const Access = this.modelStore.get('base_access')
         const access = await Access.getAccess({
           accessType: 'create',
-          modelName: referenceSchema.name,
+          context,
+          modelName: ReferencedModel.handle,
           user: context.user
         })
 
@@ -58,15 +57,13 @@ class GraphQLTypeReference extends TypeReference {
           return null
         }
 
-        const ReferencedModel = this.modelStore.get(referenceSchema.name, {
-          context
-        })
         const ReferencedGraphQLModel = getGraphQLModel({
           Access,
           Model: ReferencedModel
         })
 
         return ReferencedGraphQLModel.findOneById({
+          context,
           fieldSet: access.fields,
           filter: access.filter,
           id

@@ -1,13 +1,16 @@
 const {EntryNotFoundError} = require('./errors')
 const {CustomError, FieldValidationError} = require('../../validator/errors')
 const {validateObject} = require('../../../packages/validator')
+const DataStore = require('./datastore/factory')()
 const FieldSet = require('./fieldSet')
 
 const DEFAULT_PAGE_SIZE = 20
 const INTERNAL_FIELDS = ['_createdAt', '_id', '_updatedAt']
 
-class Model {
+class Model extends DataStore {
   constructor({...fields}, {fromDb} = {}) {
+    super()
+
     this._createdAt = undefined
     this._dirtyFields = new Set(fromDb ? [] : Object.keys(fields))
     this._lastSync = undefined
@@ -27,23 +30,23 @@ class Model {
   }
 
   static delete({id}) {
-    return this.datastore.deleteOneById({
-      id,
-      Model: this
+    return this.baseDB_deleteOneById({
+      id
     })
   }
 
   static async find({
+    context,
     fieldSet,
     filter,
     pageNumber,
     pageSize = DEFAULT_PAGE_SIZE,
     sort
   }) {
-    const {count, results} = await this.datastore.find({
+    const {count, results} = await this.baseDB_find({
+      context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter,
-      Model: this,
       pageNumber,
       pageSize,
       sort
@@ -54,11 +57,11 @@ class Model {
     return {entries, totalPages}
   }
 
-  static async findOne({fieldSet, filter}) {
-    const {results} = await this.datastore.find({
+  static async findOne({context, fieldSet, filter}) {
+    const {results} = await this.baseDB_find({
+      context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
-      filter,
-      Model: this
+      filter
     })
 
     if (results.length === 0) {
@@ -68,12 +71,12 @@ class Model {
     return new this(results[0], {fromDb: true})
   }
 
-  static async findOneById({fieldSet, filter, id}) {
-    const fields = await this.datastore.findOneById({
+  static async findOneById({context, fieldSet, filter, id}) {
+    const fields = await this.baseDB_findOneById({
+      context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter,
-      id,
-      Model: this
+      id
     })
 
     if (!fields) return null
@@ -108,10 +111,8 @@ class Model {
       this._dirtyFields.delete(fieldName)
     })
 
-    const result = await this.constructor.datastore.createOne({
-      entry,
-      Model: this.constructor,
-      schema: this.constructor.schema
+    const result = await this.constructor.baseDB_createOne({
+      entry
     })
 
     this._hydrate(result, {fromDb: true})
@@ -247,9 +248,8 @@ class Model {
       this._dirtyFields.add(fieldName)
     })
 
-    const updatedResult = await this.constructor.datastore.updateOneById({
+    const updatedResult = await this.constructor.updateOneById({
       id: this.id,
-      Model: this.constructor,
       update: {
         ...update,
         _updatedAt: new Date()

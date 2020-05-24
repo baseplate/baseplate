@@ -165,6 +165,7 @@ class AccessController {
 
       const jsonApiReq = new JsonApiRequest(req, this.context)
       const [modelAccess] = await this.updateAccessEntry({
+        context,
         modelName: req.params.modelName,
         update: jsonApiReq.bodyFields,
         user
@@ -194,7 +195,7 @@ class AccessController {
   }
 }
 
-class base_access extends Model {
+class BaseAccess extends Model {
   static decodeModelAccessKey(key) {
     if (key === 'public') {
       return null
@@ -220,6 +221,7 @@ class base_access extends Model {
 
   static async getAccess({
     accessType,
+    context,
     includePublicUser = true,
     modelName,
     user
@@ -229,6 +231,7 @@ class base_access extends Model {
     }
 
     const entries = await this.getAccessEntries({
+      context,
       includePublicUser,
       modelName,
       user
@@ -247,13 +250,13 @@ class base_access extends Model {
     return value
   }
 
-  static async getAccessEntries({includePublicUser, modelName, user}) {
+  static async getAccessEntries({context, includePublicUser, modelName, user}) {
     let filter
 
     if (user) {
       const userFilter = QueryFilter.parse({
         'user.id': user.id,
-        'user.type': user.constructor.name
+        'user.type': user.constructor.handle
       })
 
       filter = filter ? filter.uniteWith(userFilter) : userFilter
@@ -265,9 +268,9 @@ class base_access extends Model {
       filter = filter ? filter.uniteWith(publicUserFilter) : publicUserFilter
     }
 
-    const {results} = await this.datastore.find({
-      filter,
-      modelName: this.name
+    const {results} = await super.baseDB_find({
+      context,
+      filter
     })
     const entries = results
       .filter(result => result.model === modelName)
@@ -280,13 +283,13 @@ class base_access extends Model {
     return entries
   }
 
-  static async updateAccessEntry({modelName, update, user}) {
+  static async updateAccessEntry({context, modelName, update, user}) {
     const filter = QueryFilter.parse({model: modelName})
 
     if (user) {
       const userQuery = {
         'user.id': user.id,
-        'user.type': user.constructor.name
+        'user.type': user.constructor.handle
       }
 
       filter.intersectWith(QueryFilter.parse(userQuery))
@@ -296,9 +299,9 @@ class base_access extends Model {
       filter.intersectWith(publicUserQuery)
     }
 
-    const {results} = await this.datastore.update({
+    const {results} = await super.baseDB_update({
+      context,
       filter,
-      modelName: 'base_access',
       update
     })
 
@@ -310,7 +313,7 @@ class base_access extends Model {
   }
 }
 
-base_access.customRoutes = {
+BaseAccess.customRoutes = {
   '/base_models/:modelName/access': {
     get: AccessController.findModelAccessEntries,
     post: AccessController.createModelAccessEntry
@@ -336,10 +339,14 @@ const accessValueProps = {
   }
 }
 
-base_access.fields = {
-  user: 'base_user',
+BaseAccess.fields = {
+  user: {
+    type: 'base_user',
+    required: true
+  },
   model: {
     type: String,
+    required: true,
     get: () => {}
   },
   create: {
@@ -356,4 +363,6 @@ base_access.fields = {
   }
 }
 
-module.exports = base_access
+BaseAccess.handle = 'base_access'
+
+module.exports = BaseAccess

@@ -4,17 +4,9 @@ const cachedPromise = Promise.resolve()
 
 module.exports = DatabaseHandler =>
   class Batcher extends DatabaseHandler {
-    constructor(...props) {
-      super(...props)
-
-      this.__id = Math.random()
-      this.queue = []
-      this.cache = new Map()
-    }
-
-    batch({combiner, getBatchingKey, props}) {
+    static batch({combiner, context, getBatchingKey, props}) {
       return new Promise((resolve, reject) => {
-        this.queue.push({
+        context.queue.push({
           getBatchingKey,
           props,
           reject,
@@ -23,58 +15,69 @@ module.exports = DatabaseHandler =>
 
         cachedPromise.then(() => {
           process.nextTick(() => {
-            this.processQueue(this.queue, combiner)
+            Batcher.processQueue(context.queue, combiner)
 
-            this.queue = []
+            context.queue = []
           })
         })
       })
     }
 
-    find(props) {
-      const cacheKey = JSON.stringify(props)
-
-      if (this.cache.has(cacheKey)) {
-        return this.cache.get(cacheKey)
+    static baseDB_find({context, ...props}) {
+      if (!context) {
+        return super.baseDB_find(props)
       }
 
-      const result = super.find(props)
+      Batcher.populateContext(context)
 
-      this.cache.set(cacheKey, result)
+      const cacheKey = JSON.stringify(props)
+
+      if (context.cache.has(cacheKey)) {
+        return context.cache.get(cacheKey)
+      }
+
+      const result = super.baseDB_find(props)
+
+      context.cache.set(cacheKey, result)
 
       return result
     }
 
-    findOneById(props) {
-      const cacheKey = JSON.stringify({
-        id: props.id,
-        fieldSet: props.fieldSet,
-        modelName: props.modelName
-      })
-
-      if (this.cache.has(cacheKey)) {
-        return this.cache.get(cacheKey)
+    static baseDB_findOneById({context, ...props}) {
+      if (!context) {
+        return super.baseDB_findOneById(props)
       }
 
-      const result = this.batch({
-        combiner: this.findOneByIdCombiner.bind(this),
+      Batcher.populateContext(context)
+
+      const cacheKey = JSON.stringify({
+        id: props.id,
+        fieldSet: props.fieldSet
+      })
+
+      if (context.cache.has(cacheKey)) {
+        return context.cache.get(cacheKey)
+      }
+
+      const result = Batcher.batch({
+        combiner: Batcher.findOneByIdCombiner.bind(this),
+        context,
         getBatchingKey: props => props.modelName,
         props
       })
 
-      this.cache.set(cacheKey, result)
+      context.cache.set(cacheKey, result)
 
       return result
     }
 
-    async findOneByIdCombiner(batch) {
+    static async findOneByIdCombiner(batch) {
       if (batch.length === 1) {
-        const {fieldSet, filter, id, modelName} = batch[0].props
-        const result = await super.findOneById({
+        const {fieldSet, filter, id} = batch[0].props
+        const result = await super.baseDB_findOneById({
           fieldSet,
           filter,
-          id,
-          modelName
+          id
         })
 
         return [result]
@@ -85,10 +88,9 @@ module.exports = DatabaseHandler =>
         return FieldSet.unite(fieldSet, op.props.fieldSet)
       }, undefined)
       const ids = batch.map(op => op.props.id)
-      const data = await super.findManyById({
+      const data = await super.baseDB_findManyById({
         fieldSet,
-        ids,
-        modelName: batch[0].props.modelName
+        ids
       })
       const results = batch.map(({props}) => {
         return data.find(({_id}) => _id === props.id) || null
@@ -97,7 +99,12 @@ module.exports = DatabaseHandler =>
       return results
     }
 
-    async processQueue(queue, handler) {
+    static populateContext(context) {
+      context.cache = context.cache || new Map()
+      context.queue = context.queue || []
+    }
+
+    static async processQueue(queue, handler) {
       const batches = queue.reduce((batches, op) => {
         const key = op.getBatchingKey(op.props)
 

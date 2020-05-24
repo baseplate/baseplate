@@ -1,5 +1,4 @@
 const {
-  EntryNotFoundError,
   ForbiddenError,
   ModelNotFoundError,
   UnauthorizedError
@@ -11,16 +10,17 @@ const modelStore = require('../../../modelStore/')
 module.exports = async (req, res, context) => {
   try {
     const modelName = req.params.modelName
-    const Model = modelStore.getByPluralForm(modelName, {context})
+    const Model = modelStore.getByPluralForm(modelName)
 
     if (!Model) {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = modelStore.get('base_access', {context})
+    const Access = modelStore.get('base_access')
     const access = await Access.getAccess({
       accessType: 'delete',
-      modelName: Model.schema.name,
+      context,
+      modelName: Model.handle,
       user: context.user
     })
 

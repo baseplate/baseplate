@@ -1,6 +1,5 @@
 const graphql = require('graphql')
 
-const createDatastore = require('../lib/datastore/factory')
 const getGraphQLModel = require('../lib/specs/graphql/getGraphQLModel')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
 const modelStore = require('../lib/specs/graphql/modelStore')
@@ -10,10 +9,9 @@ module.exports = async (req, res) => {
   const {body, headers} = req
   const authTokenData = parseAuthorizationHeader(headers.authorization)
   const context = {
-    datastore: createDatastore(),
     user: getUserFromToken(authTokenData, modelStore)
   }
-  const Access = modelStore.get('base_access', context)
+  const Access = modelStore.get('base_access')
   const graphQLModels = modelStore.getAll(context).map(Model => {
     return getGraphQLModel({Access, Model})
   })

@@ -30,19 +30,19 @@ class Schema {
     }
 
     if (field.type === 'reference') {
-      const referenceSchema = modelStore.getSchema(field.subType)
+      const Model = modelStore.get(field.subType)
 
-      if (!referenceSchema) {
+      if (!Model) {
         throw new InvalidFieldTypeError({
           typeName: field.subType
         })
       }
 
       return new this.fieldTypes.system.reference({
+        models: [Model],
         modelStore,
         options: field.options,
-        path: fieldPath,
-        schemas: [referenceSchema]
+        path: fieldPath
       })
     }
 
@@ -60,15 +60,15 @@ class Schema {
             })
           )
         } else if (child.type === 'reference') {
-          const referenceSchema = modelStore.getSchema(child.subType)
+          const Model = modelStore.get(child.subType)
 
-          if (!referenceSchema) {
+          if (!Model) {
             throw new InvalidFieldTypeError({
               typeName: child.subType
             })
           }
 
-          references.push(referenceSchema)
+          references.push(Model)
         }
       })
 
@@ -78,10 +78,10 @@ class Schema {
         }
 
         return new this.fieldTypes.system.reference({
+          models: references,
           modelStore,
           options: field,
-          path: fieldPath,
-          schemas: references
+          path: fieldPath
         })
       }
 
