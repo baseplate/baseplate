@@ -11,7 +11,7 @@ const Schema = require('../schema')
 const TOKEN_EXPIRATION = 360000
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
-class base_user extends Model {
+class BaseUser extends Model {
   static findOneById(props) {
     if (props.id !== 'me') {
       return super.findOneById(props)
@@ -19,7 +19,7 @@ class base_user extends Model {
 
     const {user} = this.context
 
-    if (!user || !(user instanceof base_user)) {
+    if (!user || !(user instanceof BaseUser)) {
       throw new ForbiddenError()
     }
 
@@ -29,8 +29,9 @@ class base_user extends Model {
     })
   }
 
-  static async generateAccessToken({username, password}) {
+  static async generateAccessToken({context, password, username}) {
     const user = await this.findOne({
+      context,
       filter: QueryFilter.parse({username})
     })
 
@@ -47,7 +48,7 @@ class base_user extends Model {
     const data = {
       id: user.id,
       level: user.get('accessLevel'),
-      model: user.constructor.name
+      model: user.constructor.handle
     }
     const accessToken = jwt.sign(
       {
@@ -95,9 +96,9 @@ const tokenEndpointSchema = new Schema({
   }
 })
 
-base_user.customRoutes = {
+BaseUser.customRoutes = {
   '/base_users/token': {
-    async post(req, res) {
+    async post(req, res, context) {
       try {
         const data = req.body
 
@@ -109,8 +110,9 @@ base_user.customRoutes = {
 
         const {username, password} = data
         const {accessToken, expiration} = await this.generateAccessToken({
-          username,
-          password
+          context,
+          password,
+          username
         })
         const responseBody = {
           access_token: accessToken,
@@ -130,15 +132,7 @@ base_user.customRoutes = {
   }
 }
 
-base_user.restRoutes = {
-  createResource: true,
-  deleteResource: true,
-  fetchResource: true,
-  fetchResources: true,
-  updateResource: true
-}
-
-base_user.fields = {
+BaseUser.fields = {
   accessLevel: {
     type: String,
     default: 'user',
@@ -160,4 +154,14 @@ base_user.fields = {
   }
 }
 
-module.exports = base_user
+BaseUser.handle = 'base_user'
+
+BaseUser.interfaces = {
+  jsonApiCreateResource: true,
+  jsonApiDeleteResource: true,
+  jsonApiFetchResource: true,
+  jsonApiFetchResources: true,
+  jsonApiUpdateResource: true
+}
+
+module.exports = BaseUser

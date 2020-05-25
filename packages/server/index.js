@@ -1,43 +1,19 @@
 require('dotenv').config()
 
-const http = require('http')
-
 const handlerGraphQL = require('../core/handlers/graphql')
 const handlerREST = require('../core/handlers/rest')
-const ServerRequest = require('./lib/request')
-const ServerResponse = require('./lib/response')
+const Server = require('./lib/server')
+const cors = require('./lib/cors')
 
-const requestHandler = (rawRequest, rawResponse) => {
-  let body = ''
+const server = new Server()
 
-  rawRequest.on('data', chunk => {
-    body += chunk.toString()
-  })
+server.use(cors)
+server.use((req, res) => {
+  if (req.method === 'post' && req.url.pathname === '/graphql') {
+    return handlerGraphQL(req, res)
+  }
 
-  rawRequest.on('end', () => {
-    const request = new ServerRequest(rawRequest, body)
-    const response = new ServerResponse(rawResponse)
+  return handlerREST(req, res)
+})
 
-    if (request.method === 'post' && request.url.pathname === '/graphql') {
-      return handlerGraphQL(request, response)
-    }
-
-    return handlerREST(request, response)
-  })
-}
-
-const server = http.createServer(requestHandler)
-
-module.exports.start = ({host = 'localhost', port = '8123'} = {}) => {
-  return new Promise((resolve, reject) => {
-    server.listen(port, host, error => {
-      if (error) return reject(error)
-
-      console.log(
-        `[ @baseplate/server ] Server running at http://${host}:${port}`
-      )
-
-      resolve()
-    })
-  })
-}
+module.exports = server

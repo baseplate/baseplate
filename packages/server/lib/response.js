@@ -7,6 +7,10 @@ class ServerResponse extends Response {
     this.httpResponse = httpResponse
   }
 
+  end() {
+    return this.send()
+  }
+
   send(body) {
     if (this.contentType) {
       this.httpResponse.setHeader('content-type', this.contentType)
@@ -14,6 +18,10 @@ class ServerResponse extends Response {
 
     this.httpResponse.writeHead(this.statusCode)
     this.httpResponse.end(body)
+  }
+
+  setHeader(name, value) {
+    this.httpResponse.setHeader(name, value)
   }
 }
 

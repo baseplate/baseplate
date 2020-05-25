@@ -1,8 +1,7 @@
-const {pluralize} = require('inflected')
+const {classify, pluralize} = require('inflected')
 const path = require('path')
 
 const BaseModel = require('../model')
-const createDatastore = require('../datastore/factory')
 const requireDirectory = require('../utils/requireDirectory')
 
 const modelPaths = [
@@ -33,72 +32,64 @@ class ModelStore {
   constructor(SchemaClass) {
     this.SchemaClass = SchemaClass
 
-    this.sources = sourceFiles.reduce(
-      (sources, {name: fileName, source: sourceFile}) => {
-        const name = (sourceFile.name || fileName).toString().toLowerCase()
-        const pluralForm = sourceFile.pluralForm || pluralize(name)
-        const source = {
-          isBaseModel: name.startsWith('base_'),
-          modelClass: typeof sourceFile === 'function' ? sourceFile : undefined,
-          name,
-          pluralForm,
-          schema: new this.SchemaClass({
-            fields: sourceFile.fields,
-            name
-          })
-        }
+    this.models = sourceFiles.reduce((models, {name: fileName, source}) => {
+      const handle = (source.handle || source.name || fileName)
+        .toString()
+        .toLowerCase()
+      const Model = this.buildModel({handle, source})
 
-        source.settings = this.buildSettingsBlock(source)
+      return models.set(handle, Model)
+    }, new Map())
 
-        return sources.set(name, source)
-      },
-      new Map()
-    )
-
-    this.sources.forEach(Model => {
+    this.models.forEach(Model => {
       Model.schema.loadFieldHandlers({modelStore: this})
     })
   }
 
-  buildModel(source, context = {}) {
+  buildModel({handle, source}) {
+    const isBaseModel = handle.startsWith('base_')
+    const schema = new this.SchemaClass({
+      fields: source.fields,
+      name: handle
+    })
     const modelProperties = {
-      datastore: {
-        value: context.datastore || createDatastore()
-      },
       isBaseModel: {
-        value: source.isBaseModel
+        value: isBaseModel
+      },
+      handle: {
+        value: handle
+      },
+      handlePlural: {
+        value: source.handlePlural || pluralize(handle)
       },
       name: {
-        value: source.name
-      },
-      pluralForm: {
-        value: source.pluralForm
+        value: source.name || classify(handle)
       },
       schema: {
-        value: source.schema
+        value: schema
       },
       settings: {
-        value: source.settings
+        value: this.buildSettingsBlock({isBaseModel, source})
       },
       store: {
         value: this
       }
     }
-    const Model = source.modelClass
-      ? class extends source.modelClass {}
-      : class extends BaseModel {}
+    const Model =
+      typeof source === 'function'
+        ? class extends source {}
+        : class extends BaseModel {}
 
     return Object.defineProperties(Model, modelProperties)
   }
 
-  buildSettingsBlock(source) {
+  buildSettingsBlock({isBaseModel, source}) {
     const interfaces = INTERFACES.reduce((interfaces, interfaceName) => {
-      const modelInterfaces =
-        (source.modelClass && source.modelClass.interfaces) || {}
+      const modelInterfaces = (source && source.interfaces) || {}
       const value =
         modelInterfaces[interfaceName] !== undefined
           ? modelInterfaces[interfaceName]
-          : !source.isBaseModel
+          : !isBaseModel
 
       return {
         ...interfaces,
@@ -111,57 +102,45 @@ class ModelStore {
     }
   }
 
-  get(name, context) {
-    const source = this.sources.get(name)
-
-    if (!source) return
-
-    return this.buildModel(source, context)
+  get(handle) {
+    return this.models.get(handle)
   }
 
-  getAll(context) {
-    const models = Array.from(this.sources.values()).map(source => {
-      return this.buildModel(source, context)
+  getAll() {
+    return Array.from(this.models.values())
+  }
+
+  getByPluralForm(handlePlural) {
+    return Array.from(this.models.values()).find(Model => {
+      return Model.handlePlural === handlePlural
+    })
+  }
+
+  getSchema(handle) {
+    const Model = this.models.get(handle)
+
+    if (!Model) return
+
+    return Model.schema
+  }
+
+  getSchemaByPluralForm(handlePlural) {
+    const Model = Array.from(this.models.values()).find(Model => {
+      return Model.handlePlural === handlePlural
     })
 
-    return models
+    if (!Model) return
+
+    return Model.schema
   }
 
-  getByPluralForm(pluralForm, context) {
-    const source = Array.from(this.sources.values()).find(source => {
-      return source.pluralForm === pluralForm
-    })
-
-    if (!source) return
-
-    return this.buildModel(source, context)
+  has(handle) {
+    return this.models.has(handle)
   }
 
-  getSchema(name) {
-    const source = this.sources.get(name)
-
-    if (!source) return
-
-    return source.schema
-  }
-
-  getSchemaByPluralForm(pluralForm) {
-    const source = Array.from(this.sources.values()).find(source => {
-      return source.pluralForm === pluralForm
-    })
-
-    if (!source) return
-
-    return source.schema
-  }
-
-  has(name) {
-    return this.sources.has(name)
-  }
-
-  hasPluralForm(pluralForm) {
-    return Array.from(this.sources.values()).some(source => {
-      return source.pluralForm === pluralForm
+  hasPluralForm(handlePlural) {
+    return Array.from(this.models.values()).some(source => {
+      return source.handlePlural === handlePlural
     })
   }
 }

@@ -71,8 +71,8 @@ class JsonApiResponse {
         : [this.relationships]
       const formattedRelationships = relationshipsArray.map(entry =>
         this.formatRelationshipObject({
-          _id: entry.id,
-          _type: entry.constructor.name
+          id: entry.id,
+          type: entry.constructor.handle
         })
       )
 
@@ -167,7 +167,7 @@ class JsonApiResponse {
     })
 
     const formattedEntry = {
-      type: entry.constructor.name,
+      type: entry.constructor.handle,
       id: entry.id,
       attributes
     }
@@ -187,6 +187,10 @@ class JsonApiResponse {
       formattedEntry.links = {
         self: `${this.url.path}/${entry.id}`
       }
+    }
+
+    if (typeof entry.$__jsonApiPostFormat === 'function') {
+      return entry.$__jsonApiPostFormat(formattedEntry, entry)
     }
 
     return formattedEntry
@@ -225,8 +229,8 @@ class JsonApiResponse {
 
   formatRelationshipObject(object) {
     const result = {
-      type: object._type,
-      id: object._id
+      type: object.type,
+      id: object.id
     }
 
     return result

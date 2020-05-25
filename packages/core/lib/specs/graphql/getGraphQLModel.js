@@ -18,7 +18,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
       const mutations = {}
 
       if (this.settings.interfaces.graphQLCreateMutation) {
-        const mutationName = camelize(`create_${this.name}`, false)
+        const mutationName = camelize(`create_${this.handle}`, false)
 
         mutations[mutationName] = {
           type: this.schema.graphQLType,
@@ -27,7 +27,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
             try {
               const access = await Access.getAccess({
                 accessType: 'create',
-                modelName: this.name,
+                modelName: this.handle,
                 user: context.user
               })
 
@@ -50,7 +50,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
       }
 
       if (this.settings.interfaces.graphQLDeleteMutation) {
-        const mutationName = camelize(`delete_${this.name}`, false)
+        const mutationName = camelize(`delete_${this.handle}`, false)
 
         mutations[mutationName] = {
           type: GraphQLDeleteResponse,
@@ -59,7 +59,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
             try {
               const access = await Access.getAccess({
                 accessType: 'delete',
-                modelName: this.name,
+                modelName: this.handle,
                 user: context.user
               })
 
@@ -82,7 +82,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
       }
 
       if (this.settings.interfaces.graphQLUpdateMutation) {
-        const mutationName = camelize(`update_${this.name}`, false)
+        const mutationName = camelize(`update_${this.handle}`, false)
 
         mutations[mutationName] = {
           type: this.schema.graphQLType,
@@ -94,7 +94,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
             try {
               const access = await Access.getAccess({
                 accessType: 'update',
-                modelName: this.name,
+                modelName: this.handle,
                 user: context.user
               })
 
@@ -127,7 +127,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
 
       // Plural field: retrieves a list of entries.
       if (this.settings.interfaces.graphQLPluralQuery) {
-        const queryName = camelize(this.pluralForm)
+        const queryName = camelize(this.handlePlural)
 
         queries[queryName] = {
           type: new GraphQLList(type),
@@ -139,7 +139,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
               )
               const access = await Access.getAccess({
                 accessType: 'read',
-                modelName: this.name,
+                modelName: this.handle,
                 user: context.user
               })
               const filter = QueryFilter.parse(args, '_').intersectWith(
@@ -162,7 +162,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
 
       // Singular field: retrieves a single entry.
       if (this.settings.interfaces.graphQLSingularQuery) {
-        const queryName = camelize(this.name)
+        const queryName = camelize(this.handle)
 
         queries[queryName] = {
           type,
@@ -176,7 +176,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
               )
               const access = await Access.getAccess({
                 accessType: 'read',
-                modelName: this.name,
+                modelName: this.handle,
                 user: context.user
               })
               const entry = await this.findOneById({

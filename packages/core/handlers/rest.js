@@ -1,6 +1,5 @@
 const RouteRecognizer = require('route-recognizer')
 
-const createDatastore = require('../lib/datastore/factory')
 const endpointStore = require('../lib/endpointStore')
 const getUserFromToken = require('../lib/acl/getUserFromToken')
 const parseAuthorizationHeader = require('../lib/acl/parseAuthorizationHeader')
@@ -109,9 +108,8 @@ router.add([
   }
 ])
 
-modelStore.sources.forEach(source => {
-  const customRoutes =
-    (source.modelClass && source.modelClass.customRoutes) || {}
+modelStore.getAll().forEach(Model => {
+  const customRoutes = Model.customRoutes || {}
 
   Object.entries(customRoutes).forEach(([path, customRoute]) => {
     router.add([
@@ -122,8 +120,6 @@ modelStore.sources.forEach(source => {
             return
           }
 
-          const Model = modelStore.get(source.name, context)
-
           return customRoute[method].bind(Model)
         }
       }
@@ -133,13 +129,12 @@ modelStore.sources.forEach(source => {
 
 module.exports = (req, res) => {
   const authTokenData = parseAuthorizationHeader(req.headers.authorization)
-  const requestContext = {
-    datastore: createDatastore(),
+  const context = {
     user: getUserFromToken(authTokenData, modelStore)
   }
   const routes = router.recognize(req.url.pathname) || []
   const hasMatch = Array.from(routes).some(route => {
-    const handler = route.handler(req.method, route.params, requestContext)
+    const handler = route.handler(req.method, route.params, context)
 
     if (!handler) {
       return false
@@ -147,7 +142,7 @@ module.exports = (req, res) => {
 
     req.params = route.params
 
-    handler(req, res, requestContext)
+    handler(req, res, context)
 
     return true
   })
