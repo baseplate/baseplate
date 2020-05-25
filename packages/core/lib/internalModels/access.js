@@ -268,7 +268,7 @@ class BaseAccess extends Model {
       filter = filter ? filter.uniteWith(publicUserFilter) : publicUserFilter
     }
 
-    const {results} = await super.baseDB_find({
+    const {results} = await super.$__find({
       context,
       filter
     })
@@ -299,7 +299,7 @@ class BaseAccess extends Model {
       filter.intersectWith(publicUserQuery)
     }
 
-    const {results} = await super.baseDB_update({
+    const {results} = await super.$__update({
       context,
       filter,
       update

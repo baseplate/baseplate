@@ -30,7 +30,7 @@ class Model extends DataStore {
   }
 
   static delete({id}) {
-    return this.baseDB_deleteOneById({
+    return this.$__deleteOneById({
       id
     })
   }
@@ -43,7 +43,7 @@ class Model extends DataStore {
     pageSize = DEFAULT_PAGE_SIZE,
     sort
   }) {
-    const {count, results} = await this.baseDB_find({
+    const {count, results} = await this.$__find({
       context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter,
@@ -58,7 +58,7 @@ class Model extends DataStore {
   }
 
   static async findOne({context, fieldSet, filter}) {
-    const {results} = await this.baseDB_find({
+    const {results} = await this.$__find({
       context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter
@@ -72,7 +72,7 @@ class Model extends DataStore {
   }
 
   static async findOneById({context, fieldSet, filter, id}) {
-    const fields = await this.baseDB_findOneById({
+    const fields = await this.$__findOneById({
       context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter,
@@ -111,7 +111,7 @@ class Model extends DataStore {
       this._dirtyFields.delete(fieldName)
     })
 
-    const result = await this.constructor.baseDB_createOne({
+    const result = await this.constructor.$__createOne({
       entry
     })
 

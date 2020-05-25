@@ -53,6 +53,18 @@ class BaseModel extends Model {
 
     return new this({_id: Model.handle, fields: Model.schema.fields})
   }
+
+  $__jsonApiPostFormat(formattedEntry, originalEntry) {
+    const Model = originalEntry.constructor.store.get(originalEntry.id)
+
+    return {
+      ...formattedEntry,
+      links: {
+        ...formattedEntry.links,
+        root: `/${Model.handlePlural}`
+      }
+    }
+  }
 }
 
 BaseModel.fields = {

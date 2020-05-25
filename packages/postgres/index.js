@@ -15,9 +15,9 @@ const OPERATORS_SINGLETON = {
 }
 
 class PostgreSQL {
-  static async baseDB_createOne({entry}) {
-    const tableName = this.baseDB_getTableName()
-    const {data, internals} = this.baseDB_getColumnsFromEntry(entry)
+  static async $__createOne({entry}) {
+    const tableName = this.$__getTableName()
+    const {data, internals} = this.$__getColumnsFromEntry(entry)
     const payload = {
       data,
       ...internals
@@ -35,24 +35,22 @@ class PostgreSQL {
     }
   }
 
-  static async baseDB_delete({filter, Model}) {
-    const [filterQuery, filterParameters] = this.baseDB_getSQLCondition(
-      filter.root
-    )
-    const tableName = this.baseDB_getTableName(Model)
+  static async $__delete({filter, Model}) {
+    const [filterQuery, filterParameters] = this.$__getSQLCondition(filter.root)
+    const tableName = this.$__getTableName(Model)
     const query = `DELETE FROM ${tableName} WHERE ${filterQuery}`
     const {rowCount: deleteCount} = await pool.query(query, filterParameters)
 
     return {deleteCount}
   }
 
-  static async baseDB_deleteOneById({id, Model}) {
+  static async $__deleteOneById({id, Model}) {
     const filter = QueryFilter.parse({_id: id})
 
     return this.delete({filter, Model})
   }
 
-  static baseDB_encodeDecodeEntry(entry, type) {
+  static $__encodeDecodeEntry(entry, type) {
     if (!entry) {
       return entry
     }
@@ -74,17 +72,17 @@ class PostgreSQL {
     }, {})
   }
 
-  static async baseDB_find({fieldSet, filter, pageNumber = 1, pageSize, sort}) {
-    const tableName = this.baseDB_getTableName()
-    const [filterQuery, filterParameters] = this.baseDB_getSQLCondition(
+  static async $__find({fieldSet, filter, pageNumber = 1, pageSize, sort}) {
+    const tableName = this.$__getTableName()
+    const [filterQuery, filterParameters] = this.$__getSQLCondition(
       filter && filter.root
     )
     const fields = [
-      this.baseDB_getFieldProjection(fieldSet),
+      this.$__getFieldProjection(fieldSet),
       'count(*) OVER() AS full_count'
     ]
     const queryNodes = [`SELECT ${fields.join(', ')} FROM ${tableName}`]
-    const order = this.baseDB_getOrderByFromSortObject(sort)
+    const order = this.$__getOrderByFromSortObject(sort)
 
     if (filterQuery) {
       queryNodes.push(`WHERE ${filterQuery}`)
@@ -129,7 +127,7 @@ class PostgreSQL {
     }
   }
 
-  static async baseDB_findManyById({fieldSet, filter, ids}) {
+  static async $__findManyById({fieldSet, filter, ids}) {
     const filterWithIds = QueryFilter.parse({_id: {$in: ids}}).intersectWith(
       filter
     )
@@ -141,9 +139,9 @@ class PostgreSQL {
     return results
   }
 
-  static async baseDB_findOneById({fieldSet, filter, id}) {
+  static async $__findOneById({fieldSet, filter, id}) {
     const filterWithIds = QueryFilter.parse({_id: id}).intersectWith(filter)
-    const {results} = await this.baseDB_find({
+    const {results} = await this.$__find({
       fieldSet,
       filter: filterWithIds
     })
@@ -151,7 +149,7 @@ class PostgreSQL {
     return results[0] || null
   }
 
-  static baseDB_getColumnName({fieldName, getJSONAsText}) {
+  static $__getColumnName({fieldName, getJSONAsText}) {
     if (fieldName.startsWith('_')) {
       return `${fieldName}`
     }
@@ -169,7 +167,7 @@ class PostgreSQL {
     return `data${operator}'${fieldPath[0]}'`
   }
 
-  static baseDB_getColumnsFromEntry(entry) {
+  static $__getColumnsFromEntry(entry) {
     const data = {}
     const internals = {}
 
@@ -187,13 +185,13 @@ class PostgreSQL {
     }
   }
 
-  static baseDB_getFieldProjection(fieldSet) {
+  static $__getFieldProjection(fieldSet) {
     if (!fieldSet) {
       return ['*']
     }
 
     const fields = fieldSet.map(fieldName => {
-      const columnName = this.baseDB_getColumnName({fieldName})
+      const columnName = this.$__getColumnName({fieldName})
 
       return columnName === fieldName
         ? `"${columnName}"`
@@ -203,11 +201,11 @@ class PostgreSQL {
     return fields
   }
 
-  static baseDB_getOrderByFromSortObject(sortObject) {
+  static $__getOrderByFromSortObject(sortObject) {
     if (!sortObject) return
 
     const members = Object.entries(sortObject).map(([fieldName, value]) => {
-      const column = this.baseDB_getColumnName({
+      const column = this.$__getColumnName({
         fieldName,
         getJSONAsText: true
       })
@@ -219,7 +217,7 @@ class PostgreSQL {
     return members.join(', ')
   }
 
-  static baseDB_getSQLCondition(node, parameters) {
+  static $__getSQLCondition(node, parameters) {
     if (!node) {
       return []
     }
@@ -227,7 +225,7 @@ class PostgreSQL {
     if (!parameters) {
       parameters = []
 
-      const query = this.baseDB_getSQLCondition(node, parameters)
+      const query = this.$__getSQLCondition(node, parameters)
 
       return [query, parameters]
     }
@@ -235,7 +233,7 @@ class PostgreSQL {
     if (node.type === 'fork') {
       const connector = node.operator === 'and' ? 'AND' : 'OR'
       const members = node.branches
-        .map(branch => this.baseDB_getSQLCondition(branch, parameters))
+        .map(branch => this.$__getSQLCondition(branch, parameters))
         .filter(Boolean)
         .join(` ${connector} `)
 
@@ -259,7 +257,7 @@ class PostgreSQL {
           })
           const variableExpression =
             variables.length > 1 ? `(${variables.join(', ')})` : variables[0]
-          const fieldName = this.baseDB_getColumnName({
+          const fieldName = this.$__getColumnName({
             fieldName: name,
             getJSONAsText: true
           })
@@ -275,7 +273,7 @@ class PostgreSQL {
     }
   }
 
-  static baseDB_getTableName() {
+  static $__getTableName() {
     if (this.isBaseModel) {
       return this.handle
     }
@@ -283,7 +281,7 @@ class PostgreSQL {
     return `model_${this.handle}`
   }
 
-  static baseDB_getTableSchema(schema) {
+  static $__getTableSchema(schema) {
     const baseColumns = {
       _id: 'uuid PRIMARY KEY DEFAULT uuid_generate_v4 ()',
       _createdAt: 'timestamp',
@@ -294,10 +292,10 @@ class PostgreSQL {
     return baseColumns
   }
 
-  static async baseDB_setup({modelStore}) {
+  static async $__setup({modelStore}) {
     const queries = modelStore.getAll().map(Model => {
-      const tableName = this.baseDB_getTableName(Model)
-      const columns = this.baseDB_getTableSchema(Model.schema)
+      const tableName = this.$__getTableName(Model)
+      const columns = this.$__getTableSchema(Model.schema)
       const columnString = Object.entries(columns)
         .map(([name, description]) => `"${name}" ${description}`)
         .join(', ')
@@ -309,16 +307,11 @@ class PostgreSQL {
     await Promise.all(queries)
   }
 
-  static async baseDB_update({filter, update}) {
-    const tableName = this.baseDB_getTableName()
-    const {data, internals} = this.baseDB_getColumnsFromEntry(update)
-    const processedInternals = this.baseDB_encodeDecodeEntry(
-      internals,
-      'encode'
-    )
-    const [filterQuery, filterParameters] = this.baseDB_getSQLCondition(
-      filter.root
-    )
+  static async $__update({filter, update}) {
+    const tableName = this.$__getTableName()
+    const {data, internals} = this.$__getColumnsFromEntry(update)
+    const processedInternals = this.$__encodeDecodeEntry(internals, 'encode')
+    const [filterQuery, filterParameters] = this.$__getSQLCondition(filter.root)
     const assignments = [`data = data || $${filterParameters.length + 1}`]
     const assignmentParameters = [data]
 
@@ -347,9 +340,9 @@ class PostgreSQL {
     return {results}
   }
 
-  static async baseDB_updateOneById({id, update}) {
+  static async $__updateOneById({id, update}) {
     const filter = QueryFilter.parse({_id: id})
-    const {results} = await this.baseDB_update({filter, update})
+    const {results} = await this.$__update({filter, update})
 
     return results[0] || null
   }

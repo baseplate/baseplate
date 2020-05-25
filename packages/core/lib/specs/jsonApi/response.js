@@ -189,6 +189,10 @@ class JsonApiResponse {
       }
     }
 
+    if (typeof entry.$__jsonApiPostFormat === 'function') {
+      return entry.$__jsonApiPostFormat(formattedEntry, entry)
+    }
+
     return formattedEntry
   }
 

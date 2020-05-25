@@ -23,9 +23,9 @@ module.exports = DatabaseHandler =>
       })
     }
 
-    static baseDB_find({context, ...props}) {
+    static $__find({context, ...props}) {
       if (!context) {
-        return super.baseDB_find(props)
+        return super.$__find(props)
       }
 
       Batcher.populateContext(context)
@@ -36,16 +36,16 @@ module.exports = DatabaseHandler =>
         return context.cache.get(cacheKey)
       }
 
-      const result = super.baseDB_find(props)
+      const result = super.$__find(props)
 
       context.cache.set(cacheKey, result)
 
       return result
     }
 
-    static baseDB_findOneById({context, ...props}) {
+    static $__findOneById({context, ...props}) {
       if (!context) {
-        return super.baseDB_findOneById(props)
+        return super.$__findOneById(props)
       }
 
       Batcher.populateContext(context)
@@ -74,7 +74,7 @@ module.exports = DatabaseHandler =>
     static async findOneByIdCombiner(batch) {
       if (batch.length === 1) {
         const {fieldSet, filter, id} = batch[0].props
-        const result = await super.baseDB_findOneById({
+        const result = await super.$__findOneById({
           fieldSet,
           filter,
           id
@@ -88,7 +88,7 @@ module.exports = DatabaseHandler =>
         return FieldSet.unite(fieldSet, op.props.fieldSet)
       }, undefined)
       const ids = batch.map(op => op.props.id)
-      const data = await super.baseDB_findManyById({
+      const data = await super.$__findManyById({
         fieldSet,
         ids
       })
