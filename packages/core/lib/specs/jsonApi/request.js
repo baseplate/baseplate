@@ -55,10 +55,7 @@ class JsonApiRequest {
   }
 
   async createResource({Model}) {
-    const model = await Model.create({
-      context: this.context,
-      entryFields: this.bodyFields
-    })
+    const model = await Model.create(this.bodyFields)
 
     return JsonApiResponse.toObject({
       entries: model,

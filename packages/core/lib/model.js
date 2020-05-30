@@ -23,8 +23,8 @@ class Model extends DataStore {
    * STATIC METHODS
    */
 
-  static create({entryFields}) {
-    const instance = new this(entryFields)
+  static create(fields) {
+    const instance = new this(fields)
 
     return instance._create()
   }
@@ -84,7 +84,17 @@ class Model extends DataStore {
     return new this({...fields}, {fromDb: true})
   }
 
-  static async update({id, update}) {
+  static async update({filter, update}) {
+    const {results} = await this.$__update({
+      filter,
+      update
+    })
+    const entries = results.map(fields => new this(fields, {fromDb: true}))
+
+    return entries
+  }
+
+  static async updateOneById({id, update}) {
     const instance = new this({_id: id, ...update})
 
     return instance.save()

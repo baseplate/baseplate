@@ -292,19 +292,15 @@ class PostgreSQL {
     return baseColumns
   }
 
-  static async $__setup({modelStore}) {
-    const queries = modelStore.getAll().map(Model => {
-      const tableName = this.$__getTableName(Model)
-      const columns = this.$__getTableSchema(Model.schema)
-      const columnString = Object.entries(columns)
-        .map(([name, description]) => `"${name}" ${description}`)
-        .join(', ')
-      const query = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnString});`
+  static async $__setup() {
+    const tableName = this.$__getTableName(this)
+    const columns = this.$__getTableSchema(this.schema)
+    const columnString = Object.entries(columns)
+      .map(([name, description]) => `"${name}" ${description}`)
+      .join(', ')
+    const query = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnString});`
 
-      return pool.query(query)
-    })
-
-    await Promise.all(queries)
+    return pool.query(query)
   }
 
   static async $__update({filter, update}) {

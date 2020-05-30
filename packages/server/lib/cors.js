@@ -5,6 +5,8 @@ module.exports = (req, res, next) => {
   const headers = req.headers['access-control-request-headers']
   const method = req.headers['access-control-request-method']
 
+  res.setHeader('Access-Control-Allow-Credentials', 'true')
+
   if (origin !== undefined) {
     res.setHeader('Access-Control-Allow-Origin', origin)
     res.setHeader('Access-Control-Max-Age', MAX_AGE.toString())

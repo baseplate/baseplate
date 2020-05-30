@@ -18,10 +18,8 @@ class AccessController {
 
       const jsonApiReq = new JsonApiRequest(req, this.context)
       const modelAccess = await this.create({
-        entryFields: {
-          ...jsonApiReq.bodyFields,
-          model: req.params.modelName
-        }
+        ...jsonApiReq.bodyFields,
+        model: req.params.modelName
       })
 
       modelAccess.id = this.encodeModelAccessKey(modelAccess.get('user'))

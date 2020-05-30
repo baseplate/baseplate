@@ -5,7 +5,7 @@ const BaseModel = require('../model')
 const requireDirectory = require('../utils/requireDirectory')
 
 const modelPaths = [
-  path.resolve(__dirname, '../internalModels'),
+  path.resolve(__dirname, '../models'),
   path.join(process.cwd(), 'models')
 ]
 const sourceFiles = modelPaths.reduce(
@@ -33,9 +33,9 @@ class ModelStore {
     this.SchemaClass = SchemaClass
 
     this.models = sourceFiles.reduce((models, {name: fileName, source}) => {
-      const handle = (source.handle || source.name || fileName)
-        .toString()
-        .toLowerCase()
+      const handle = this.normalizeHandle(
+        source.handle || source.name || fileName
+      )
       const Model = this.buildModel({handle, source})
 
       return models.set(handle, Model)
@@ -103,7 +103,7 @@ class ModelStore {
   }
 
   get(handle) {
-    return this.models.get(handle)
+    return this.models.get(this.normalizeHandle(handle))
   }
 
   getAll() {
@@ -111,37 +111,27 @@ class ModelStore {
   }
 
   getByPluralForm(handlePlural) {
+    const normalizedHandle = this.normalizeHandle(handlePlural)
+
     return Array.from(this.models.values()).find(Model => {
-      return Model.handlePlural === handlePlural
+      return Model.handlePlural === normalizedHandle
     })
-  }
-
-  getSchema(handle) {
-    const Model = this.models.get(handle)
-
-    if (!Model) return
-
-    return Model.schema
-  }
-
-  getSchemaByPluralForm(handlePlural) {
-    const Model = Array.from(this.models.values()).find(Model => {
-      return Model.handlePlural === handlePlural
-    })
-
-    if (!Model) return
-
-    return Model.schema
   }
 
   has(handle) {
-    return this.models.has(handle)
+    return this.models.has(this.normalizeHandle(handle))
   }
 
   hasPluralForm(handlePlural) {
+    const normalizedHandle = this.normalizeHandle(handlePlural)
+
     return Array.from(this.models.values()).some(source => {
-      return source.handlePlural === handlePlural
+      return source.handlePlural === normalizedHandle
     })
+  }
+
+  normalizeHandle(handle) {
+    return handle.toString().toLowerCase()
   }
 }
 
