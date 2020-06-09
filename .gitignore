@@ -2,7 +2,8 @@
 node_modules
 jspm_packages
 
-# Serverless directories
-.serverless
-
+# OS files
 **/.DS_Store
+
+# TypeScript
+**/dist

@@ -1,7 +1,6 @@
 require('dotenv').config()
 
-const handlerGraphQL = require('../core/handlers/graphql')
-const handlerREST = require('../core/handlers/rest')
+const {handlerGraphQL, handlerRest} = require('@baseplate/postgres')
 const Server = require('./lib/server')
 const cors = require('./lib/cors')
 
@@ -13,7 +12,7 @@ server.use((req, res) => {
     return handlerGraphQL(req, res)
   }
 
-  return handlerREST(req, res)
+  return handlerRest(req, res)
 })
 
 module.exports = server

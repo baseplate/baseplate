@@ -1,6 +1,6 @@
 const {MongoClient, ObjectID} = require('mongodb')
 const isPlainObject = require('../baseplate-core/lib/utils/isPlainObject')
-const QueryFilter = require('../baseplate-core/lib/queryFilter')
+const {QueryFilter} = require('../baseplate-core/lib/queryFilter')
 
 const POOL_SIZE = 10
 
@@ -38,7 +38,7 @@ class MongoStore {
     const projection = fieldSet.concat('_id').reduce(
       (result, fieldName) => ({
         ...result,
-        [fieldName]: 1
+        [fieldName]: 1,
       }),
       {}
     )
@@ -67,13 +67,13 @@ class MongoStore {
       if (Array.isArray(value)) {
         return {
           ...result,
-          [key]: value.map(child => this.transformObjectIds(child, op))
+          [key]: value.map((child) => this.transformObjectIds(child, op)),
         }
       }
 
       return {
         ...result,
-        [key]: this.transformObjectIds(value, op)
+        [key]: this.transformObjectIds(value, op),
       }
     }, {})
   }
@@ -95,7 +95,7 @@ class MongoStore {
 
     const connection = await MongoClient.connect(this.connectionString, {
       poolSize: POOL_SIZE,
-      useUnifiedTopology: true
+      useUnifiedTopology: true,
     })
 
     connectionPool = connection
@@ -137,7 +137,7 @@ class MongoStore {
     const connection = await this.connect()
     const collectionName = MongoStore.getCollectionName({modelName})
     const options = {
-      projection: MongoStore.getProjectionFromFieldSet(fieldSet)
+      projection: MongoStore.getProjectionFromFieldSet(fieldSet),
     }
 
     if (pageSize) {
@@ -153,7 +153,7 @@ class MongoStore {
       .find(encodedQuery, options)
     const count = await cursor.count()
     const results = await cursor.toArray()
-    const decodedResults = results.map(result =>
+    const decodedResults = results.map((result) =>
       MongoStore.transformObjectIds(result, 'decode')
     )
 
@@ -165,7 +165,7 @@ class MongoStore {
     const collectionName = MongoStore.getCollectionName({modelName})
     const encodedIds = ids.map(ObjectID.createFromHexString)
     const options = {
-      projection: MongoStore.getProjectionFromFieldSet(fieldSet)
+      projection: MongoStore.getProjectionFromFieldSet(fieldSet),
     }
     const query = QueryFilter.parse({_id: {$in: encodedIds}}, '$')
 
@@ -178,7 +178,7 @@ class MongoStore {
       .collection(collectionName)
       .find(query.toObject('$'), options)
       .toArray()
-    const decodedResults = results.map(result =>
+    const decodedResults = results.map((result) =>
       MongoStore.transformObjectIds(result, 'decode')
     )
 
@@ -190,7 +190,7 @@ class MongoStore {
     const collectionName = MongoStore.getCollectionName({modelName})
     const encodedId = ObjectID.createFromHexString(id)
     const options = {
-      projection: MongoStore.getProjectionFromFieldSet(fieldSet)
+      projection: MongoStore.getProjectionFromFieldSet(fieldSet),
     }
     const query = QueryFilter.parse({_id: encodedId}, '$')
 

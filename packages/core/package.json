@@ -1,11 +1,16 @@
 {
   "name": "@baseplate/core",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc --build --preserveWatchOutput --watch"
+  },
   "directories": {
     "lib": "lib"
   },
   "dependencies": {
+    "@baseplate/validator": "1.0.0",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.4.1",
     "graphql": "^14.6.0",
@@ -13,5 +18,8 @@
     "jsonwebtoken": "^8.5.1",
     "route-recognizer": "^0.3.4",
     "uuid": "^8.0.0"
+  },
+  "devDependencies": {
+    "@types/inflected": "^1.1.29"
   }
 }

@@ -1,6 +1,6 @@
-const Response = require('../../core/lib/http/response')
+const {HttpResponse} = require('@baseplate/core')
 
-class ServerResponse extends Response {
+class ServerResponse extends HttpResponse {
   constructor(httpResponse) {
     super()
 

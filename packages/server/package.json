@@ -12,6 +12,7 @@
     "nodemon": "^2.0.4"
   },
   "dependencies": {
+    "@baseplate/postgres": "1.0.0",
     "dotenv": "^8.2.0"
   }
 }

@@ -1,6 +1,6 @@
-const Request = require('../../core/lib/http/request')
+const {HttpRequest} = require('@baseplate/core')
 
-class ServerRequest extends Request {
+class ServerRequest extends HttpRequest {
   constructor(req, body) {
     const url = new URL(req.url, `http://${req.headers.host}`)
 
@@ -8,7 +8,7 @@ class ServerRequest extends Request {
       body,
       headers: req.headers,
       method: req.method,
-      url
+      url,
     })
   }
 }

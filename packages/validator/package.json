@@ -1,5 +1,9 @@
 {
   "name": "@baseplate/validator",
   "version": "1.0.0",
-  "main": "index.js"
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc --build --preserveWatchOutput --watch"
+  }
 }

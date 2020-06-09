@@ -1,8 +1,14 @@
 {
   "name": "@baseplate/postgres",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
+    "@baseplate/core": "1.0.0",
+    "@types/pg": "^7.14.3",
     "pg": "^8.2.1"
+  },
+  "scripts": {
+    "dev": "tsc --build --preserveWatchOutput --watch"
   }
 }
