@@ -1,11 +1,12 @@
 import {CastError, FieldValidationError} from '../errors'
 import {Field, FieldConstructorParameters, FieldOptions} from '../field'
 
-interface FieldStringConstructorParameters extends FieldConstructorParameters {
+export interface FieldStringConstructorParameters
+  extends FieldConstructorParameters {
   options?: object
 }
 
-interface FieldStringOptions extends FieldOptions {
+export interface FieldStringOptions extends FieldOptions {
   lowerCase?: boolean
   enum?: Array<string>
   match?: RegExp

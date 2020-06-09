@@ -18,7 +18,6 @@ interface NestedObjectMarker {
 
 type ExtendedSchema<T> = {
   type: T
-  options?: object
   [propName: string]: any
 }
 
@@ -104,7 +103,7 @@ export default class Schema {
       const primitives: Array<NormalizedField> = []
       const references: Array<Model> = []
 
-      field.children.forEach((child) => {
+      field.children.forEach((child: NormalizedField) => {
         if (child.type === 'primitive') {
           primitives.push(
             new this.fieldTypes.primitives[child.subType]({
@@ -186,7 +185,7 @@ export default class Schema {
 
     if (field.type === 'array') {
       const hasReferences = field.children.every(
-        (child) => child.type === 'reference'
+        (child: NormalizedField) => child.type === 'reference'
       )
 
       return hasReferences
@@ -213,6 +212,71 @@ export default class Schema {
     )
   }
 
+  normalize(
+    fields: Record<string, RawField>,
+    fieldTypes: FieldHandlers
+  ): Record<string, NormalizedField> {
+    return Object.entries(fields).reduce((normalizedFields, [name, field]) => {
+      const normalizedField = this.normalizeField(field, fieldTypes)
+
+      if (!normalizedField) {
+        return normalizedFields
+      }
+
+      return {...normalizedFields, [name]: normalizedField}
+    }, {})
+  }
+
+  normalizeField(
+    rawField: RawField,
+    fieldTypes: FieldHandlers
+  ): NormalizedField {
+    const field = this.normalizeFieldType(rawField) as ExtendedSchema<any>
+
+    if (typeof field.type === 'string') {
+      const {type, ...options} = field
+      const typeName = type.trim().toLowerCase()
+
+      return {
+        type: fieldTypes.primitives[typeName] ? 'primitive' : 'reference',
+        subType: typeName,
+        options: options || {},
+      }
+    }
+
+    if (typeof field.type === 'function') {
+      const {type, ...options} = field
+      const typeName = type.name.trim().toLowerCase()
+
+      return {
+        type: fieldTypes.primitives[typeName] ? 'primitive' : 'reference',
+        subType: typeName,
+        options: options || {},
+      }
+    }
+
+    if (Array.isArray(field.type)) {
+      const {type, ...options} = field
+      const children = field.type.map((member) =>
+        this.normalizeField(member, fieldTypes)
+      )
+
+      return {
+        type: 'array',
+        children,
+        options: options || {},
+      }
+    }
+
+    if (isPlainObject(field)) {
+      return {
+        type: 'object',
+        children: this.normalize(field, fieldTypes),
+        options: {},
+      }
+    }
+  }
+
   normalizeFieldType(field: RawField): RawField {
     if (
       typeof field === 'string' ||
@@ -225,67 +289,5 @@ export default class Schema {
     }
 
     return field
-  }
-
-  normalize(
-    fields: Record<string, RawField>,
-    fieldTypes: FieldHandlers
-  ): Record<string, NormalizedField> {
-    return Object.keys(fields).reduce((normalizedFields, name) => {
-      const field = this.normalizeFieldType(fields[name]) as ExtendedSchema<any>
-
-      if (typeof field.type === 'string') {
-        const typeName = field.trim().toLowerCase()
-
-        return {
-          ...normalizedFields,
-          [name]: {
-            type: fieldTypes.primitives[typeName] ? 'primitive' : 'reference',
-            subType: typeName,
-            options: {},
-          },
-        }
-      }
-
-      if (typeof field.type === 'function') {
-        const typeName = field.name.trim().toLowerCase()
-
-        return {
-          ...normalizedFields,
-          [name]: {
-            type: fieldTypes.primitives[typeName] ? 'primitive' : 'reference',
-            subType: typeName,
-            options: {},
-          },
-        }
-      }
-
-      if (Array.isArray(field.type)) {
-        const {type, ...options} = field
-        const {children} = this.normalize({children: field.type}, fieldTypes)
-
-        return {
-          ...normalizedFields,
-          [name]: {
-            type: 'array',
-            children,
-            options: options || {},
-          },
-        }
-      }
-
-      if (isPlainObject(field)) {
-        return {
-          ...normalizedFields,
-          [name]: {
-            type: 'object',
-            children: this.normalize(field, fieldTypes),
-            options: {},
-          },
-        }
-      }
-
-      return normalizedFields
-    }, {})
   }
 }

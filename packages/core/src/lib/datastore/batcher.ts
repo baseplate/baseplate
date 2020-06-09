@@ -1,6 +1,10 @@
-import {FieldSet, FieldSetType} from '../fieldSet'
-import {DataStore, FindOneByIdParameters, FindParameters} from './interface'
+import {
+  AbstractDataStore,
+  FindOneByIdParameters,
+  FindParameters,
+} from './abstract'
 import Context from '../context'
+import FieldSet, {FieldSetType} from '../fieldSet'
 
 type ContextQueue = Array<BatchingOp>
 
@@ -22,7 +26,7 @@ export interface FindWithContext extends FindParameters {
 
 const cachedPromise = Promise.resolve()
 
-export const batcherFactory = (DatabaseHandler: typeof DataStore) =>
+export const batcherFactory = (DatabaseHandler: typeof AbstractDataStore) =>
   class Batcher extends DatabaseHandler {
     static $__batcherAddBatch(
       combiner: Function,

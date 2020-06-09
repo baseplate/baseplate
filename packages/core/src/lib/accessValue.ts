@@ -1,5 +1,5 @@
-import {FieldSet} from './fieldSet'
 import {InvalidAccessValueError} from './errors'
+import FieldSet from './fieldSet'
 import QueryFilter from './queryFilter'
 
 type AccessValueObject =

@@ -2,10 +2,10 @@ const {camelize} = require('inflected')
 const {GraphQLID, GraphQLList, GraphQLNonNull} = require('graphql')
 
 const {ForbiddenError, UnauthorizedError} = require('../../errors')
-const FieldSet = require('../../fieldSet')
+const {default: FieldSet} = require('../../fieldSet')
 const GraphQLDeleteResponse = require('./deleteResponse')
 const GraphQLError = require('./error')
-const QueryFilter = require('../../queryFilter')
+const {default: QueryFilter} = require('../../queryFilter')
 
 module.exports = function getGraphQLModel({Access, Model}) {
   const GraphQLModel = class extends Model {

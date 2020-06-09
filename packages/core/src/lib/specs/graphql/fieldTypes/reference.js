@@ -4,6 +4,12 @@ const getGraphQLModel = require('../getGraphQLModel')
 const {types} = require('@baseplate/validator')
 
 class GraphQLTypeReference extends types.system.reference {
+  constructor({modelStore, ...props}) {
+    super(props)
+
+    this.modelStore = modelStore
+  }
+
   // (!) TO DO
   getGraphQLInputType() {
     return {

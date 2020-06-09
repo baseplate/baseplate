@@ -7,7 +7,8 @@ export interface FieldNumberOptions extends FieldOptions {
   min?: number
 }
 
-interface FieldNumberConstructorParameters extends FieldConstructorParameters {
+export interface FieldNumberConstructorParameters
+  extends FieldConstructorParameters {
   options?: object
 }
 

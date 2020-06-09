@@ -2,13 +2,14 @@ import {CastError, FieldValidationError} from '../errors'
 import {Field, FieldConstructorParameters, FieldOptions} from '../field'
 import {Validator} from '../validator'
 
-interface FieldArrayOptions extends FieldOptions {
+export interface FieldArrayOptions extends FieldOptions {
   children?: Array<any>
   maxLength?: number
   minLength?: number
 }
 
-interface FieldArrayConstructorParameters extends FieldConstructorParameters {
+export interface FieldArrayConstructorParameters
+  extends FieldConstructorParameters {
   children?: Array<any>
   options: FieldArrayOptions
   validator?: typeof Validator

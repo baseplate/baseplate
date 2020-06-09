@@ -1,6 +1,7 @@
 import {Field, FieldConstructorParameters, FieldOptions} from '../field'
 
-interface FieldMixedConstructorParameters extends FieldConstructorParameters {
+export interface FieldMixedConstructorParameters
+  extends FieldConstructorParameters {
   options: object
 }
 

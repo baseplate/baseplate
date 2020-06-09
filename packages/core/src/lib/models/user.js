@@ -172,7 +172,6 @@ BaseUser.customRoutes = {
           return res.status(200).json(responseBody)
         }
       } catch (errors) {
-        console.log(errors)
         const {body, statusCode} = await JsonApiResponse.toObject({
           errors,
         })

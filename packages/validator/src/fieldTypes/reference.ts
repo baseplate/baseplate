@@ -2,15 +2,15 @@ import {CastError, FieldValidationError} from '../errors'
 import {Field, FieldConstructorParameters, FieldOptions} from '../field'
 import {Model} from '../model'
 
-interface FieldReferenceConstructorParameters
+export interface FieldReferenceConstructorParameters
   extends FieldConstructorParameters {
   models?: Array<Model>
   options: FieldOptions
 }
 
-type ReferenceValue = SingleReferenceValue | Array<SingleReferenceValue>
+export type ReferenceValue = SingleReferenceValue | Array<SingleReferenceValue>
 
-interface SingleReferenceValue {
+export interface SingleReferenceValue {
   id: string
   type: string
 }

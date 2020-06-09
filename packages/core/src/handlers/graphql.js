@@ -43,7 +43,6 @@ module.exports.handler = async (req, res) => {
     source: body.query,
     variableValues: body.variables,
   })
-  console.log(result)
 
   res.status(200).json(result)
 }

@@ -37,7 +37,6 @@ module.exports = async (req, res, context) => {
 
     res.status(statusCode).json(body)
   } catch (errors) {
-    console.log('-> 1', errors)
     const {body, statusCode} = await JsonApiResponse.toObject({
       errors,
       url: req.url,

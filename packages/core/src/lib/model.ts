@@ -6,7 +6,7 @@ import {
 import Context from './context'
 import {DataStore} from './datastore/factory'
 import {EntryNotFoundError} from './errors'
-import {FieldSet, FieldSetType} from './fieldSet'
+import FieldSet, {FieldSetType} from './fieldSet'
 import {Virtual as VirtualSchema} from './schema'
 import QueryFilter from './queryFilter'
 import SortObject from './sortObject'

@@ -1,9 +1,11 @@
 import {FieldSetType} from '../fieldSet'
 import QueryFilter from '../queryFilter'
-import Schema from '../schema'
 import SortObject from '../sortObject'
 
-export abstract class DataStore {
+type Result = Record<string, any>
+type Results = Array<Result>
+
+export abstract class AbstractDataStore {
   static isBaseModel: boolean
   static handle: string
   static handlePlural: string
@@ -11,38 +13,29 @@ export abstract class DataStore {
   static settings: {[key: string]: any}
   static store: object
 
-  static $__dbCreateOne(entry: Record<string, any>): Record<string, any> {
+  static $__dbCreateOne(entry: Result): Result {
     return
   }
 
-  static $__dbDeleteOneById(id: string): {deleteCount: number} {
+  static $__dbDeleteOneById(id: string): Promise<{deleteCount: number}> {
     return
   }
 
-  static $__dbFind(props: FindParameters): Record<string, any> {
+  static $__dbFind(props: FindParameters): Result {
     return
   }
 
-  static $__dbFindManyById(
-    props: FindManyByIdParameters
-  ): Array<Record<string, any>> {
+  static $__dbFindManyById(props: FindManyByIdParameters): Promise<Results> {
     return
   }
 
-  static $__dbFindOneById(props: FindOneByIdParameters): Record<string, any> {
+  static $__dbFindOneById(props: FindOneByIdParameters): Result {
     return
   }
 
-  static $__dbUpdate(
-    filter: QueryFilter,
-    update: Record<string, any>
-  ): Record<string, any> {
+  static $__dbUpdate(filter: QueryFilter, update: Result): Result {
     return
   }
-}
-
-export interface DeleteOneByIdParameters {
-  id: string
 }
 
 export interface FindManyByIdParameters {

@@ -7,3 +7,4 @@ jspm_packages
 
 # TypeScript
 **/dist
+**/tsconfig.tsbuildinfo

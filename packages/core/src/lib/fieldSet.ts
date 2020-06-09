@@ -2,7 +2,7 @@ import {InvalidFieldSetError} from './errors'
 
 export type FieldSetType = Array<string>
 
-export class FieldSet {
+export default class FieldSet {
   static intersect(a: FieldSetType, b: FieldSetType): FieldSetType {
     if (!a) return b
     if (!b) return a

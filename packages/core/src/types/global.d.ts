@@ -1,9 +1,9 @@
-import {DataStore} from '../lib/datastore/interface'
+import {AbstractDataStore} from '../lib/datastore/abstract'
 
 declare global {
   namespace NodeJS {
     interface Global {
-      $__baseDatastore: typeof DataStore
+      $__baseDatastore: typeof AbstractDataStore
     }
   }
 }

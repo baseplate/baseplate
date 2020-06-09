@@ -1,11 +1,11 @@
 import {Pool} from 'pg'
 import {Fields} from '@baseplate/core/dist/lib/model'
 import {
-  DataStore,
+  AbstractDataStore,
   FindManyByIdParameters,
   FindOneByIdParameters,
   FindParameters,
-} from '@baseplate/core/dist/lib/datastore'
+} from '@baseplate/core/dist/lib/datastore/abstract'
 import QueryFilter, {
   Branch as QueryFilterBranch,
   Fork as QueryFilterFork,
@@ -18,7 +18,7 @@ const pool = new Pool()
 
 type SQLParameter = Array<any>
 
-export default class PostgreSQL extends DataStore {
+export default class PostgreSQL extends AbstractDataStore {
   static async $__dbCreateOne(entry: PostgreSQL) {
     const tableName = this.$__postgresGetTableName()
     const {data, internals} = this.$__postgresGetColumnsFromEntry(entry)

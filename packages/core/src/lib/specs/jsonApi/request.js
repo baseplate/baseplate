@@ -3,7 +3,7 @@ const {
   EntryNotFoundError,
   InvalidQueryParameterError,
 } = require('../../errors')
-const {FieldSet} = require('../../fieldSet')
+const {default: FieldSet} = require('../../fieldSet')
 const {default: QueryFilter} = require('../../queryFilter')
 const JsonApiResponse = require('./response')
 const JsonApiURL = require('./url')
