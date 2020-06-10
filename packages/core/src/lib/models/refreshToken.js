@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken')
 
 const {default: Model} = require('../model')
-const {QueryFilter} = require('../queryFilter')
+const {default: QueryFilter} = require('../queryFilter')
 
 const TOKEN_EXPIRATION = 360000
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'

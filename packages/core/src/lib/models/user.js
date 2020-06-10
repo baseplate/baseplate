@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken')
 const {ForbiddenError, UnauthorizedError} = require('../errors')
 const JsonApiResponse = require('../specs/jsonApi/response')
 const {default: Model} = require('../model')
-const {QueryFilter} = require('../queryFilter')
+const {default: QueryFilter} = require('../queryFilter')
 const {default: Schema} = require('../schema')
 
 const TOKEN_EXPIRATION = 3600
@@ -137,6 +137,10 @@ BaseUser.customRoutes = {
         }
 
         if (grantType === 'refresh_token') {
+          if (!req.headers.cookie) {
+            throw new UnauthorizedError()
+          }
+
           const {refresh_token: refreshToken} = cookie.parse(req.headers.cookie)
           const {data: payload} = RefreshTokenModel.decode(refreshToken)
 
