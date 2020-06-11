@@ -162,7 +162,7 @@ export default class PostgreSQL extends AbstractDataStore {
       'encode'
     )
     const [filterQuery, filterParameters] = this.$__postgresBuildSQLWhere(
-      filter.root
+      filter && filter.root
     )
     const assignments = [`data = data || $${filterParameters.length + 1}`]
     const assignmentParameters = [data]

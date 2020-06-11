@@ -1,4 +1,4 @@
-const {classify, pluralize} = require('inflected')
+const {classify, pluralize, titleize} = require('inflected')
 const path = require('path')
 
 const {default: Model} = require('../model')
@@ -53,6 +53,9 @@ class ModelStore {
       name: handle,
     })
     const modelProperties = {
+      displayName: {
+        value: source.displayName || pluralize(titleize(handle)),
+      },
       isBaseModel: {
         value: isBaseModel,
       },

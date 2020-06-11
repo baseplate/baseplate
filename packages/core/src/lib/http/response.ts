@@ -6,10 +6,10 @@ export abstract class HttpResponse {
     this.statusCode = 200
   }
 
-  json(data: object): void {
+  json(data: object, contentType = 'application/json'): void {
     const body = JSON.stringify(data)
 
-    this.contentType = 'application/json'
+    this.contentType = contentType
 
     return this.send(body)
   }

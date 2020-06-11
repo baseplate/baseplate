@@ -158,9 +158,10 @@ export default class Model extends DataStore {
   }
 
   static async updateOneById({id, update}: UpdateOneByIdParameters) {
-    const instance = new this({_id: id, ...update})
+    const filter = QueryFilter.parse({_id: id})
+    const {results} = await this.$__dbUpdate(filter, update)
 
-    return instance.save()
+    return new this(results[0], {fromDb: true})
   }
 
   /**

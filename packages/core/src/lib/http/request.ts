@@ -27,7 +27,7 @@ export class HttpRequest {
     this.headers = Object.entries(headers).reduce(
       (headers, [key, value]) => ({
         ...headers,
-        [key.toLowerCase()]: value
+        [key.toLowerCase()]: value,
       }),
       {}
     )
@@ -37,12 +37,12 @@ export class HttpRequest {
 
     let parsedBody = body
 
-    if (this.headers['content-type'] === 'application/json') {
+    if (body && this.headers['content-type'] === 'application/json') {
       try {
         parsedBody = JSON.parse(body)
       } catch (error) {
         throw new InvalidRequestBodyError({
-          expectedType: headers['content-type']
+          expectedType: headers['content-type'],
         })
       }
     }

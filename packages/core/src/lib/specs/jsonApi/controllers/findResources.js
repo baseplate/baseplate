@@ -6,6 +6,8 @@ const {
 const JsonApiRequest = require('../request')
 const JsonApiResponse = require('../response')
 const modelStore = require('../../../modelStore/')
+const {default: FieldSet} = require('../../../fieldSet')
+const {default: QueryFilter} = require('../../../queryFilter')
 
 module.exports = async (req, res, context) => {
   try {
@@ -29,19 +31,40 @@ module.exports = async (req, res, context) => {
     }
 
     const jsonApiReq = new JsonApiRequest(req, context)
-    const {body, statusCode} = await jsonApiReq.fetchResources({
-      accessFields: access.fields,
-      accessFilter: access.filter,
-      Model,
+    const query = QueryFilter.parse(jsonApiReq.filter, '$').intersectWith(
+      access.filter
+    )
+    const fieldSet = FieldSet.intersect(
+      jsonApiReq.fields[Model.handle],
+      access.fields
+    )
+    const {entries, totalPages} = await Model.find({
+      context,
+      fieldSet,
+      filter: query,
+      pageNumber: jsonApiReq.pageNumber,
+      pageSize: jsonApiReq.pageSize,
+      sort: jsonApiReq.sort,
+    })
+    const references = await jsonApiReq.resolveReferences({entries, Model})
+    const jsonApiRes = new JsonApiResponse({
+      entries,
+      fieldSet,
+      includedReferences: Object.values(references),
+      includeTopLevelLinks: true,
+      res,
+      totalPages,
+      url: jsonApiReq.url,
     })
 
-    res.status(statusCode).json(body)
+    jsonApiRes.end()
   } catch (errors) {
-    const {body, statusCode} = await JsonApiResponse.toObject({
+    const jsonApiRes = new JsonApiResponse({
       errors,
+      res,
       url: req.url,
     })
 
-    res.status(statusCode).json(body)
+    jsonApiRes.end()
   }
 }

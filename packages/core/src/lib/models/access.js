@@ -297,11 +297,7 @@ class BaseAccess extends Model {
       filter.intersectWith(publicUserQuery)
     }
 
-    const {results} = await super.$__dbUpdate({
-      context,
-      filter,
-      update,
-    })
+    const {results} = await super.$__dbUpdate(filter, update)
 
     return results.map((result) => {
       const id = this.encodeModelAccessKey(result.user)

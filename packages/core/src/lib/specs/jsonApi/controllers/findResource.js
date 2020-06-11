@@ -1,4 +1,5 @@
 const {
+  EntryNotFoundError,
   ForbiddenError,
   ModelNotFoundError,
   UnauthorizedError,
@@ -6,6 +7,8 @@ const {
 const JsonApiRequest = require('../request')
 const JsonApiResponse = require('../response')
 const modelStore = require('../../../modelStore/')
+const {default: FieldSet} = require('../../../fieldSet')
+const {default: QueryFilter} = require('../../../queryFilter')
 
 module.exports = async (req, res, context) => {
   try {
@@ -29,19 +32,43 @@ module.exports = async (req, res, context) => {
     }
 
     const jsonApiReq = new JsonApiRequest(req, context)
-    const {body, statusCode} = await jsonApiReq.fetchResource({
-      accessFields: access.fields,
-      accessFilter: access.filter,
-      Model,
+    const fieldSet = FieldSet.intersect(
+      access.fields,
+      jsonApiReq.fields[Model.handle]
+    )
+    const {id} = jsonApiReq.params
+    const entry = await Model.findOneById({
+      context,
+      fieldSet,
+      filter: access.filter,
+      id,
     })
 
-    res.status(statusCode).json(body)
+    if (!entry) {
+      throw new EntryNotFoundError({id})
+    }
+
+    const references = await jsonApiReq.resolveReferences({
+      entries: [entry],
+      Model,
+    })
+    const jsonApiRes = new JsonApiResponse({
+      entries: entry,
+      fieldSet,
+      includedReferences: Object.values(references),
+      includeTopLevelLinks: true,
+      res,
+      url: jsonApiReq.url,
+    })
+
+    jsonApiRes.end()
   } catch (errors) {
-    const {body, statusCode} = await JsonApiResponse.toObject({
+    const jsonApiRes = new JsonApiResponse({
       errors,
+      res,
       url: req.url,
     })
 
-    res.status(statusCode).json(body)
+    jsonApiRes.end()
   }
 }

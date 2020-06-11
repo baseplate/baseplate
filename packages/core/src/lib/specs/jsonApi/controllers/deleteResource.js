@@ -1,4 +1,5 @@
 const {
+  EntryNotFoundError,
   ForbiddenError,
   ModelNotFoundError,
   UnauthorizedError,
@@ -29,16 +30,28 @@ module.exports = async (req, res, context) => {
     }
 
     const jsonApiReq = new JsonApiRequest(req, context)
-    const {body, statusCode} = await jsonApiReq.deleteResource({Model})
+    const {id} = jsonApiReq.params
+    const {deleteCount} = await Model.delete({context, id})
 
-    res.status(statusCode).json(body)
+    if (deleteCount === 0) {
+      throw new EntryNotFoundError({id})
+    }
+
+    const jsonApiRes = new JsonApiResponse({
+      res,
+      statusCode: 200,
+      url: jsonApiReq.url,
+    })
+
+    jsonApiRes.end()
   } catch (errors) {
-    const {body, statusCode} = await JsonApiResponse.toObject({
+    const jsonApiRes = new JsonApiResponse({
       errors,
       request: this,
+      res,
       url: req.url,
     })
 
-    res.status(statusCode).json(body)
+    jsonApiRes.end()
   }
 }

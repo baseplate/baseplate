@@ -6,6 +6,7 @@ class JsonApiResponse {
     includedReferences,
     includeTopLevelLinks = false,
     relationships,
+    res,
     statusCode = 200,
     totalPages,
     url,
@@ -15,6 +16,7 @@ class JsonApiResponse {
     this.includeTopLevelLinks = includeTopLevelLinks
     this.totalPages = totalPages
     this.relationships = relationships
+    this.res = res
     this.topLevelFieldSet = fieldSet
     this.url = url
 
@@ -276,6 +278,12 @@ class JsonApiResponse {
     })
 
     return {self, related}
+  }
+
+  async end() {
+    const {body, statusCode} = await this.toObject()
+
+    this.res.status(statusCode).json(body, 'application/vnd.api+json')
   }
 
   async toObject() {

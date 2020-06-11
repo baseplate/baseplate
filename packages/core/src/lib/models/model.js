@@ -36,6 +36,7 @@ class BaseModel extends Model {
 
       return new this({
         _id: Model.handle,
+        displayName: Model.displayName,
         fields,
       })
     })
@@ -68,6 +69,7 @@ class BaseModel extends Model {
 }
 
 BaseModel.fields = {
+  displayName: String,
   fields: 'Mixed',
 }
 

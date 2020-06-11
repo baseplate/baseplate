@@ -1,4 +1,6 @@
 const {
+  EntryFieldNotFoundError,
+  EntryNotFoundError,
   ForbiddenError,
   ModelNotFoundError,
   UnauthorizedError,
@@ -29,18 +31,44 @@ module.exports = async (req, res, context) => {
     }
 
     const jsonApiReq = new JsonApiRequest(req, context)
-    const {body, statusCode} = await jsonApiReq.fetchResourceFieldRelationship({
-      accessFields: access.fields,
-      Model,
+    const {id, fieldName} = jsonApiReq.params
+
+    if (
+      !Model.schema.fields[fieldName] ||
+      (access.fields && !access.fields.includes(fieldName))
+    ) {
+      throw new EntryFieldNotFoundError({fieldName, modelName: Model.handle})
+    }
+
+    const entry = await Model.findOneById({context, id})
+
+    if (!entry) {
+      throw new EntryNotFoundError({id})
+    }
+
+    const fieldValue = entry.get(fieldName)
+    const isReferenceArray = Array.isArray(fieldValue)
+    const referenceArray = isReferenceArray ? fieldValue : [fieldValue]
+    const referenceEntries = referenceArray.map(({id, type}) => {
+      const ReferenceModel = Model.store.get(type)
+
+      return new ReferenceModel({_id: id})
+    })
+    const jsonApiRes = new JsonApiResponse({
+      includeTopLevelLinks: true,
+      relationships: isReferenceArray ? referenceEntries : referenceEntries[0],
+      res,
+      url: jsonApiReq.url,
     })
 
-    res.status(statusCode).json(body)
+    jsonApiRes.end()
   } catch (errors) {
-    const {body, statusCode} = await JsonApiResponse.toObject({
+    const jsonApiRes = new JsonApiResponse({
       errors,
+      res,
       url: req.url,
     })
 
-    res.status(statusCode).json(body)
+    jsonApiRes.end()
   }
 }
