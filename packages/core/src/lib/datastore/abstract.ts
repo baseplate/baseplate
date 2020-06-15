@@ -17,6 +17,10 @@ export abstract class AbstractDataStore {
     return
   }
 
+  static $__dbDelete(filter: QueryFilter): Promise<{deleteCount: number}> {
+    return
+  }
+
   static $__dbDeleteOneById(id: string): Promise<{deleteCount: number}> {
     return
   }

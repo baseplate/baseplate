@@ -38,7 +38,7 @@ module.exports = async (req, res, context) => {
       jsonApiReq.fields[Model.handle],
       access.fields
     )
-    const {entries, totalPages} = await Model.find({
+    const {entries, pageSize, totalEntries, totalPages} = await Model.find({
       context,
       fieldSet,
       filter: query,
@@ -52,7 +52,9 @@ module.exports = async (req, res, context) => {
       fieldSet,
       includedReferences: Object.values(references),
       includeTopLevelLinks: true,
+      pageSize,
       res,
+      totalEntries,
       totalPages,
       url: jsonApiReq.url,
     })

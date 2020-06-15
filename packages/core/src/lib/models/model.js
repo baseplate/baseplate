@@ -36,8 +36,10 @@ class BaseModel extends Model {
 
       return new this({
         _id: Model.handle,
-        displayName: Model.displayName,
+        label: Model.label,
         fields,
+        handle: Model.handle,
+        handlePlural: Model.handlePlural,
       })
     })
     const entries = await Promise.all(schemas)
@@ -69,8 +71,10 @@ class BaseModel extends Model {
 }
 
 BaseModel.fields = {
-  displayName: String,
+  label: String,
   fields: 'Mixed',
+  handle: String,
+  handlePlural: String,
 }
 
 BaseModel.handle = 'base_model'

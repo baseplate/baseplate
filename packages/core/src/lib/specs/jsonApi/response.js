@@ -5,19 +5,23 @@ class JsonApiResponse {
     fieldSet,
     includedReferences,
     includeTopLevelLinks = false,
+    pageSize,
     relationships,
     res,
     statusCode = 200,
+    totalEntries,
     totalPages,
     url,
   }) {
     this.entries = entries
     this.includedReferences = includedReferences || []
     this.includeTopLevelLinks = includeTopLevelLinks
-    this.totalPages = totalPages
+    this.pageSize = pageSize
     this.relationships = relationships
     this.res = res
     this.topLevelFieldSet = fieldSet
+    this.totalEntries = totalEntries
+    this.totalPages = totalPages
     this.url = url
 
     if (errors) {
@@ -46,9 +50,7 @@ class JsonApiResponse {
     const response = {}
 
     if (this.entries) {
-      if (Array.isArray(this.entries)) {
-        meta.count = this.entries.length
-      }
+      meta.count = this.totalEntries
 
       const entriesArray = Array.isArray(this.entries)
         ? this.entries
@@ -100,6 +102,10 @@ class JsonApiResponse {
           return this.formatEntry(referenceValue.entry, referenceValue.fieldSet)
         })
       )
+    }
+
+    if (typeof this.pageSize === 'number') {
+      meta.pageSize = this.pageSize
     }
 
     if (typeof this.totalPages === 'number') {

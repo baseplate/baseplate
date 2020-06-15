@@ -87,6 +87,27 @@ const tokenEndpointSchema = new Schema({
 
 BaseUser.customRoutes = {
   '/base_users/token': {
+    async delete(req, res) {
+      try {
+        const RefreshTokenModel = this.store.get('base_refreshToken')
+
+        if (req.headers.cookie) {
+          const {refresh_token: refreshToken} = cookie.parse(req.headers.cookie)
+
+          await RefreshTokenModel.deleteToken(refreshToken)
+        }
+
+        return res.status(204).end()
+      } catch (errors) {
+        const jsonApiRes = new JsonApiResponse({
+          errors,
+          res,
+        })
+
+        jsonApiRes.end()
+      }
+    },
+
     async post(req, res, context) {
       try {
         const data = req.body
@@ -176,11 +197,13 @@ BaseUser.customRoutes = {
           return res.status(200).json(responseBody)
         }
       } catch (errors) {
-        const {body, statusCode} = await JsonApiResponse.toObject({
+        console.log(errors)
+        const jsonApiRes = new JsonApiResponse({
           errors,
+          res,
         })
 
-        res.status(statusCode).json(body)
+        jsonApiRes.end()
       }
     },
   },

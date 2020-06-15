@@ -13,6 +13,7 @@ export interface FieldConstructorParameters {
 export interface FieldOptions {
   allowed?: Function
   errorMessage?: string
+  label?: string
   required?: boolean | Function
   validate?: Function
 }

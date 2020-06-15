@@ -1,8 +1,9 @@
-const {classify, pluralize, titleize} = require('inflected')
-const path = require('path')
+import {classify, pluralize, titleize} from 'inflected'
+import path from 'path'
 
-const {default: Model} = require('../model')
-const requireDirectory = require('../utils/requireDirectory')
+import Model from '../model'
+import Schema, {RawField} from '../schema'
+import requireDirectory from '../utils/requireDirectory'
 
 const modelPaths = [
   path.resolve(__dirname, '../models'),
@@ -28,15 +29,26 @@ const INTERFACES = [
   'jsonApiUpdateResource',
 ]
 
-class ModelStore {
-  constructor(SchemaClass) {
+abstract class Source {
+  static fields: Record<string, RawField>
+  static handle: string
+  static handlePlural: string
+  static interfaces: Record<string, boolean>
+  static label: string
+}
+
+export default class ModelStore {
+  models: Map<string, typeof Model>
+  SchemaClass: typeof Schema
+
+  constructor(SchemaClass: typeof Schema) {
     this.SchemaClass = SchemaClass
 
     this.models = sourceFiles.reduce((models, {name: fileName, source}) => {
       const handle = this.normalizeHandle(
         source.handle || source.name || fileName
       )
-      const Model = this.buildModel({handle, source})
+      const Model = this.buildModel(handle, source)
 
       return models.set(handle, Model)
     }, new Map())
@@ -46,15 +58,15 @@ class ModelStore {
     })
   }
 
-  buildModel({handle, source}) {
+  buildModel(handle: string, source: typeof Source) {
     const isBaseModel = handle.startsWith('base_')
     const schema = new this.SchemaClass({
       fields: source.fields,
       name: handle,
     })
     const modelProperties = {
-      displayName: {
-        value: source.displayName || pluralize(titleize(handle)),
+      label: {
+        value: source.label || pluralize(titleize(handle)),
       },
       isBaseModel: {
         value: isBaseModel,
@@ -72,7 +84,7 @@ class ModelStore {
         value: schema,
       },
       settings: {
-        value: this.buildSettingsBlock({isBaseModel, source}),
+        value: this.buildSettingsBlock(source, isBaseModel),
       },
       store: {
         value: this,
@@ -86,7 +98,7 @@ class ModelStore {
     return Object.defineProperties(NewModel, modelProperties)
   }
 
-  buildSettingsBlock({isBaseModel, source}) {
+  buildSettingsBlock(source: typeof Source, isBaseModel: boolean) {
     const interfaces = INTERFACES.reduce((interfaces, interfaceName) => {
       const modelInterfaces = (source && source.interfaces) || {}
       const value =
@@ -105,7 +117,7 @@ class ModelStore {
     }
   }
 
-  get(handle) {
+  get(handle: string) {
     return this.models.get(this.normalizeHandle(handle))
   }
 
@@ -113,7 +125,7 @@ class ModelStore {
     return Array.from(this.models.values())
   }
 
-  getByPluralForm(handlePlural) {
+  getByPluralForm(handlePlural: string) {
     const normalizedHandle = this.normalizeHandle(handlePlural)
 
     return Array.from(this.models.values()).find((Model) => {
@@ -121,11 +133,11 @@ class ModelStore {
     })
   }
 
-  has(handle) {
+  has(handle: string) {
     return this.models.has(this.normalizeHandle(handle))
   }
 
-  hasPluralForm(handlePlural) {
+  hasPluralForm(handlePlural: string) {
     const normalizedHandle = this.normalizeHandle(handlePlural)
 
     return Array.from(this.models.values()).some((source) => {
@@ -133,9 +145,7 @@ class ModelStore {
     })
   }
 
-  normalizeHandle(handle) {
+  normalizeHandle(handle: string) {
     return handle.toString().toLowerCase()
   }
 }
-
-module.exports = ModelStore

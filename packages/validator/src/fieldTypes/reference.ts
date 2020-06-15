@@ -1,10 +1,9 @@
 import {CastError, FieldValidationError} from '../errors'
 import {Field, FieldConstructorParameters, FieldOptions} from '../field'
-import {Model} from '../model'
 
 export interface FieldReferenceConstructorParameters
   extends FieldConstructorParameters {
-  models?: Array<Model>
+  models?: Array<any>
   options: FieldOptions
 }
 
@@ -18,16 +17,15 @@ export interface SingleReferenceValue {
 export default class FieldReference implements Field {
   options: FieldOptions
   modelNames: Array<string>
-  models: Array<Model>
+  models: Array<any>
   subType: string
   type: 'reference'
 
-  constructor({models, options}: FieldReferenceConstructorParameters) {
+  constructor({models, subType, options}: FieldReferenceConstructorParameters) {
     this.models = models
     this.options = options
 
-    this.modelNames = models.map((model) => model.handle)
-    this.subType = this.modelNames[0]
+    this.modelNames = models ? models.map((model) => model.handle) : [subType]
   }
 
   cast({path, value}: {path: Array<string>; value: ReferenceValue}) {

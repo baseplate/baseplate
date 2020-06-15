@@ -1,11 +1,5 @@
-const {
-  EntryFieldNotFoundError,
-  EntryNotFoundError,
-  InvalidQueryParameterError,
-} = require('../../errors')
+const {InvalidQueryParameterError} = require('../../errors')
 const {default: FieldSet} = require('../../fieldSet')
-const {default: QueryFilter} = require('../../queryFilter')
-const JsonApiResponse = require('./response')
 const JsonApiURL = require('./url')
 
 class JsonApiRequest {

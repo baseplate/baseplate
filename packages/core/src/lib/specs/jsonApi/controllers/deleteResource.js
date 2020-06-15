@@ -31,7 +31,7 @@ module.exports = async (req, res, context) => {
 
     const jsonApiReq = new JsonApiRequest(req, context)
     const {id} = jsonApiReq.params
-    const {deleteCount} = await Model.delete({context, id})
+    const {deleteCount} = await Model.deleteOneById({context, id})
 
     if (deleteCount === 0) {
       throw new EntryNotFoundError({id})

@@ -69,7 +69,7 @@ module.exports = function getGraphQLModel({Access, Model}) {
                   : new UnauthorizedError()
               }
 
-              const {deleteCount} = await this.delete({id})
+              const {deleteCount} = await this.deleteOneById({id})
 
               return {
                 deleteCount,

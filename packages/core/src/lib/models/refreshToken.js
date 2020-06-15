@@ -11,6 +11,13 @@ class BaseRefreshToken extends Model {
     return jwt.verify(token, TOKEN_PRIVATE_KEY)
   }
 
+  static async deleteToken(token) {
+    const filter = QueryFilter.parse({token})
+    const {deleteCount} = await super.delete({filter})
+
+    return deleteCount > 0
+  }
+
   static generate(user) {
     const data = {
       id: user.id,

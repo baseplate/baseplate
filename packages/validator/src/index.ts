@@ -7,5 +7,4 @@ export {
 } from './errors'
 export {Field} from './field'
 export {FieldHandler} from './fieldTypes'
-export {Model} from './model'
 export {Validator} from './validator'

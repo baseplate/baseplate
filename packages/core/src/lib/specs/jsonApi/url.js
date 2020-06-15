@@ -42,7 +42,7 @@ class JsonApiURL {
     const parsedQueryParameters = {}
 
     for (const [key, value] of queryParameters) {
-      const arraySyntaxMatch = key.match(/^(.*)\\[(.*)\\]$/)
+      const arraySyntaxMatch = key.match(/^(.*)\[(.*)\]$/)
 
       if (arraySyntaxMatch) {
         const [_, parentKey, childKey] = arraySyntaxMatch
@@ -111,8 +111,7 @@ class JsonApiURL {
 
       case 'page':
         options = {
-          isCSV: true,
-          isDotPath: true,
+          isNumber: true,
         }
 
         break

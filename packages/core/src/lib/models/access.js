@@ -1,6 +1,6 @@
 const {AccessValue} = require('../accessValue')
 const {EntryNotFoundError, ModelNotFoundError} = require('../errors')
-const {QueryFilter} = require('../queryFilter')
+const {default: QueryFilter} = require('../queryFilter')
 const JsonApiRequest = require('../specs/jsonApi/request')
 const JsonApiResponse = require('../specs/jsonApi/response')
 const {default: Model} = require('../model')

@@ -1,11 +1,10 @@
 import {camelize} from 'inflected'
-import {
-  Field as NormalizedField,
-  FieldHandler,
-  Model,
-} from '@baseplate/validator'
-import isPlainObject from './utils/isPlainObject'
+import {Field as NormalizedField, FieldHandler} from '@baseplate/validator'
+
 import {InvalidFieldTypeError} from './errors'
+import isPlainObject from './utils/isPlainObject'
+import Model from './model'
+import ModelStore from './modelStore/base'
 
 interface FieldHandlers {
   primitives: {[key: string]: FieldHandler}
@@ -21,19 +20,27 @@ type ExtendedSchema<T> = {
   [propName: string]: any
 }
 
-type FunctionStringOrExtendedSchema =
+type BasicOrExtendedSchema =
   | Function
   | string
-  | ExtendedSchema<Function | string>
-
-type RawField =
   | object
-  | FunctionStringOrExtendedSchema
-  | Array<FunctionStringOrExtendedSchema>
+  | ExtendedSchema<Function | string | object>
+
+export type RawField =
+  | object
+  | BasicOrExtendedSchema
+  | Array<BasicOrExtendedSchema>
 
 export interface Virtual {
   get?: Function
   set?: Function
+}
+
+type SchemaConstructorParameters = {
+  fields: Record<string, RawField>
+  fieldTypes?: FieldHandlers
+  name: string
+  virtuals?: {[key: string]: Virtual}
 }
 
 export default class Schema {
@@ -48,12 +55,7 @@ export default class Schema {
     fieldTypes = require('@baseplate/validator').types,
     name,
     virtuals,
-  }: {
-    fields: Record<string, NormalizedField>
-    fieldTypes: FieldHandlers
-    name: string
-    virtuals: {[key: string]: Virtual}
-  }) {
+  }: SchemaConstructorParameters) {
     const normalizedFields = this.normalize(fields, fieldTypes)
 
     this.fields = normalizedFields
@@ -65,7 +67,7 @@ export default class Schema {
 
   getHandlerForField(
     field: NormalizedField,
-    modelStore: any,
+    modelStore: ModelStore,
     name: string,
     fieldPath: Array<string> = [this.name]
   ): NormalizedField | NestedObjectMarker {
@@ -101,7 +103,7 @@ export default class Schema {
 
     if (field.type === 'array') {
       const primitives: Array<NormalizedField> = []
-      const references: Array<Model> = []
+      const references: Array<typeof Model> = []
 
       field.children.forEach((child: NormalizedField) => {
         if (child.type === 'primitive') {
@@ -265,6 +267,16 @@ export default class Schema {
         type: 'array',
         children,
         options: options || {},
+      }
+    }
+
+    if (isPlainObject(field.type)) {
+      const {type, ...options} = field
+
+      return {
+        type: 'object',
+        children: this.normalize(type, fieldTypes),
+        options,
       }
     }
 

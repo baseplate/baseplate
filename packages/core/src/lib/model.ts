@@ -88,7 +88,11 @@ export default class Model extends DataStore {
     return instance.$__modelCreate()
   }
 
-  static delete({id}: {id: string}) {
+  static delete({filter}: {filter: QueryFilter}) {
+    return this.$__dbDelete(filter)
+  }
+
+  static deleteOneById({id}: {id: string}) {
     return this.$__dbDeleteOneById(id)
   }
 
@@ -97,9 +101,11 @@ export default class Model extends DataStore {
     fieldSet,
     filter,
     pageNumber,
-    pageSize = DEFAULT_PAGE_SIZE,
+    pageSize: suppliedPageSize,
     sort,
   }: FindParameters) {
+    const pageSize = suppliedPageSize || DEFAULT_PAGE_SIZE
+
     const {count, results} = await this.$__dbFind({
       context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
@@ -113,7 +119,7 @@ export default class Model extends DataStore {
     )
     const totalPages = Math.ceil(count / pageSize)
 
-    return {entries, totalPages}
+    return {entries, pageSize, totalEntries: count, totalPages}
   }
 
   static async findOne({context, fieldSet, filter}: FindOneParameters) {

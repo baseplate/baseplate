@@ -1,8 +1,14 @@
-const jwt = require('jsonwebtoken')
+import jwt from 'jsonwebtoken'
+
+import TokenData from './tokenData'
 
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
-module.exports = (authorizationHeader) => {
+type JWTPayload = {
+  data: TokenData
+}
+
+const parseAuthorizationHeader = (authorizationHeader: string) => {
   if (!authorizationHeader || typeof authorizationHeader !== 'string') {
     return
   }
@@ -18,8 +24,10 @@ module.exports = (authorizationHeader) => {
   try {
     const payload = jwt.verify(accessToken, TOKEN_PRIVATE_KEY)
 
-    return payload.data
+    return (<JWTPayload>payload).data
   } catch {
     return
   }
 }
+
+export default parseAuthorizationHeader
