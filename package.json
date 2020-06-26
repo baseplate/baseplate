@@ -2,16 +2,19 @@
   "name": "baseplate",
   "version": "1.0.0",
   "scripts": {
+    "dev": "lerna run --parallel dev",
     "format": "eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}'"
   },
   "devDependencies": {
     "@eduardoboucas/eslint-config": "^1.1.0",
     "@eduardoboucas/prettier-config": "^1.1.0",
+    "@types/node": "^14.0.9",
     "eslint": "^6.7.0",
     "husky": "^3.1.0",
     "lerna": "^3.21.0",
     "lint-staged": "^9.4.3",
-    "prettier": "^1.19.1"
+    "prettier": "^2.0.5",
+    "typescript": "^3.9.3"
   },
   "husky": {
     "hooks": {
@@ -24,5 +27,8 @@
       "git add"
     ]
   },
-  "dependencies": {}
+  "dependencies": {
+    "@types/bcryptjs": "^2.4.2",
+    "@types/cookie": "^0.4.0"
+  }
 }
