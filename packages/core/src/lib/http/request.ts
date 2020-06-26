@@ -1,10 +1,12 @@
-const {InvalidRequestBodyError} = require('../errors')
+import {URL} from 'url'
 
-type HeadersMap = {
+import {InvalidRequestBodyError} from '../errors'
+
+export type HeadersMap = {
   [key: string]: string
 }
 
-type ParamsMap = {
+export type ParamsMap = {
   [key: string]: string
 }
 
@@ -13,15 +15,15 @@ type HttpRequestParameters = {
   headers: HeadersMap
   method: string
   params: ParamsMap
-  url: string
+  url: URL
 }
 
-export class HttpRequest {
-  body: object | string
-  headers: HeadersMap
-  method: string
-  params: ParamsMap
-  url: string
+export default class HttpRequest {
+  public body: any
+  public headers: HeadersMap
+  public method: string
+  public params: ParamsMap
+  public url: URL
 
   constructor({body, headers, method, params, url}: HttpRequestParameters) {
     this.headers = Object.entries(headers).reduce(

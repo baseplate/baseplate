@@ -1,5 +1,6 @@
+import ModelStore from './base'
 import Schema from '../schema'
 
-const ModelStore = require('./base')
+const modelStore = new ModelStore(Schema)
 
-module.exports = new ModelStore(Schema)
+export default modelStore

@@ -1,12 +1,17 @@
 import * as path from 'path'
 
-const requireDirectory = require('../lib/utils/requireDirectory')
+import requireDirectory from '../lib/utils/requireDirectory'
 
 const ENDPOINTS_PATH = path.join(process.cwd(), 'endpoints')
 
-type Endpoint = {
+interface Endpoint {
   route: string
-  handler: Function
+  handler: Record<string, Function>
+}
+
+interface EndpointFile {
+  name: string
+  source: any
 }
 
 class EndpointStore {
@@ -19,7 +24,7 @@ class EndpointStore {
   static buildFromDirectory(directory: string): Array<Endpoint> {
     const files = requireDirectory(directory)
     const routes = files.reduce(
-      (routes: string, {name, source}: {name: string; source: Endpoint}) => {
+      (routes: Array<Endpoint>, {name, source}: EndpointFile) => {
         const route =
           typeof source.route === 'string'
             ? this.normalizeRoute(source.route)
@@ -29,8 +34,8 @@ class EndpointStore {
           ...routes,
           {
             route,
-            handler: source
-          }
+            handler: source,
+          },
         ]
       },
       []

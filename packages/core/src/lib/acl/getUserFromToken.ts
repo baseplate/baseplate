@@ -7,6 +7,8 @@ const getUserFromToken = (tokenData: TokenData, modelStore: ModelStore) => {
   const {id, level, model} = tokenData
   const User = modelStore.get(model)
 
+  if (!User) return
+
   return new User({
     _id: id,
     accessLevel: level,

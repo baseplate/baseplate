@@ -1,4 +1,4 @@
-import {primitives as primitiveTypes, system as systemTypes} from './fieldTypes'
+import {primitives as primitiveTypes, system as systemTypes} from './types'
 import {Field} from './field'
 import {CustomError, EntryValidationError, FieldValidationError} from './errors'
 
@@ -53,32 +53,32 @@ export class Validator {
       })
     }
 
-    let FieldClass
+    let FieldHandler
 
     switch (field.type) {
       case 'array':
-        FieldClass = systemTypes.array
+        FieldHandler = systemTypes.array.FieldHandler
 
         break
 
       case 'primitive':
         const subType = <keyof typeof primitiveTypes>field.subType
 
-        FieldClass = primitiveTypes[subType]
+        FieldHandler = primitiveTypes[subType].FieldHandler
 
         break
 
       case 'reference':
-        FieldClass = systemTypes.reference
+        FieldHandler = systemTypes.reference.FieldHandler
 
         break
     }
 
-    if (!FieldClass) {
+    if (!FieldHandler) {
       return value
     }
 
-    const fieldHandler = new FieldClass({...field, path, validator: this})
+    const fieldHandler = new FieldHandler({...field, path, validator: this})
 
     if (typeof fieldHandler.cast === 'function') {
       value = fieldHandler.cast({path, value})

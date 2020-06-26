@@ -1,11 +1,9 @@
 import {Pool} from 'pg'
-import {Fields} from '@baseplate/core/dist/lib/model'
-import {
-  AbstractDataStore,
+import ModelInterface, {
   FindManyByIdParameters,
   FindOneByIdParameters,
   FindParameters,
-} from '@baseplate/core/dist/lib/datastore/abstract'
+} from '../../core/dist/lib/model/interface'
 import QueryFilter, {
   Branch as QueryFilterBranch,
   Fork as QueryFilterFork,
@@ -16,9 +14,10 @@ import SortObject from '@baseplate/core/src/lib/sortObject'
 
 const pool = new Pool()
 
+type Fields = Record<string, any>
 type SQLParameter = Array<any>
 
-export default class PostgreSQL extends AbstractDataStore {
+export default class PostgreSQL extends ModelInterface {
   static async $__dbCreateOne(entry: PostgreSQL) {
     const tableName = this.$__postgresGetTableName()
     const {data, internals} = this.$__postgresGetColumnsFromEntry(entry)

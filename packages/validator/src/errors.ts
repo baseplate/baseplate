@@ -1,6 +1,12 @@
 type Path = Array<string>
 
-export abstract class CustomError extends Error {}
+export abstract class CustomError extends Error {
+  childErrors?: Array<CustomError>
+  detail?: string
+  path?: Path
+  statusCode: number
+  title: string
+}
 
 export class CastError extends CustomError {
   detail: string

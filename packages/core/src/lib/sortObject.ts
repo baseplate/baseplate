@@ -1,5 +1,3 @@
-type SortObject = {
-  [key: string]: 0 | 1
-}
+type SortObject = Record<string, 0 | 1>
 
 export default SortObject

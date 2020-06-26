@@ -1,6 +1,22 @@
-export const createDatastore = require('./lib/datastore/factory')
-export const modelStore = require('./lib/modelStore/')
-export {handler as handlerGraphQL} from './handlers/graphql'
-export {handler as handlerRest} from './handlers/rest'
-export {HttpRequest} from './lib/http/request'
-export {HttpResponse} from './lib/http/response'
+import ModelInterface, {
+  FindManyByIdParameters,
+  FindOneByIdParameters,
+  FindParameters,
+} from './lib/model/interface'
+import handlerGraphQL from './handlers/graphql'
+import handlerRest from './handlers/rest'
+import HttpRequest from './lib/http/request'
+import HttpResponse from './lib/http/response'
+import modelStore from './lib/modelStore/'
+
+export {
+  FindManyByIdParameters,
+  FindOneByIdParameters,
+  FindParameters,
+  handlerGraphQL,
+  handlerRest,
+  HttpRequest,
+  HttpResponse,
+  ModelInterface,
+  modelStore,
+}

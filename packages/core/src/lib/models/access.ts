@@ -1,0 +1,205 @@
+import {AccessValue} from '../accessValue'
+import Context from '../context'
+import createModelAccessEntry from './accessControllers/createModelAccessEntry'
+import findModelAccessEntries from './accessControllers/findModelAccessEntries'
+import findModelAccessEntry from './accessControllers/findModelAccessEntry'
+import Model from '../model/generic'
+import QueryFilter from '../queryFilter'
+import updateModelAccessEntry from './accessControllers/updateModelAccessEntry'
+import User from './user'
+
+export type AccessType = 'delete' | 'create' | 'read' | 'update'
+
+export interface DatabaseAccess {
+  model: string
+  user: {
+    id: string
+    type: string
+  }
+}
+
+const accessValueProps = {
+  type: 'Mixed',
+  default: false,
+  get: (value: any) => {
+    return AccessValue.parse(value, '_').toObject('$')
+  },
+  set: (value: any) => {
+    return AccessValue.parse(value, '$').toObject('_')
+  },
+}
+
+export default class BaseAccess extends Model {
+  static customRoutes = {
+    '/base_models/:modelName/access': {
+      get: findModelAccessEntries,
+      post: createModelAccessEntry,
+    },
+    '/base_models/:modelName/access/:id': {
+      get: findModelAccessEntry,
+      patch: updateModelAccessEntry,
+    },
+  }
+
+  static fields = {
+    user: {
+      type: 'base_user',
+      required: true,
+    },
+    model: {
+      type: String,
+      required: true,
+      get: () => {},
+    },
+    create: {
+      ...accessValueProps,
+    },
+    read: {
+      ...accessValueProps,
+    },
+    update: {
+      ...accessValueProps,
+    },
+    delete: {
+      ...accessValueProps,
+    },
+  }
+
+  static handle = 'base_access'
+
+  static decodeModelAccessKey(key: string) {
+    if (key === 'public') {
+      return null
+    }
+
+    const separatorIndex = key.lastIndexOf('_')
+
+    if (separatorIndex > -1) {
+      return {
+        id: key.slice(separatorIndex + 1),
+        modelName: key.slice(0, separatorIndex),
+      }
+    }
+  }
+
+  static encodeModelAccessKey(user: Record<string, any>) {
+    if (!user) {
+      return 'public'
+    }
+
+    return `${user.type}_${user.id}`
+  }
+
+  public static async getAccess({
+    accessType,
+    context,
+    includePublicUser = true,
+    modelName,
+    user,
+  }: {
+    accessType: AccessType
+    context?: Context
+    includePublicUser?: boolean
+    modelName: string
+    user: User
+  }) {
+    if (user && user.isAdmin()) {
+      return AccessValue.parse(true)
+    }
+
+    const entries = await this.getAccessEntries({
+      context,
+      includePublicUser,
+      modelName,
+      user,
+    })
+
+    if (entries.length === 0) {
+      return AccessValue.parse(false)
+    }
+
+    const value = entries.reduce((value, entry) => {
+      const valueForType = AccessValue.parse(entry.get(accessType))
+
+      return AccessValue.unite(value, valueForType)
+    }, AccessValue.parse(false))
+
+    return value
+  }
+
+  static async getAccessEntries({
+    context,
+    includePublicUser,
+    modelName,
+    user,
+  }: {
+    context?: Context
+    includePublicUser?: boolean
+    modelName: string
+    user?: User
+  }) {
+    let filter
+
+    if (user) {
+      const userFilter = QueryFilter.parse({
+        'user.id': user.id,
+        'user.type': (<typeof User>user.constructor).handle,
+      })
+
+      filter = userFilter
+    }
+
+    if (includePublicUser) {
+      const publicUserFilter = QueryFilter.parse({user: null})
+
+      filter = filter ? filter.uniteWith(publicUserFilter) : publicUserFilter
+    }
+
+    const {results}: {results: Array<DatabaseAccess>} = await super.$__dbFind({
+      context,
+      filter,
+    })
+    const entries = results
+      .filter((result) => result.model === modelName)
+      .map((result) => {
+        const id = this.encodeModelAccessKey(result.user)
+
+        return new this({...result, _id: id})
+      })
+
+    return entries
+  }
+
+  static async updateAccessEntry({
+    modelName,
+    update,
+    user,
+  }: {
+    modelName: string
+    update: object
+    user: User
+  }) {
+    const filter = QueryFilter.parse({model: modelName})
+
+    if (user) {
+      const userQuery = {
+        'user.id': user.id,
+        'user.type': (<typeof User>user.constructor).handle,
+      }
+
+      filter.intersectWith(QueryFilter.parse(userQuery))
+    } else {
+      const publicUserQuery = QueryFilter.parse({user: null})
+
+      filter.intersectWith(publicUserQuery)
+    }
+
+    const {results} = await super.$__dbUpdate(filter, update)
+
+    return results.map((result: DatabaseAccess) => {
+      const id = this.encodeModelAccessKey(result.user)
+
+      return new this({...result, _id: id})
+    })
+  }
+}

@@ -1,28 +1,24 @@
 import {InvalidAccessValueError} from './errors'
-import FieldSet from './fieldSet'
+import FieldSet, {FieldSetType} from './fieldSet'
 import QueryFilter from './queryFilter'
 
 type AccessValueObject =
   | boolean
   | {
-      fields?: AccessValueFields
-      filter?: AccessValueFilter
+      fields?: FieldSetType
+      filter?: object
     }
-
-type AccessValueFields = Array<string>
-
-type AccessValueFilter = {[key: string]: any}
 
 type AccessValueParams = {
   absolute?: boolean
-  fields?: AccessValueFields
-  filter?: AccessValueFilter
+  fields?: FieldSetType
+  filter?: QueryFilter
 }
 
 export class AccessValue {
   absolute: boolean
   fields: Array<string>
-  filter: {[key: string]: any}
+  filter: QueryFilter
 
   constructor({absolute, fields, filter}: AccessValueParams) {
     this.absolute = absolute

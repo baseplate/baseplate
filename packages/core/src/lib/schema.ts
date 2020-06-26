@@ -1,9 +1,16 @@
 import {camelize} from 'inflected'
-import {Field as NormalizedField, FieldHandler} from '@baseplate/validator'
+import {
+  Field,
+  FieldDefinition as NormalizedFieldDefinition,
+  FieldHandler,
+  primitives,
+  system,
+} from '@baseplate/validator'
 
 import {InvalidFieldTypeError} from './errors'
+import {ExtendedSchema, FieldDefinition} from './fieldDefinition'
+import GenericModel from './model/generic'
 import isPlainObject from './utils/isPlainObject'
-import Model from './model'
 import ModelStore from './modelStore/base'
 
 interface FieldHandlers {
@@ -11,48 +18,32 @@ interface FieldHandlers {
   system: {[key: string]: FieldHandler}
 }
 
-interface NestedObjectMarker {
+export interface NestedObjectMarker {
   __nestedObjectId: string
 }
-
-type ExtendedSchema<T> = {
-  type: T
-  [propName: string]: any
-}
-
-type BasicOrExtendedSchema =
-  | Function
-  | string
-  | object
-  | ExtendedSchema<Function | string | object>
-
-export type RawField =
-  | object
-  | BasicOrExtendedSchema
-  | Array<BasicOrExtendedSchema>
 
 export interface Virtual {
   get?: Function
   set?: Function
 }
 
-type SchemaConstructorParameters = {
-  fields: Record<string, RawField>
+export interface SchemaConstructorParameters {
+  fields: Record<string, FieldDefinition>
   fieldTypes?: FieldHandlers
   name: string
   virtuals?: {[key: string]: Virtual}
 }
 
 export default class Schema {
-  fields: Record<string, NormalizedField>
-  fieldHandlers: Record<string, FieldHandler>
+  fields: Record<string, NormalizedFieldDefinition>
+  fieldHandlers: Record<string, Field>
   fieldTypes: FieldHandlers
   name: string
   virtuals: {[key: string]: Virtual}
 
   constructor({
     fields = {},
-    fieldTypes = require('@baseplate/validator').types,
+    fieldTypes = {primitives, system},
     name,
     virtuals,
   }: SchemaConstructorParameters) {
@@ -66,11 +57,11 @@ export default class Schema {
   }
 
   getHandlerForField(
-    field: NormalizedField,
+    field: NormalizedFieldDefinition,
     modelStore: ModelStore,
     name: string,
     fieldPath: Array<string> = [this.name]
-  ): NormalizedField | NestedObjectMarker {
+  ): Field | NestedObjectMarker {
     fieldPath = fieldPath.concat(name)
 
     if (
@@ -102,10 +93,10 @@ export default class Schema {
     }
 
     if (field.type === 'array') {
-      const primitives: Array<NormalizedField> = []
-      const references: Array<typeof Model> = []
+      const primitives: Array<Field> = []
+      const references: Array<typeof GenericModel> = []
 
-      field.children.forEach((child: NormalizedField) => {
+      field.children.forEach((child: NormalizedFieldDefinition) => {
         if (child.type === 'primitive') {
           primitives.push(
             new this.fieldTypes.primitives[child.subType]({
@@ -158,7 +149,7 @@ export default class Schema {
           return {
             ...handlers,
             [fieldName]: this.getHandlerForField(
-              <NormalizedField>field.children[fieldName],
+              <NormalizedFieldDefinition>field.children[fieldName],
               modelStore,
               fieldName,
               fieldPath
@@ -187,7 +178,7 @@ export default class Schema {
 
     if (field.type === 'array') {
       const hasReferences = field.children.every(
-        (child: NormalizedField) => child.type === 'reference'
+        (child: NormalizedFieldDefinition) => child.type === 'reference'
       )
 
       return hasReferences
@@ -215,9 +206,9 @@ export default class Schema {
   }
 
   normalize(
-    fields: Record<string, RawField>,
+    fields: Record<string, FieldDefinition>,
     fieldTypes: FieldHandlers
-  ): Record<string, NormalizedField> {
+  ): Record<string, NormalizedFieldDefinition> {
     return Object.entries(fields).reduce((normalizedFields, [name, field]) => {
       const normalizedField = this.normalizeField(field, fieldTypes)
 
@@ -230,10 +221,12 @@ export default class Schema {
   }
 
   normalizeField(
-    rawField: RawField,
+    fieldDefinition: FieldDefinition,
     fieldTypes: FieldHandlers
-  ): NormalizedField {
-    const field = this.normalizeFieldType(rawField) as ExtendedSchema<any>
+  ): NormalizedFieldDefinition {
+    const field = this.normalizeFieldType(fieldDefinition) as ExtendedSchema<
+      any
+    >
 
     if (typeof field.type === 'string') {
       const {type, ...options} = field
@@ -289,7 +282,7 @@ export default class Schema {
     }
   }
 
-  normalizeFieldType(field: RawField): RawField {
+  normalizeFieldType(field: FieldDefinition): FieldDefinition {
     if (
       typeof field === 'string' ||
       typeof field === 'function' ||

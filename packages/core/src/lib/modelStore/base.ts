@@ -1,9 +1,10 @@
 import {classify, pluralize, titleize} from 'inflected'
 import path from 'path'
 
-import Model from '../model'
-import Schema, {RawField} from '../schema'
+import GenericModel from '../model/generic'
+import ModelDefinition from '../model/definition'
 import requireDirectory from '../utils/requireDirectory'
+import Schema from '../schema'
 
 const modelPaths = [
   path.resolve(__dirname, '../models'),
@@ -29,16 +30,8 @@ const INTERFACES = [
   'jsonApiUpdateResource',
 ]
 
-abstract class Source {
-  static fields: Record<string, RawField>
-  static handle: string
-  static handlePlural: string
-  static interfaces: Record<string, boolean>
-  static label: string
-}
-
 export default class ModelStore {
-  models: Map<string, typeof Model>
+  models: Map<string, typeof GenericModel>
   SchemaClass: typeof Schema
 
   constructor(SchemaClass: typeof Schema) {
@@ -58,7 +51,7 @@ export default class ModelStore {
     })
   }
 
-  buildModel(handle: string, source: typeof Source) {
+  buildModel(handle: string, source: typeof ModelDefinition) {
     const isBaseModel = handle.startsWith('base_')
     const schema = new this.SchemaClass({
       fields: source.fields,
@@ -93,12 +86,12 @@ export default class ModelStore {
     const NewModel =
       typeof source === 'function'
         ? class extends source {}
-        : class extends Model {}
+        : class extends GenericModel {}
 
     return Object.defineProperties(NewModel, modelProperties)
   }
 
-  buildSettingsBlock(source: typeof Source, isBaseModel: boolean) {
+  buildSettingsBlock(source: typeof ModelDefinition, isBaseModel: boolean) {
     const interfaces = INTERFACES.reduce((interfaces, interfaceName) => {
       const modelInterfaces = (source && source.interfaces) || {}
       const value =

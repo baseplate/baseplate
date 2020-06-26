@@ -16,4 +16,5 @@ export interface FieldOptions {
   label?: string
   required?: boolean | Function
   validate?: Function
+  [propName: string]: any
 }

@@ -1,8 +1,8 @@
-const isPlainObject = require('./utils/isPlainObject')
-const {
+import isPlainObject from './utils/isPlainObject'
+import {
   InvalidQueryFilterError,
   InvalidQueryFilterParameterError,
-} = require('./errors')
+} from './errors'
 
 const BRANCH_OPERATORS = ['and', 'nor', 'or']
 const COMPARISON_OPERATORS = [
@@ -28,9 +28,7 @@ export class Branch {
 
   static parse(input: any, path: Array<string> = [], prefix: string): Branch {
     if (!isPlainObject(input)) {
-      throw new InvalidQueryFilterError({
-        value: input,
-      })
+      throw new InvalidQueryFilterError()
     }
 
     if (Object.keys(input).length === 0) {
@@ -76,7 +74,6 @@ export class Field {
     if (Object.keys(input).length > 1) {
       throw new InvalidQueryFilterParameterError({
         path,
-        value: input,
       })
     }
 
@@ -88,7 +85,6 @@ export class Field {
     if (!COMPARISON_OPERATORS.includes(operator)) {
       throw new InvalidQueryFilterParameterError({
         path,
-        value: input,
       })
     }
 
@@ -175,7 +171,6 @@ export default class QueryFilter {
 
       throw new InvalidQueryFilterParameterError({
         path: path.concat(key),
-        node,
       })
     })
 
@@ -183,7 +178,6 @@ export default class QueryFilter {
       if (Object.keys(node).length > 1 || !Array.isArray(node[operatorMatch])) {
         throw new InvalidQueryFilterParameterError({
           path,
-          value: node,
         })
       }
 

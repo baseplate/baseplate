@@ -74,10 +74,10 @@ export class InvalidFieldTypeError extends CustomError {
 }
 
 export class InvalidQueryFilterError extends CustomError {
-  childErrors: Array<object>
+  childErrors: Array<CustomError>
   statusCode: number
 
-  constructor({fieldErrors}: {fieldErrors?: Array<object>} = {}) {
+  constructor({fieldErrors}: {fieldErrors?: Array<CustomError>} = {}) {
     super('Invalid query')
 
     this.childErrors = fieldErrors
