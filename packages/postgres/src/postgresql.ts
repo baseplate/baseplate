@@ -1,9 +1,10 @@
 import {Pool} from 'pg'
+
 import ModelInterface, {
   FindManyByIdParameters,
   FindOneByIdParameters,
   FindParameters,
-} from '../../core/dist/lib/model/interface'
+} from '@baseplate/core/dist/lib/model/interface'
 import QueryFilter, {
   Branch as QueryFilterBranch,
   Fork as QueryFilterFork,
@@ -18,7 +19,7 @@ type Fields = Record<string, any>
 type SQLParameter = Array<any>
 
 export default class PostgreSQL extends ModelInterface {
-  static async $__dbCreateOne(entry: PostgreSQL) {
+  static async $__dbCreateOne(entry: PostgreSQL): Promise<PostgreSQL> {
     const tableName = this.$__postgresGetTableName()
     const {data, internals} = this.$__postgresGetColumnsFromEntry(entry)
     const payload = {

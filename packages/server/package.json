@@ -1,9 +1,10 @@
 {
   "name": "@baseplate/server",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "watch": "nodemon --watch ../core --watch ../validator index.js"
+    "dev": "tsc --build --preserveWatchOutput --watch"
   },
   "directories": {
     "lib": "lib"
@@ -12,7 +13,6 @@
     "nodemon": "^2.0.4"
   },
   "dependencies": {
-    "@baseplate/postgres": "1.0.0",
     "dotenv": "^8.2.0"
   }
 }

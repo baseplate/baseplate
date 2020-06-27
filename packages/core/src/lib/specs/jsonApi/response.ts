@@ -143,7 +143,6 @@ export default class JsonApiResponse {
     if (this.includedReferences.length > 0) {
       response.included = await Promise.all(
         this.includedReferences.map((a) => {
-          console.log('-> 1', a)
           return this.formatEntry(a.entry)
         })
       )
