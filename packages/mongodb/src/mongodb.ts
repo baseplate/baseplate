@@ -18,12 +18,20 @@ export default class MongoDB extends ModelInterface {
   static async $__dbCreateOne(entry: MongoDB): Promise<MongoDB> {
     const connection = await this.$__mongoDBConnect()
     const collectionName = this.$__mongoDBGetCollectionName()
+    const encodedEntry = this.$__mongoDBEncodeAndDecodeObjectIdsInEntry(
+      entry,
+      'encode'
+    )
     const {ops} = await connection
       .db(this.databaseName)
       .collection(collectionName)
-      .insertOne(entry)
+      .insertOne(encodedEntry)
+    const decodedResult = this.$__mongoDBEncodeAndDecodeObjectIdsInEntry(
+      ops[0],
+      'decode'
+    )
 
-    return ops[0]
+    return decodedResult
   }
 
   static async $__dbDeleteOneById(id: string) {
@@ -62,8 +70,11 @@ export default class MongoDB extends ModelInterface {
       .find(query, options)
     const count = await cursor.count()
     const results = await cursor.toArray()
+    const decodedResults = results.map((result) =>
+      this.$__mongoDBEncodeAndDecodeObjectIdsInEntry(result, 'decode')
+    )
 
-    return {count, results}
+    return {count, results: decodedResults}
   }
 
   static async $__dbFindManyById({
@@ -88,8 +99,11 @@ export default class MongoDB extends ModelInterface {
       .collection(collectionName)
       .find(query.toObject('$'), options)
       .toArray()
+    const decodedResults = results.map((result) =>
+      this.$__mongoDBEncodeAndDecodeObjectIdsInEntry(result, 'decode')
+    )
 
-    return results
+    return decodedResults
   }
 
   static async $__dbFindOneById({fieldSet, filter, id}: FindOneByIdParameters) {
@@ -109,8 +123,12 @@ export default class MongoDB extends ModelInterface {
       .db(this.databaseName)
       .collection(collectionName)
       .findOne(query.toObject('$'), options)
+    const decodedResult = this.$__mongoDBEncodeAndDecodeObjectIdsInEntry(
+      result,
+      'decode'
+    )
 
-    return result
+    return decodedResult
   }
 
   static async $__dbSetup() {}
@@ -169,6 +187,56 @@ export default class MongoDB extends ModelInterface {
     return connectionString
   }
 
+  static $__mongoDBDecodeObjectId(input: any) {
+    return input.toString()
+  }
+
+  static $__mongoDBEncodeObjectId(input: any) {
+    if (typeof input === 'string' && ObjectID.isValid(input)) {
+      return ObjectID.createFromHexString(input)
+    }
+
+    return input
+  }
+
+  static $__mongoDBEncodeAndDecodeObjectIdsInEntry(
+    entry: MongoDB,
+    opType: 'encode' | 'decode'
+  ) {
+    if (!entry) return entry
+
+    const opMethod =
+      opType === 'encode'
+        ? this.$__mongoDBEncodeObjectId
+        : this.$__mongoDBDecodeObjectId
+    const encodedEntry = Object.entries(entry).reduce(
+      (encodedEntry, [fieldName, value]) => {
+        let encodedValue = value
+
+        if (this.schema.isReferenceField(fieldName)) {
+          const references = Array.isArray(value) ? value : [value]
+          const encodedReferences = references.map((reference) => {
+            return reference && reference.id
+              ? {...reference, id: opMethod(reference.id)}
+              : reference
+          })
+
+          encodedValue = Array.isArray(value)
+            ? encodedReferences
+            : encodedReferences[0]
+        }
+
+        return {
+          ...encodedEntry,
+          [fieldName]: encodedValue,
+        }
+      },
+      {}
+    )
+
+    return encodedEntry
+  }
+
   static $__mongoDBGetCollectionName() {
     if (this.isBaseModel) {
       return this.handle
@@ -192,47 +260,6 @@ export default class MongoDB extends ModelInterface {
 
     return projection
   }
-
-  // static $__mongoDBTransformObjectIds(
-  //   input: Record<string, any> | string,
-  //   op = 'encode'
-  // ): Record<string, any> | string {
-  //   if (!isPlainObject(input)) {
-  //     // (!) TO DO: Needs revisiting. We can't blindly convert to ObjectID
-  //     // any values that might be one.
-  //     if (
-  //       op === 'encode' &&
-  //       typeof input === 'string' &&
-  //       ObjectID.isValid(input)
-  //     ) {
-  //       return ObjectID.createFromHexString(input)
-  //     }
-
-  //     if (op === 'decode' && input instanceof ObjectID) {
-  //       return input.toString()
-  //     }
-
-  //     return input
-  //   }
-
-  //   return Object.keys(input).reduce((result, key) => {
-  //     const value = input[key]
-
-  //     if (Array.isArray(value)) {
-  //       return {
-  //         ...result,
-  //         [key]: value.map((child) =>
-  //           this.$__mongoDBTransformObjectIds(child, op)
-  //         ),
-  //       }
-  //     }
-
-  //     return {
-  //       ...result,
-  //       [key]: this.$__mongoDBTransformObjectIds(value, op),
-  //     }
-  //   }, {})
-  // }
 }
 
 module.exports = MongoDB

@@ -14,11 +14,11 @@ import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore/'
 import {RelationshipData} from '../relationship'
 
-module.exports = async (
+export default async function (
   req: HttpRequest,
   res: HttpResponse,
   context: Context
-) => {
+) {
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
