@@ -1,6 +1,13 @@
+import ServerRequest from './request'
+import ServerResponse from './response'
+
 const MAX_AGE = 60 * 60 * 24
 
-module.exports = (req, res, next) => {
+export default function (
+  req: ServerRequest,
+  res: ServerResponse,
+  next: Function
+) {
   const origin = req.headers.origin
   const headers = req.headers['access-control-request-headers']
   const method = req.headers['access-control-request-method']

@@ -14,7 +14,7 @@ type HttpRequestParameters = {
   body: string
   headers: HeadersMap
   method: string
-  params: ParamsMap
+  params?: ParamsMap
   url: URL
 }
 

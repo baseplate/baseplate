@@ -1,8 +1,14 @@
 {
   "name": "@baseplate/mongodb",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
+    "@baseplate/core": "1.0.0",
+    "@types/mongodb": "^3.5.25",
     "mongodb": "^3.5.7"
+  },
+  "scripts": {
+    "dev": "tsc --build --preserveWatchOutput --watch"
   }
 }

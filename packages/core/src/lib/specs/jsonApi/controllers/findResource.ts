@@ -61,7 +61,6 @@ module.exports = async (
       entries: [entry],
       Model,
     })
-    console.log('-> ref:', references)
     const jsonApiRes = new JsonApiResponse({
       entries: entry,
       fieldSet,
