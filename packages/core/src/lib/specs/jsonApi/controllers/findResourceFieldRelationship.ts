@@ -5,7 +5,6 @@ import {
   ModelNotFoundError,
   UnauthorizedError,
 } from '../../../errors'
-import AccessModel from '../../../models/access'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
@@ -29,11 +28,9 @@ export default async function (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = <typeof AccessModel>modelStore.get('base_access')
-    const access = await Access.getAccess({
+    const access = await Model.base$authenticate({
       accessType: 'read',
       context,
-      modelName: Model.handle,
       user: context.user,
     })
 

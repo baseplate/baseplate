@@ -1,5 +1,5 @@
 import MongoDB from './mongodb'
 
-global.$__baseDatastore = MongoDB
+global.base$baseDatastore = MongoDB
 
 export * from '@baseplate/core'

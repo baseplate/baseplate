@@ -245,8 +245,8 @@ export default class JsonApiResponse {
       }
     }
 
-    if (typeof entry.$__jsonApiPostFormat === 'function') {
-      return entry.$__jsonApiPostFormat(formattedEntry, entry)
+    if (typeof entry.base$jsonApiPostFormat === 'function') {
+      return entry.base$jsonApiPostFormat(formattedEntry, entry)
     }
 
     return formattedEntry

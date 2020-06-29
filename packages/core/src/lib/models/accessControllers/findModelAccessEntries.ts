@@ -26,6 +26,7 @@ async function findModelAccessEntries(
     const references = await jsonApiReq.resolveRelationships({
       entries: <JsonApiModel[]>entries,
       Model,
+      user: context.user,
     })
     const jsonApiRes = new JsonApiResponse({
       entries: <JsonApiModel[]>entries,

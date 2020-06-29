@@ -1,9 +1,4 @@
-import {
-  ForbiddenError,
-  ModelNotFoundError,
-  UnauthorizedError,
-} from '../../../errors'
-import AccessModel from '../../../models/access'
+import {ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
@@ -27,19 +22,10 @@ export default async function (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = <typeof AccessModel>modelStore.get('base_access')
-    const access = await Access.getAccess({
-      accessType: 'create',
+    const model = await Model.create(jsonApiReq.bodyFields, {
       context,
-      modelName: Model.handle,
       user: context.user,
     })
-
-    if (access.toObject() === false) {
-      throw context.user ? new ForbiddenError() : new UnauthorizedError()
-    }
-
-    const model = await Model.create(jsonApiReq.bodyFields)
     const jsonApiRes = new JsonApiResponse({
       entries: [<JsonApiModel>model],
       res,

@@ -27,26 +27,17 @@ export default async function (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = <typeof AccessModel>modelStore.get('base_access')
-    const access = await Access.getAccess({
-      accessType: 'update',
-      context,
-      modelName: Model.handle,
-      user: context.user,
-    })
-
-    if (access.toObject() === false) {
-      throw context.user ? new ForbiddenError() : new UnauthorizedError()
-    }
-
     const {id} = jsonApiReq.params
     const entry = <JsonApiModel>await Model.updateOneById({
+      context,
       id,
       update: jsonApiReq.bodyFields,
+      user: context.user,
     })
     const references = await jsonApiReq.resolveRelationships({
       entries: [entry],
       Model,
+      user: context.user,
     })
     const jsonApiRes = new JsonApiResponse({
       entries: entry,

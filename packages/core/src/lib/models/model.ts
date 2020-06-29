@@ -79,7 +79,7 @@ export default class BaseModel extends GenericModel {
     return new this({_id: Model.handle, fields: Model.schema.fields})
   }
 
-  $__jsonApiPostFormat(
+  base$jsonApiPostFormat(
     formattedEntry: JsonApiEntry,
     originalEntry: GenericModel
   ) {
