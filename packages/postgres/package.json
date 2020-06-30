@@ -7,7 +7,8 @@
     "dist"
   ],
   "dependencies": {
-    "@baseplate/core": "^0.2.1"
+    "@baseplate/core": "^0.2.1",
+    "pg": "^8.2.1"
   },
   "scripts": {
     "build": "npm run clean && npm run compile",

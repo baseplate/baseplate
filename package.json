@@ -7,7 +7,7 @@
     "clean": "lerna run clean",
     "build": "lerna run build",
     "format": "eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}'",
-    "pub": "lerna publish",
+    "pub": "lerna publish --dist-tag beta ",
     "postinstall": "npm run bootstrap",
     "watch": "lerna run --parallel watch"
   },
