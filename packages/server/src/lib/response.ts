@@ -1,4 +1,4 @@
-import HttpResponse from '@baseplate/core/dist/lib/http/response'
+import HttpResponse from '../../../core/src/lib/http/response'
 import {ServerResponse as NodeServerResponse} from 'http'
 
 export default class ServerResponse extends HttpResponse {

@@ -240,8 +240,6 @@ export default class MongoDB extends ModelInterface {
       {}
     )
 
-    console.log('m:', encodedEntry)
-
     return encodedEntry
   }
 

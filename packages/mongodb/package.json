@@ -1,14 +1,19 @@
 {
   "name": "@baseplate/mongodb",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/index",
+  "types": "dist/index",
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@baseplate/core": "1.0.0",
-    "@types/mongodb": "^3.5.25",
     "mongodb": "^3.5.7"
   },
   "scripts": {
-    "dev": "tsc --build --preserveWatchOutput --watch"
+    "build": "npm run clean && npm run compile",
+    "clean": "rm -rf ./dist && rm -rf tsconfig.build.tsbuildinfo",
+    "compile": "tsc -b tsconfig.build.json",
+    "prepublishOnly": "npm run build"
   }
 }
