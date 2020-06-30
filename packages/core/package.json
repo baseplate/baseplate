@@ -25,5 +25,13 @@
     "jsonwebtoken": "^8.5.1",
     "route-recognizer": "^0.3.4",
     "uuid": "^8.0.0"
+  },
+  "gitHead": "732d6dc8d27246d5abba9cff587f2bee691acf9d",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baseplate/api.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   }
 }

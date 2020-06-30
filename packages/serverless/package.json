@@ -4,5 +4,13 @@
   "main": "index.js",
   "directories": {
     "lib": "lib"
+  },
+  "gitHead": "732d6dc8d27246d5abba9cff587f2bee691acf9d",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/baseplate/api.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   }
 }
