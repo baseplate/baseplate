@@ -17,7 +17,7 @@
     "prepublishOnly": "npm run build",
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
-  "gitHead": "732d6dc8d27246d5abba9cff587f2bee691acf9d",
+  "gitHead": "6c00b7019255f6d932c9eb8d1840a71bb0f10670",
   "repository": {
     "type": "git",
     "url": "https://github.com/baseplate/api.git"
