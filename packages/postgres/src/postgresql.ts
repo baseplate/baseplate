@@ -10,8 +10,8 @@ import QueryFilter, {
   Fork as QueryFilterFork,
   Field as QueryFilterField,
 } from '@baseplate/core/dist/lib/queryFilter'
-import {FieldSetType} from '@baseplate/core/src/lib/fieldSet'
-import SortObject from '@baseplate/core/src/lib/sortObject'
+import {FieldSetType} from '@baseplate/core/dist/lib/fieldSet'
+import SortObject from '@baseplate/core/dist/lib/sortObject'
 
 const pool = new Pool()
 
