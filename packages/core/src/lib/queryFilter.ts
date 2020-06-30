@@ -45,6 +45,18 @@ export class Branch {
     return new this(fields)
   }
 
+  clone(): Branch {
+    const fields = Object.entries(this.fields).reduce(
+      (result, [name, field]) => ({
+        ...result,
+        [name]: field.clone(),
+      }),
+      {}
+    )
+
+    return new Branch(fields)
+  }
+
   serialize(prefix: string): SerializedNode {
     return Object.entries(this.fields).reduce((result, [name, field]) => {
       return {
@@ -99,6 +111,10 @@ export class Field {
     return new this(input[key], operator, isNegated)
   }
 
+  clone(): Field {
+    return new Field(this.value, this.operator, this.isNegated)
+  }
+
   serialize(prefix: string): SerializedNode {
     const {isNegated, operator, value} = this
     const valueWithOperator = {[prefix + operator]: value}
@@ -120,6 +136,12 @@ export class Fork {
     this.operator = operator
   }
 
+  clone(): Fork {
+    const branches = this.branches.map((item) => item.clone())
+
+    return new Fork(branches, this.operator)
+  }
+
   serialize(prefix: string): SerializedNode {
     const branches = this.branches
       .filter(Boolean)
@@ -132,9 +154,9 @@ export class Fork {
 }
 
 export default class QueryFilter {
-  root: Branch | Field | Fork
+  root: Branch | Fork
 
-  constructor(root: Branch | Field | Fork) {
+  constructor(root: Branch | Fork) {
     this.root = root
   }
 
@@ -204,6 +226,12 @@ export default class QueryFilter {
     }
   }
 
+  clone() {
+    const root = this.root ? this.root.clone() : this.root
+
+    return new QueryFilter(root)
+  }
+
   intersectWith(subject: QueryFilter) {
     if (!subject) return this
 
@@ -239,6 +267,22 @@ export default class QueryFilter {
 
   toObject(prefix: string) {
     return this.serialize(prefix)
+  }
+
+  traverse(callback: Function, root = this.root) {
+    if (!root) {
+      return
+    }
+
+    if (root instanceof Branch) {
+      Object.entries(root.fields).forEach(([name, field]) => {
+        callback(name, field)
+      })
+    } else if (root instanceof Fork) {
+      root.branches.forEach((branch) => {
+        this.traverse(callback, branch)
+      })
+    }
   }
 
   uniteWith(subject: QueryFilter) {

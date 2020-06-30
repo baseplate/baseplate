@@ -47,7 +47,7 @@ export default class BaseRefreshToken extends GenericModel {
   static async generateAndCreate(user: User) {
     const {token, ttl} = this.generate(user)
 
-    await this.create({token})
+    await this.create({token}, {authenticate: false})
 
     return {
       token,
@@ -58,6 +58,7 @@ export default class BaseRefreshToken extends GenericModel {
   static async generateAndReplace(user: User, oldToken: string) {
     const {token, ttl} = this.generate(user)
     const updatedEntries = await this.update({
+      authenticate: false,
       filter: QueryFilter.parse({token: oldToken}),
       update: {token},
     })

@@ -59,6 +59,7 @@ export default class BaseUser extends GenericModel {
 
     return super.findOneById({
       ...props,
+      authenticate: false,
       id: user.id,
     })
   }

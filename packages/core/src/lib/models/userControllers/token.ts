@@ -74,6 +74,7 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
 
     if (grantType === 'password') {
       const user = await this.findOne({
+        authenticate: false,
         context,
         filter: QueryFilter.parse({username}),
       })
@@ -119,7 +120,11 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
       // TO DO: Validate payload
 
       const UserModel = this.store.get(payload.modelName)
-      const user = await UserModel.findOneById({context, id: payload.id})
+      const user = await UserModel.findOneById({
+        authenticate: false,
+        context,
+        id: payload.id,
+      })
 
       // Generating refresh token.
       const {didReplace, token} = await RefreshTokenModel.generateAndReplace(

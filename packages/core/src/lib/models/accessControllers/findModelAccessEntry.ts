@@ -47,7 +47,11 @@ async function findModelAccessEntry(
       throw new EntryNotFoundError({id: req.params.id})
     }
 
-    const references = await jsonApiReq.resolveRelationships({entries, Model})
+    const references = await jsonApiReq.resolveRelationships({
+      entries,
+      Model,
+      user: context.user,
+    })
     const jsonApiRes = new JsonApiResponse({
       entries: entries[0],
       includedReferences: Object.values(references),

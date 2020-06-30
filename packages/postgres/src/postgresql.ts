@@ -10,8 +10,8 @@ import QueryFilter, {
   Fork as QueryFilterFork,
   Field as QueryFilterField,
 } from '@baseplate/core/dist/lib/queryFilter'
-import {FieldSetType} from '@baseplate/core/src/lib/fieldSet'
-import SortObject from '@baseplate/core/src/lib/sortObject'
+import {FieldSetType} from '@baseplate/core/dist/lib/fieldSet'
+import SortObject from '@baseplate/core/dist/lib/sortObject'
 
 const pool = new Pool()
 
@@ -19,9 +19,9 @@ type Fields = Record<string, any>
 type SQLParameter = Array<any>
 
 export default class PostgreSQL extends ModelInterface {
-  static async $__dbCreateOne(entry: PostgreSQL): Promise<PostgreSQL> {
-    const tableName = this.$__postgresGetTableName()
-    const {data, internals} = this.$__postgresGetColumnsFromEntry(entry)
+  static async base$dbCreateOne(entry: PostgreSQL): Promise<PostgreSQL> {
+    const tableName = this.base$postgresGetTableName()
+    const {data, internals} = this.base$postgresGetColumnsFromEntry(entry)
     const payload = {
       data,
       ...internals,
@@ -39,40 +39,40 @@ export default class PostgreSQL extends ModelInterface {
     }
   }
 
-  static async $__dbDelete(filter: QueryFilter) {
-    const [filterQuery, filterParameters] = this.$__postgresBuildSQLWhere(
+  static async base$dbDelete(filter: QueryFilter) {
+    const [filterQuery, filterParameters] = this.base$postgresBuildSQLWhere(
       filter.root
     )
-    const tableName = this.$__postgresGetTableName()
+    const tableName = this.base$postgresGetTableName()
     const query = `DELETE FROM ${tableName} WHERE ${filterQuery}`
     const {rowCount: deleteCount} = await pool.query(query, filterParameters)
 
     return {deleteCount}
   }
 
-  static async $__dbDeleteOneById(id: string) {
+  static async base$dbDeleteOneById(id: string) {
     const filter = QueryFilter.parse({_id: id})
 
-    return this.$__dbDelete(filter)
+    return this.base$dbDelete(filter)
   }
 
-  static async $__dbFind({
+  static async base$dbFind({
     fieldSet,
     filter,
     pageNumber = 1,
     pageSize,
     sort,
   }: FindParameters) {
-    const tableName = this.$__postgresGetTableName()
-    const [filterQuery, filterParameters] = this.$__postgresBuildSQLWhere(
+    const tableName = this.base$postgresGetTableName()
+    const [filterQuery, filterParameters] = this.base$postgresBuildSQLWhere(
       filter && filter.root
     )
     const fields = [
-      this.$__postgresGetFieldProjection(fieldSet),
+      this.base$postgresGetFieldProjection(fieldSet),
       'count(*) OVER() AS full_count',
     ]
     const queryNodes = [`SELECT ${fields.join(', ')} FROM ${tableName}`]
-    const order = this.$__postgresGetOrderByFromSortObject(sort)
+    const order = this.base$postgresGetOrderByFromSortObject(sort)
 
     if (filterQuery) {
       queryNodes.push(`WHERE ${filterQuery}`)
@@ -117,7 +117,7 @@ export default class PostgreSQL extends ModelInterface {
     }
   }
 
-  static async $__dbFindManyById({
+  static async base$dbFindManyById({
     fieldSet,
     filter,
     ids,
@@ -125,7 +125,7 @@ export default class PostgreSQL extends ModelInterface {
     const filterWithIds = QueryFilter.parse({
       _id: {$in: ids},
     }).intersectWith(filter)
-    const {results} = await this.$__dbFind({
+    const {results} = await this.base$dbFind({
       fieldSet,
       filter: filterWithIds,
     })
@@ -133,9 +133,13 @@ export default class PostgreSQL extends ModelInterface {
     return results
   }
 
-  static async $__dbFindOneById({fieldSet, filter, id}: FindOneByIdParameters) {
+  static async base$dbFindOneById({
+    fieldSet,
+    filter,
+    id,
+  }: FindOneByIdParameters) {
     const filterWithIds = QueryFilter.parse({_id: id}).intersectWith(filter)
-    const {results} = await this.$__dbFind({
+    const {results} = await this.base$dbFind({
       fieldSet,
       filter: filterWithIds,
     })
@@ -143,9 +147,9 @@ export default class PostgreSQL extends ModelInterface {
     return results[0] || null
   }
 
-  static async $__dbSetup() {
-    const tableName = this.$__postgresGetTableName()
-    const columns = this.$__postgresGetTableSchema()
+  static async base$dbSetup() {
+    const tableName = this.base$postgresGetTableName()
+    const columns = this.base$postgresGetTableSchema()
     const columnString = Object.entries(columns)
       .map(([name, description]) => `"${name}" ${description}`)
       .join(', ')
@@ -154,14 +158,14 @@ export default class PostgreSQL extends ModelInterface {
     return pool.query(query)
   }
 
-  static async $__dbUpdate(filter: QueryFilter, update: Fields) {
-    const tableName = this.$__postgresGetTableName()
-    const {data, internals} = this.$__postgresGetColumnsFromEntry(update)
-    const processedInternals = this.$__postgresEncodeDecodeEntry(
+  static async base$dbUpdate(filter: QueryFilter, update: Fields) {
+    const tableName = this.base$postgresGetTableName()
+    const {data, internals} = this.base$postgresGetColumnsFromEntry(update)
+    const processedInternals = this.base$postgresEncodeDecodeEntry(
       internals,
       'encode'
     )
-    const [filterQuery, filterParameters] = this.$__postgresBuildSQLWhere(
+    const [filterQuery, filterParameters] = this.base$postgresBuildSQLWhere(
       filter && filter.root
     )
     const assignments = [`data = data || $${filterParameters.length + 1}`]
@@ -192,14 +196,14 @@ export default class PostgreSQL extends ModelInterface {
     return {results}
   }
 
-  static async $__dbUpdateOneById(id: string, update: Fields) {
+  static async base$dbUpdateOneById(id: string, update: Fields) {
     const filter = QueryFilter.parse({_id: id})
-    const {results} = await this.$__dbUpdate(filter, update)
+    const {results} = await this.base$dbUpdate(filter, update)
 
     return results[0] || null
   }
 
-  static $__postgresBuildSQLWhere(
+  static base$postgresBuildSQLWhere(
     node: QueryFilterBranch | QueryFilterField | QueryFilterFork
   ): [string?, SQLParameter?] {
     if (!node) {
@@ -207,7 +211,7 @@ export default class PostgreSQL extends ModelInterface {
     }
 
     const parameters: SQLParameter = []
-    const query = this.$__postgresBuildSQLWhereAndWriteParameters(
+    const query = this.base$postgresBuildSQLWhereAndWriteParameters(
       node,
       parameters
     )
@@ -215,7 +219,7 @@ export default class PostgreSQL extends ModelInterface {
     return [query, parameters]
   }
 
-  static $__postgresBuildSQLWhereAndWriteParameters(
+  static base$postgresBuildSQLWhereAndWriteParameters(
     node: QueryFilterBranch | QueryFilterField | QueryFilterFork,
     parameters: SQLParameter
   ): string {
@@ -223,7 +227,7 @@ export default class PostgreSQL extends ModelInterface {
       const connector = node.operator === 'and' ? 'AND' : 'OR'
       const members = node.branches
         .map((branch) =>
-          this.$__postgresBuildSQLWhereAndWriteParameters(branch, parameters)
+          this.base$postgresBuildSQLWhereAndWriteParameters(branch, parameters)
         )
         .filter(Boolean)
         .join(` ${connector} `)
@@ -234,7 +238,7 @@ export default class PostgreSQL extends ModelInterface {
     if (node instanceof QueryFilterBranch) {
       return Object.entries(node.fields)
         .map(([name, node]) => {
-          const operator = this.$__postgresTranslateOperator(node.operator)
+          const operator = this.base$postgresTranslateOperator(node.operator)
 
           if (!operator) {
             return null
@@ -248,7 +252,7 @@ export default class PostgreSQL extends ModelInterface {
           })
           const variableExpression =
             variables.length > 1 ? `(${variables.join(', ')})` : variables[0]
-          const fieldName = this.$__postgresGetColumnName(name, true)
+          const fieldName = this.base$postgresGetColumnName(name, true)
           const comparison = `${fieldName} ${operator} ${variableExpression}`
 
           if (node.isNegated || node.operator === 'nin') {
@@ -261,7 +265,7 @@ export default class PostgreSQL extends ModelInterface {
     }
   }
 
-  static $__postgresEncodeDecodeEntry(
+  static base$postgresEncodeDecodeEntry(
     entry: Fields,
     type: 'encode' | 'decode'
   ): Fields {
@@ -298,7 +302,7 @@ export default class PostgreSQL extends ModelInterface {
     }, {})
   }
 
-  static $__postgresGetColumnName(fieldName: string, getJSONAsText = false) {
+  static base$postgresGetColumnName(fieldName: string, getJSONAsText = false) {
     if (fieldName.startsWith('_')) {
       return `${fieldName}`
     }
@@ -316,7 +320,7 @@ export default class PostgreSQL extends ModelInterface {
     return `data${operator}'${fieldPath[0]}'`
   }
 
-  static $__postgresGetColumnsFromEntry(entry: PostgreSQL) {
+  static base$postgresGetColumnsFromEntry(entry: PostgreSQL) {
     const data: Fields = {}
     const internals: Fields = {}
 
@@ -334,13 +338,13 @@ export default class PostgreSQL extends ModelInterface {
     }
   }
 
-  static $__postgresGetFieldProjection(fieldSet: FieldSetType) {
+  static base$postgresGetFieldProjection(fieldSet: FieldSetType) {
     if (!fieldSet) {
       return ['*']
     }
 
     const fields = fieldSet.map((fieldName) => {
-      const columnName = this.$__postgresGetColumnName(fieldName)
+      const columnName = this.base$postgresGetColumnName(fieldName)
 
       return columnName === fieldName
         ? `"${columnName}"`
@@ -350,11 +354,11 @@ export default class PostgreSQL extends ModelInterface {
     return fields
   }
 
-  static $__postgresGetOrderByFromSortObject(sortObject: SortObject) {
+  static base$postgresGetOrderByFromSortObject(sortObject: SortObject) {
     if (!sortObject) return
 
     const members = Object.entries(sortObject).map(([fieldName, value]) => {
-      const column = this.$__postgresGetColumnName(fieldName, true)
+      const column = this.base$postgresGetColumnName(fieldName, true)
       const direction = value === 1 ? 'ASC' : 'DESC'
 
       return `${column} ${direction}`
@@ -363,7 +367,7 @@ export default class PostgreSQL extends ModelInterface {
     return members.join(', ')
   }
 
-  static $__postgresGetTableName() {
+  static base$postgresGetTableName() {
     if (this.isBaseModel) {
       return this.handle
     }
@@ -371,7 +375,7 @@ export default class PostgreSQL extends ModelInterface {
     return `model_${this.handle}`
   }
 
-  static $__postgresGetTableSchema() {
+  static base$postgresGetTableSchema() {
     const baseColumns = {
       _id: 'uuid PRIMARY KEY DEFAULT uuid_generate_v4 ()',
       _createdAt: 'timestamp',
@@ -382,7 +386,7 @@ export default class PostgreSQL extends ModelInterface {
     return baseColumns
   }
 
-  static $__postgresTranslateOperator(operator: string): string {
+  static base$postgresTranslateOperator(operator: string): string {
     switch (operator) {
       case 'eq':
         return '='

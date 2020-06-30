@@ -18,7 +18,7 @@ const cachedPromise = Promise.resolve()
 
 export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
   class ModelWithDataStoreAndBatcher extends ModelWithDataStore {
-    static $__batcherAddBatch(
+    static base$batcherAddBatch(
       combiner: Function,
       context: Context,
       getBatchingKey: Function,
@@ -34,7 +34,7 @@ export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
 
         cachedPromise.then(() => {
           process.nextTick(() => {
-            ModelWithDataStoreAndBatcher.$__batcherProcessBatchQueue(
+            ModelWithDataStoreAndBatcher.base$batcherProcessBatchQueue(
               context.queue,
               combiner
             )
@@ -45,12 +45,12 @@ export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
       })
     }
 
-    static $__dbFind({context, ...props}: FindParameters) {
+    static base$dbFind({context, ...props}: FindParameters) {
       if (!context) {
-        return super.$__dbFind(props)
+        return super.base$dbFind(props)
       }
 
-      ModelWithDataStoreAndBatcher.$__batcherPopulateContext(context)
+      ModelWithDataStoreAndBatcher.base$batcherPopulateContext(context)
 
       const cacheKey = JSON.stringify(props)
 
@@ -58,19 +58,19 @@ export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
         return context.cache.get(cacheKey)
       }
 
-      const result = super.$__dbFind(props)
+      const result = super.base$dbFind(props)
 
       context.cache.set(cacheKey, result)
 
       return result
     }
 
-    static $__dbFindOneById({context, ...props}: FindOneByIdParameters) {
+    static base$dbFindOneById({context, ...props}: FindOneByIdParameters) {
       if (!context) {
-        return super.$__dbFindOneById(props)
+        return super.base$dbFindOneById(props)
       }
 
-      ModelWithDataStoreAndBatcher.$__batcherPopulateContext(context)
+      ModelWithDataStoreAndBatcher.base$batcherPopulateContext(context)
 
       const cacheKey = JSON.stringify({
         id: props.id,
@@ -81,8 +81,8 @@ export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
         return context.cache.get(cacheKey)
       }
 
-      const result = ModelWithDataStoreAndBatcher.$__batcherAddBatch(
-        ModelWithDataStoreAndBatcher.$__dbFindOneByIdCombiner.bind(this),
+      const result = ModelWithDataStoreAndBatcher.base$batcherAddBatch(
+        ModelWithDataStoreAndBatcher.base$dbFindOneByIdCombiner.bind(this),
         context,
         (props: any): string => props.modelName,
         props
@@ -93,10 +93,10 @@ export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
       return result
     }
 
-    static async $__dbFindOneByIdCombiner(batch: Array<BatchingOp>) {
+    static async base$dbFindOneByIdCombiner(batch: Array<BatchingOp>) {
       if (batch.length === 1) {
         const {fieldSet, filter, id} = batch[0].props
-        const result = await super.$__dbFindOneById({
+        const result = await super.base$dbFindOneById({
           fieldSet,
           filter,
           id,
@@ -113,7 +113,7 @@ export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
         undefined
       )
       const ids = batch.map((op: BatchingOp) => op.props.id)
-      const data = await super.$__dbFindManyById({
+      const data = await super.base$dbFindManyById({
         fieldSet,
         ids,
       })
@@ -124,12 +124,12 @@ export const batcherFactory = (ModelWithDataStore: typeof ModelInterface) =>
       return results
     }
 
-    static $__batcherPopulateContext(context: Context) {
+    static base$batcherPopulateContext(context: Context) {
       context.cache = context.cache || new Map()
       context.queue = context.queue || []
     }
 
-    static async $__batcherProcessBatchQueue(
+    static async base$batcherProcessBatchQueue(
       queue: ContextQueue,
       handler: Function
     ) {

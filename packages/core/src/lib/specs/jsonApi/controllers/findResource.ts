@@ -1,12 +1,5 @@
-import {
-  EntryNotFoundError,
-  ForbiddenError,
-  ModelNotFoundError,
-  UnauthorizedError,
-} from '../../../errors'
-import AccessModel from '../../../models/access'
+import {EntryNotFoundError, ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
-import FieldSet from '../../../fieldSet'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiModel from '../model'
@@ -14,11 +7,11 @@ import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore/'
 
-module.exports = async (
+export default async function (
   req: HttpRequest,
   res: HttpResponse,
   context: Context
-) => {
+) {
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
@@ -29,28 +22,13 @@ module.exports = async (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = <typeof AccessModel>modelStore.get('base_access')
-    const access = await Access.getAccess({
-      accessType: 'read',
-      context,
-      modelName: Model.handle,
-      user: context.user,
-    })
-
-    if (access.toObject() === false) {
-      throw context.user ? new ForbiddenError() : new UnauthorizedError()
-    }
-
-    const fieldSet = FieldSet.intersect(
-      access.fields,
-      jsonApiReq.fields[Model.handle]
-    )
+    const fieldSet = jsonApiReq.fields[Model.handle]
     const {id} = jsonApiReq.params
     const entry = <JsonApiModel>await Model.findOneById({
       context,
       fieldSet,
-      filter: access.filter,
       id,
+      user: context.user,
     })
 
     if (!entry) {
@@ -60,6 +38,7 @@ module.exports = async (
     const references = await jsonApiReq.resolveRelationships({
       entries: [entry],
       Model,
+      user: context.user,
     })
     const jsonApiRes = new JsonApiResponse({
       entries: entry,

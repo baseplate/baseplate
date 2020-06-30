@@ -16,6 +16,7 @@ import {
   RelationshipData,
 } from './relationship'
 import SortObject from '../../sortObject'
+import UserModel from '../../models/user'
 
 interface JsonApiRequestBody {
   data: {
@@ -31,12 +32,14 @@ export type ResolveRelationshipParameters = {
   includeMap: IncludeMap
   modelStore: ModelStore
   referencesHash: Record<string, object>
+  user: UserModel
 }
 
 export type ResolveRelationshipsParameters = {
   entries: Array<JsonApiModel>
   includeMap?: IncludeMap
   Model: typeof GenericModel
+  user: UserModel
 }
 
 export default class JsonApiRequest {
@@ -143,6 +146,7 @@ export default class JsonApiRequest {
     includeMap,
     modelStore,
     referencesHash,
+    user,
   }: ResolveRelationshipParameters): Promise<
     IncludedRelationship | Array<IncludedRelationship>
   > {
@@ -169,7 +173,7 @@ export default class JsonApiRequest {
         accessType: 'read',
         context: this.context,
         modelName: ReferencedModel.handle,
-        user: this.context.user,
+        user,
       })
 
       if (access.toObject() === false) {
@@ -194,6 +198,7 @@ export default class JsonApiRequest {
               includeMap: includeMap[childFieldName],
               modelStore,
               referencesHash,
+              user,
             })
           }
         )
@@ -225,6 +230,7 @@ export default class JsonApiRequest {
     entries,
     includeMap = this.includeMap,
     Model,
+    user,
   }: ResolveRelationshipsParameters): Promise<
     Record<string, IncludedRelationship>
   > {
@@ -256,6 +262,7 @@ export default class JsonApiRequest {
             includeMap: includeMap[fieldName],
             modelStore: Model.store,
             referencesHash,
+            user,
           })
         )
       })

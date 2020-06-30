@@ -50,6 +50,7 @@ async function updateModelAccessEntry(
     const references = await jsonApiReq.resolveRelationships({
       entries: [modelAccess],
       Model,
+      user: context.user,
     })
     const jsonApiRes = new JsonApiResponse({
       entries: modelAccess,

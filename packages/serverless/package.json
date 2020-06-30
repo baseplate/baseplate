@@ -1,8 +1,13 @@
 {
   "name": "@baseplate/serverless",
-  "version": "1.0.0",
+  "version": "0.2.5",
   "main": "index.js",
   "directories": {
     "lib": "lib"
+  },
+  "repository": "github:baseplate/baseplate",
+  "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   }
 }

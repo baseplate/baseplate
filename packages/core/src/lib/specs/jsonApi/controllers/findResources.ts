@@ -1,11 +1,5 @@
-import {
-  ForbiddenError,
-  ModelNotFoundError,
-  UnauthorizedError,
-} from '../../../errors'
-import AccessModel from '../../../models/access'
+import {ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
-import FieldSet from '../../../fieldSet'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
@@ -13,11 +7,11 @@ import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore/'
 import QueryFilter from '../../../queryFilter'
 
-module.exports = async (
+export default async function (
   req: HttpRequest,
   res: HttpResponse,
   context: Context
-) => {
+) {
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
@@ -28,25 +22,8 @@ module.exports = async (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = <typeof AccessModel>modelStore.get('base_access')
-    const access = await Access.getAccess({
-      accessType: 'read',
-      context,
-      modelName: Model.handle,
-      user: context.user,
-    })
-
-    if (access.toObject() === false) {
-      throw context.user ? new ForbiddenError() : new UnauthorizedError()
-    }
-
-    const query = QueryFilter.parse(jsonApiReq.filter, '$').intersectWith(
-      access.filter
-    )
-    const fieldSet = FieldSet.intersect(
-      jsonApiReq.fields[Model.handle],
-      access.fields
-    )
+    const query = QueryFilter.parse(jsonApiReq.filter, '$')
+    const fieldSet = jsonApiReq.fields[Model.handle]
     const {entries, pageSize, totalEntries, totalPages} = await Model.find({
       context,
       fieldSet,
@@ -54,8 +31,13 @@ module.exports = async (
       pageNumber: jsonApiReq.pageNumber,
       pageSize: jsonApiReq.pageSize,
       sort: jsonApiReq.sort,
+      user: context.user,
     })
-    const references = await jsonApiReq.resolveRelationships({entries, Model})
+    const references = await jsonApiReq.resolveRelationships({
+      entries,
+      Model,
+      user: context.user,
+    })
     const jsonApiRes = new JsonApiResponse({
       entries,
       fieldSet,

@@ -15,6 +15,7 @@ import GenericModel from '../../model/generic'
 import GraphQLDeleteResponse from './deleteResponse'
 import GraphQLError from './error'
 import QueryFilter from '../../queryFilter'
+import {string} from '@baseplate/validator/dist/types'
 
 interface Mutation {
   type: any
@@ -49,21 +50,10 @@ export default function getGraphQLModel(
           args: inputFields,
           resolve: async (_root: any, fields: object, context: Context) => {
             try {
-              const access = await Access.getAccess({
-                accessType: 'create',
-                modelName: this.handle,
+              const entry = await this.create(fields, {
+                context,
                 user: context.user,
               })
-
-              if (access.toObject() === false) {
-                throw context.user
-                  ? new ForbiddenError()
-                  : new UnauthorizedError()
-              }
-
-              const entry = new this(fields)
-
-              await entry.save()
 
               return entry.toObject({includeModelInstance: true})
             } catch (error) {
@@ -118,23 +108,18 @@ export default function getGraphQLModel(
             ...inputFields,
             _id: {type: GraphQLNonNull(GraphQLID)},
           },
-          resolve: async (_root: any, fields: object, context: Context) => {
+          resolve: async (
+            _root: any,
+            {_id: id, ...update}: Record<string, any>,
+            context: Context
+          ) => {
             try {
-              const access = await Access.getAccess({
-                accessType: 'update',
-                modelName: this.handle,
+              const entry = await this.updateOneById({
+                context,
+                id,
+                update,
                 user: context.user,
               })
-
-              if (access.toObject() === false) {
-                throw context.user
-                  ? new ForbiddenError()
-                  : new UnauthorizedError()
-              }
-
-              const entry = new this(fields)
-
-              await entry.save()
 
               return entry.toObject({includeModelInstance: true})
             } catch (error) {
@@ -174,18 +159,11 @@ export default function getGraphQLModel(
                     : null
                 )
                 .filter(Boolean)
-              const access = await Access.getAccess({
-                accessType: 'read',
-                modelName: this.handle,
-                user: context.user,
-              })
-              const filter = QueryFilter.parse(args, '_').intersectWith(
-                access.filter
-              )
               const {entries} = await this.find({
                 context,
-                fieldSet: FieldSet.intersect(requestedFields, access.fields),
-                filter,
+                fieldSet: requestedFields,
+                filter: QueryFilter.parse(args, '_'),
+                user: context.user,
               })
 
               return entries.map((entry: GenericModel) =>

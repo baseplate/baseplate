@@ -1,5 +1,5 @@
 declare namespace NodeJS {
   interface Global {
-    $__baseDatastore: any
+    base$baseDatastore: any
   }
 }

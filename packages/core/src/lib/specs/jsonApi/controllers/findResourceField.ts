@@ -5,7 +5,6 @@ import {
   ModelNotFoundError,
   UnauthorizedError,
 } from '../../../errors'
-import AccessModel from '../../../models/access'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
@@ -14,11 +13,11 @@ import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore/'
 
-module.exports = async (
+export default async function (
   req: HttpRequest,
   res: HttpResponse,
   context: Context
-) => {
+) {
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
@@ -29,11 +28,9 @@ module.exports = async (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = <typeof AccessModel>modelStore.get('base_access')
-    const access = await Access.getAccess({
+    const access = await Model.base$authenticate({
       accessType: 'read',
       context,
-      modelName: Model.handle,
       user: context.user,
     })
 
@@ -50,7 +47,9 @@ module.exports = async (
       throw new EntryFieldNotFoundError({fieldName, modelName: Model.handle})
     }
 
-    const entry = <JsonApiModel>await Model.findOneById({context, id})
+    const entry = <JsonApiModel>(
+      await Model.findOneById({context, id, user: context.user})
+    )
 
     if (!entry || !entry.get(fieldName)) {
       throw new EntryNotFoundError({id})
@@ -63,11 +62,13 @@ module.exports = async (
         [fieldName]: true,
       },
       Model,
+      user: context.user,
     })
     const fieldValue = Object.values(references).map(({entry}) => entry)
     const childReferences = await jsonApiReq.resolveRelationships({
       entries: fieldValue,
       Model,
+      user: context.user,
     })
     const jsonApiRes = new JsonApiResponse({
       entries: hasMultipleReferences ? fieldValue : fieldValue[0],

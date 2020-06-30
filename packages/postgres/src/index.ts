@@ -1,5 +1,5 @@
 import PostgreSQL from './postgresql'
 
-global.$__baseDatastore = PostgreSQL
+global.base$baseDatastore = PostgreSQL
 
 export * from '@baseplate/core'

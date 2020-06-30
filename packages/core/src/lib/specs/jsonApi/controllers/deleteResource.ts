@@ -1,10 +1,4 @@
-import {
-  EntryNotFoundError,
-  ForbiddenError,
-  ModelNotFoundError,
-  UnauthorizedError,
-} from '../../../errors'
-import AccessModel from '../../../models/access'
+import {EntryNotFoundError, ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
@@ -27,20 +21,12 @@ export default async function (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const Access = <typeof AccessModel>modelStore.get('base_access')
-    const access = await Access.getAccess({
-      accessType: 'delete',
+    const {id} = jsonApiReq.params
+    const {deleteCount} = await Model.deleteOneById({
       context,
-      modelName: Model.handle,
+      id,
       user: context.user,
     })
-
-    if (access.toObject() === false) {
-      throw context.user ? new ForbiddenError() : new UnauthorizedError()
-    }
-
-    const {id} = jsonApiReq.params
-    const {deleteCount} = await Model.deleteOneById({id})
 
     if (deleteCount === 0) {
       throw new EntryNotFoundError({id})

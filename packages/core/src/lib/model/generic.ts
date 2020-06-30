@@ -3,8 +3,13 @@ import {
   FieldValidationError,
   Validator,
 } from '@baseplate/validator'
-import {EntryNotFoundError} from '../errors'
+
+import AccessModel, {AccessType} from '../models/access'
+import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
 import {
+  CreateParameters,
+  DeleteParameters,
+  DeleteOneByIdParameters,
   FindOneByIdParameters,
   FindOneParameters,
   FindParameters,
@@ -12,12 +17,22 @@ import {
   UpdateParameters,
 } from './interface'
 import {Virtual as VirtualSchema} from '../schema'
+import Context from '../context'
 import FieldSet, {FieldSetType} from '../fieldSet'
 import ModelInterfaceWithDataStore from './datastore'
 import QueryFilter from '../queryFilter'
+import UserModel from '../models/user'
 
 const DEFAULT_PAGE_SIZE = 20
 const INTERNAL_FIELDS = ['_createdAt', '_id', '_updatedAt']
+
+interface AuthenticateParameters {
+  accessType: AccessType
+  context: Context
+  fieldSet?: FieldSetType
+  filter?: QueryFilter
+  user: UserModel
+}
 
 type Fields = Record<string, any>
 
@@ -46,38 +61,123 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     this._lastSync = undefined
     this._updatedAt = undefined
 
-    this.$__modelHydrate(fields, {fromDb})
+    this.base$hydrate(fields, {fromDb})
   }
 
   /**
    * STATIC METHODS
    */
 
-  static create(fields: Fields) {
+  static async base$authenticate({
+    accessType,
+    context,
+    fieldSet,
+    filter,
+    user,
+  }: AuthenticateParameters) {
+    const Access = <typeof AccessModel>this.store.get('base_access')
+    const access = await Access.getAccess({
+      accessType,
+      context,
+      modelName: this.handle,
+      user,
+    })
+
+    if (access.toObject() === false) {
+      throw user ? new ForbiddenError() : new UnauthorizedError()
+    }
+
+    if (fieldSet) {
+      access.fields = FieldSet.intersect(fieldSet, access.fields)
+    }
+
+    if (filter) {
+      access.filter = filter.intersectWith(access.filter)
+    }
+
+    return access
+  }
+
+  static async create(
+    fields: Fields,
+    {authenticate = true, context, user}: CreateParameters = {}
+  ) {
+    if (authenticate) {
+      await this.base$authenticate({
+        accessType: 'create',
+        context,
+        user,
+      })
+    }
+
     const instance = new this(fields)
 
-    return instance.$__modelCreate()
+    return instance.base$create()
   }
 
-  static delete({filter}: {filter: QueryFilter}) {
-    return this.$__dbDelete(filter)
+  static async delete({
+    authenticate = true,
+    context,
+    filter,
+    user,
+  }: DeleteParameters) {
+    if (authenticate) {
+      const access = await this.base$authenticate({
+        accessType: 'delete',
+        context,
+        filter,
+        user,
+      })
+
+      filter = access.filter
+    }
+
+    return this.base$dbDelete(filter)
   }
 
-  static deleteOneById({id}: {id: string}) {
-    return this.$__dbDeleteOneById(id)
+  static async deleteOneById({
+    authenticate = true,
+    context,
+    id,
+    user,
+  }: DeleteOneByIdParameters) {
+    if (authenticate) {
+      await this.base$authenticate({
+        accessType: 'delete',
+        context,
+        user,
+      })
+    }
+
+    return this.base$dbDeleteOneById(id)
   }
 
   static async find({
+    authenticate = true,
     context,
     fieldSet,
     filter,
     pageNumber,
     pageSize: suppliedPageSize,
     sort,
+    user,
   }: FindParameters) {
     const pageSize = suppliedPageSize || DEFAULT_PAGE_SIZE
 
-    const {count, results} = await this.$__dbFind({
+    if (authenticate) {
+      const access = await this.base$authenticate({
+        accessType: 'read',
+        context,
+        fieldSet,
+        filter,
+        user,
+      })
+
+      fieldSet = access.fields
+      filter = access.filter
+    }
+
+    const {count, results} = await this.base$dbFind({
       context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter,
@@ -93,8 +193,27 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     return {entries, pageSize, totalEntries: count, totalPages}
   }
 
-  static async findOne({context, fieldSet, filter}: FindOneParameters) {
-    const {results} = await this.$__dbFind({
+  static async findOne({
+    authenticate = true,
+    context,
+    fieldSet,
+    filter,
+    user,
+  }: FindOneParameters) {
+    if (authenticate) {
+      const access = await this.base$authenticate({
+        accessType: 'read',
+        context,
+        fieldSet,
+        filter,
+        user,
+      })
+
+      fieldSet = access.fields
+      filter = access.filter
+    }
+
+    const {results} = await this.base$dbFind({
       context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter,
@@ -108,12 +227,27 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
   }
 
   static async findOneById({
+    authenticate = true,
     context,
     fieldSet,
     filter,
     id,
+    user,
   }: FindOneByIdParameters) {
-    const fields = await this.$__dbFindOneById({
+    if (authenticate) {
+      const access = await this.base$authenticate({
+        accessType: 'read',
+        context,
+        fieldSet,
+        filter,
+        user,
+      })
+
+      fieldSet = access.fields
+      filter = access.filter
+    }
+
+    const fields = await this.base$dbFindOneById({
       context,
       fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
       filter,
@@ -125,8 +259,25 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     return new this({...fields}, {fromDb: true})
   }
 
-  static async update({filter, update}: UpdateParameters) {
-    const {results} = await this.$__dbUpdate(filter, update)
+  static async update({
+    authenticate = true,
+    context,
+    filter,
+    update,
+    user,
+  }: UpdateParameters) {
+    if (authenticate) {
+      const access = await this.base$authenticate({
+        accessType: 'delete',
+        context,
+        filter,
+        user,
+      })
+
+      filter = access.filter
+    }
+
+    const {results} = await this.base$dbUpdate(filter, update)
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
     )
@@ -134,9 +285,23 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     return entries
   }
 
-  static async updateOneById({id, update}: UpdateOneByIdParameters) {
+  static async updateOneById({
+    authenticate = true,
+    context,
+    id,
+    update,
+    user,
+  }: UpdateOneByIdParameters) {
+    if (authenticate) {
+      await this.base$authenticate({
+        accessType: 'update',
+        context,
+        user,
+      })
+    }
+
     const filter = QueryFilter.parse({_id: id})
-    const {results} = await this.$__dbUpdate(filter, update)
+    const {results} = await this.base$dbUpdate(filter, update)
 
     return new this(results[0], {fromDb: true})
   }
@@ -145,15 +310,15 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
    * INSTANCE METHODS
    */
 
-  async $__modelCreate() {
+  async base$create() {
     const fields = await this.validate({enforceRequiredFields: true})
-    const fieldsAfterSetters = await this.$__modelRunFieldSetters(fields)
-    const fieldsAfterVirtuals = await this.$__modelRunVirtualSetters(
+    const fieldsAfterSetters = await this.base$runFieldSetters(fields)
+    const fieldsAfterVirtuals = await this.base$runVirtualSetters(
       fieldsAfterSetters
     )
     const entry = {
       ...fieldsAfterSetters,
-      ...this.$__modelGetFieldDefaults(fieldsAfterSetters),
+      ...this.base$getFieldDefaults(fieldsAfterSetters),
       ...fieldsAfterVirtuals,
       _createdAt: new Date(),
     }
@@ -162,16 +327,16 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       this._dirtyFields.delete(fieldName)
     })
 
-    const result = await (<typeof GenericModel>this.constructor).$__dbCreateOne(
-      entry
-    )
+    const result = await (<typeof GenericModel>(
+      this.constructor
+    )).base$dbCreateOne(entry)
 
-    this.$__modelHydrate(result, {fromDb: true})
+    this.base$hydrate(result, {fromDb: true})
 
     return this
   }
 
-  $__modelGetFieldDefaults(fields: Fields) {
+  base$getFieldDefaults(fields: Fields) {
     const fieldsWithDefaults = Object.keys(
       (<typeof GenericModel>this.constructor).schema.fields
     ).reduce((result, fieldName) => {
@@ -202,7 +367,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     return fieldsWithDefaults
   }
 
-  $__modelHydrate(fields: Fields, {fromDb}: {fromDb: boolean}) {
+  base$hydrate(fields: Fields, {fromDb}: {fromDb: boolean}) {
     const {schema} = <typeof GenericModel>this.constructor
 
     this._fields = {}
@@ -231,7 +396,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     }
   }
 
-  async $__modelRunFieldSetters(fields: Fields) {
+  async base$runFieldSetters(fields: Fields) {
     const transformedFields: Fields = {}
 
     await Promise.all(
@@ -263,7 +428,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     return transformedFields
   }
 
-  $__modelRunVirtualSetters(fields: Fields) {
+  base$runVirtualSetters(fields: Fields) {
     const fieldsAfterSetters = Object.keys(this._virtuals).reduce(
       async (fieldsAfterSetters, name) => {
         const virtualSchema = (<typeof GenericModel>this.constructor).schema
@@ -283,7 +448,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     return fieldsAfterSetters
   }
 
-  async $__modelUpdate() {
+  async base$update() {
     const fields = await this.validate({enforceRequiredFields: false})
     const update = Object.entries(fields).reduce(
       (update, [fieldName, value]) => {
@@ -317,7 +482,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       throw new EntryNotFoundError({id: this.id})
     }
 
-    this.$__modelHydrate(updatedResult, {fromDb: true})
+    this.base$hydrate(updatedResult, {fromDb: true})
 
     return this
   }
@@ -335,7 +500,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
   }
 
   save() {
-    return this.id ? this.$__modelUpdate() : this.$__modelCreate()
+    return this.id ? this.base$update() : this.base$create()
   }
 
   set(fieldName: string, value: any) {

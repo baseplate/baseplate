@@ -38,7 +38,7 @@ router.add([
         method === 'get' &&
         Model.settings.interfaces.jsonApiFetchResources
       ) {
-        return require('../lib/specs/jsonApi/controllers/findResources')
+        return require('../lib/specs/jsonApi/controllers/findResources').default
       }
 
       if (
@@ -47,6 +47,7 @@ router.add([
         Model.settings.interfaces.jsonApiCreateResource
       ) {
         return require('../lib/specs/jsonApi/controllers/createResource')
+          .default
       }
     },
   },
@@ -63,6 +64,7 @@ router.add([
         Model.settings.interfaces.jsonApiDeleteResource
       ) {
         return require('../lib/specs/jsonApi/controllers/deleteResource')
+          .default
       }
 
       if (
@@ -70,7 +72,7 @@ router.add([
         method === 'get' &&
         Model.settings.interfaces.jsonApiFetchResource
       ) {
-        return require('../lib/specs/jsonApi/controllers/findResource')
+        return require('../lib/specs/jsonApi/controllers/findResource').default
       }
 
       if (
@@ -79,6 +81,7 @@ router.add([
         Model.settings.interfaces.jsonApiUpdateResource
       ) {
         return require('../lib/specs/jsonApi/controllers/updateResource')
+          .default
       }
     },
   },
@@ -95,6 +98,7 @@ router.add([
         Model.settings.interfaces.jsonApiFetchResourceField
       ) {
         return require('../lib/specs/jsonApi/controllers/findResourceField')
+          .default
       }
     },
   },
@@ -110,6 +114,7 @@ router.add([
         Model.settings.interfaces.jsonApiFetchResourceFieldRelationship
       ) {
         return require('../lib/specs/jsonApi/controllers/findResourceFieldRelationship')
+          .default
       }
     },
   },

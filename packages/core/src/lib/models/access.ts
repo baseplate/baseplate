@@ -155,10 +155,12 @@ export default class BaseAccess extends Model {
       filter = filter ? filter.uniteWith(publicUserFilter) : publicUserFilter
     }
 
-    const {results}: {results: Array<DatabaseAccess>} = await super.$__dbFind({
-      context,
-      filter,
-    })
+    const {results}: {results: Array<DatabaseAccess>} = await super.base$dbFind(
+      {
+        context,
+        filter,
+      }
+    )
     const entries = results
       .filter((result) => result.model === modelName)
       .map((result) => {
@@ -194,7 +196,7 @@ export default class BaseAccess extends Model {
       filter.intersectWith(publicUserQuery)
     }
 
-    const {results} = await super.$__dbUpdate(filter, update)
+    const {results} = await super.base$dbUpdate(filter, update)
 
     return results.map((result: DatabaseAccess) => {
       const id = this.encodeModelAccessKey(result.user)

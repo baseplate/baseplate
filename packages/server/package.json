@@ -1,10 +1,17 @@
 {
   "name": "@baseplate/server",
-  "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "version": "0.2.5",
+  "main": "dist/index",
+  "types": "dist/index",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "dev": "tsc --build --preserveWatchOutput --watch"
+    "build": "npm run clean && npm run compile",
+    "clean": "rm -rf ./dist && rm -rf tsconfig.build.tsbuildinfo",
+    "compile": "tsc -b tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
   "directories": {
     "lib": "lib"
@@ -13,6 +20,12 @@
     "nodemon": "^2.0.4"
   },
   "dependencies": {
+    "@baseplate/core": "beta",
     "dotenv": "^8.2.0"
+  },
+  "repository": "github:baseplate/baseplate",
+  "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   }
 }
