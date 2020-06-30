@@ -1,6 +1,6 @@
 {
   "name": "@baseplate/core",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -17,7 +17,7 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@baseplate/validator": "^0.2.0",
+    "@baseplate/validator": "^0.2.1",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.4.1",
     "graphql": "^14.6.0",
