@@ -7,7 +7,7 @@
     "dist"
   ],
   "dependencies": {
-    "@baseplate/core": "^0.2.2",
+    "@baseplate/core": "beta",
     "pg": "^8.2.1"
   },
   "scripts": {
@@ -17,7 +17,7 @@
     "prepublishOnly": "npm run build",
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
-  "gitHead": "07e45d16966de8d365d094da5a8215d6a2cc0eb0",
+  "gitHead": "0286e018880a0c177e860b32e1dfc3487ede5968",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }

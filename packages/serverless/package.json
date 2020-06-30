@@ -5,7 +5,7 @@
   "directories": {
     "lib": "lib"
   },
-  "gitHead": "732d6dc8d27246d5abba9cff587f2bee691acf9d",
+  "gitHead": "0286e018880a0c177e860b32e1dfc3487ede5968",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }

@@ -17,7 +17,7 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@baseplate/validator": "^0.2.2",
+    "@baseplate/validator": "beta",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.4.1",
     "graphql": "^14.6.0",
@@ -26,7 +26,7 @@
     "route-recognizer": "^0.3.4",
     "uuid": "^8.0.0"
   },
-  "gitHead": "732d6dc8d27246d5abba9cff587f2bee691acf9d",
+  "gitHead": "0286e018880a0c177e860b32e1dfc3487ede5968",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }
