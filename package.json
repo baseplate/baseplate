@@ -4,12 +4,12 @@
   "version": "1.0.0",
   "scripts": {
     "bootstrap": "lerna bootstrap --hoist",
-    "postinstall": "npm run bootstrap",
     "clean": "lerna run clean",
     "build": "lerna run build",
+    "format": "eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}'",
     "pub": "lerna publish",
-    "dev": "lerna run --parallel dev",
-    "format": "eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}'"
+    "postinstall": "npm run bootstrap",
+    "watch": "lerna run --parallel watch"
   },
   "devDependencies": {
     "@eduardoboucas/eslint-config": "^1.1.0",
