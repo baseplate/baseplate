@@ -40,9 +40,5 @@
       "prettier --write",
       "git add"
     ]
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/baseplate/baseplate.git"
   }
 }

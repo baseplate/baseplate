@@ -23,7 +23,8 @@
     "@baseplate/core": "beta",
     "dotenv": "^8.2.0"
   },
-  "gitHead": "7634970a3f627919c89f83639df837d45ee04d21",
+  "repository": "github:baseplate/baseplate",
+  "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }
