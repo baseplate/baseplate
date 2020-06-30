@@ -1,6 +1,6 @@
 {
   "name": "@baseplate/server",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -20,7 +20,7 @@
     "nodemon": "^2.0.4"
   },
   "dependencies": {
-    "@baseplate/core": "0.1.0",
+    "@baseplate/core": "^0.2.0",
     "dotenv": "^8.2.0"
   }
 }
