@@ -13,7 +13,7 @@
     "prepublishOnly": "npm run build",
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
-  "gitHead": "0286e018880a0c177e860b32e1dfc3487ede5968",
+  "gitHead": "7634970a3f627919c89f83639df837d45ee04d21",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }
