@@ -17,7 +17,7 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@baseplate/validator": "beta",
+    "@baseplate/validator": "^0.2.5",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.4.1",
     "graphql": "^14.6.0",
