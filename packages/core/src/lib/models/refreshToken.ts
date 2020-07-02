@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 
-import GenericModel from '../model/generic'
+import GenericModel from '../model/base'
 import QueryFilter from '../queryFilter'
 import User from './user'
 

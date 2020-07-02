@@ -1,16 +1,11 @@
 {
-  "name": "@baseplate/mongodb",
-  "version": "0.2.5",
+  "name": "@baseplate/data-connector",
+  "version": "0.1.0",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
     "dist"
   ],
-  "dependencies": {
-    "@baseplate/core": "^0.2.5",
-    "@baseplate/data-connector": "^0.1.0",
-    "mongodb": "^3.5.7"
-  },
   "scripts": {
     "build": "npm run clean && npm run compile",
     "clean": "rm -rf ./dist && rm -rf tsconfig.build.tsbuildinfo",
@@ -19,7 +14,6 @@
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }

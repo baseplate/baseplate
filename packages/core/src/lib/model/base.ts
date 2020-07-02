@@ -6,21 +6,12 @@ import {
 
 import AccessModel, {AccessType} from '../models/access'
 import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
-import {
-  CreateParameters,
-  DeleteParameters,
-  DeleteOneByIdParameters,
-  FindOneByIdParameters,
-  FindOneParameters,
-  FindParameters,
-  UpdateOneByIdParameters,
-  UpdateParameters,
-} from './interface'
 import {Virtual as VirtualSchema} from '../schema'
+import ConnectedModel from './connected'
 import Context from '../context'
-import FieldSet, {FieldSetType} from '../fieldSet'
-import ModelInterfaceWithDataStore from './datastore'
+import FieldSet from '../fieldSet'
 import QueryFilter from '../queryFilter'
+import type SortObject from '../sortObject'
 import UserModel from '../models/user'
 
 const DEFAULT_PAGE_SIZE = 20
@@ -29,20 +20,93 @@ const INTERNAL_FIELDS = ['_createdAt', '_id', '_updatedAt']
 interface AuthenticateParameters {
   accessType: AccessType
   context: Context
-  fieldSet?: FieldSetType
+  fieldSet?: FieldSet
   filter?: QueryFilter
   user: UserModel
+}
+
+export interface CreateParameters {
+  authenticate?: boolean
+  context?: Context
+  user?: UserModel
+}
+
+export interface DeleteParameters {
+  authenticate?: boolean
+  context?: Context
+  filter: QueryFilter
+  user?: UserModel
+}
+
+export interface DeleteOneByIdParameters {
+  authenticate?: boolean
+  context?: Context
+  id: string
+  user?: UserModel
+}
+
+export interface FindManyByIdParameters {
+  authenticate?: Boolean
+  context?: Context
+  fieldSet: FieldSet
+  filter?: QueryFilter
+  ids: Array<string>
+  user?: UserModel
+}
+
+export interface FindOneByIdParameters {
+  authenticate?: Boolean
+  context?: Context
+  fieldSet?: FieldSet
+  filter?: QueryFilter
+  id: string
+  user?: UserModel
+}
+
+export interface FindOneParameters {
+  authenticate?: Boolean
+  context: Context
+  fieldSet: FieldSet
+  filter: QueryFilter
+  user?: UserModel
+}
+
+export interface FindParameters {
+  authenticate?: Boolean
+  context?: Context
+  fieldSet?: FieldSet
+  filter?: QueryFilter
+  pageNumber?: number
+  pageSize?: number
+  sort?: SortObject
+  user?: UserModel
+}
+
+export interface UpdateParameters {
+  authenticate?: Boolean
+  context?: Context
+  filter: QueryFilter
+  update: Record<string, any>
+  user?: UserModel
+}
+
+export interface UpdateOneByIdParameters {
+  authenticate?: Boolean
+  context?: Context
+  id: string
+  update: Record<string, any>
+  user?: UserModel
 }
 
 type Fields = Record<string, any>
 
 export interface ToObjectParameters {
-  fieldSet?: FieldSetType
+  fieldSet?: FieldSet
   includeModelInstance?: boolean
   includeVirtuals?: boolean
 }
 
-export default class GenericModel extends ModelInterfaceWithDataStore {
+export default class BaseModel extends ConnectedModel {
   _createdAt: Date
   _dirtyFields: Set<string>
   _fields: Fields
@@ -132,7 +196,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       filter = access.filter
     }
 
-    return this.base$dbDelete(filter)
+    return this.dataConnector.base$dbDelete(filter, this, context)
   }
 
   static async deleteOneById({
@@ -149,7 +213,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       })
     }
 
-    return this.base$dbDeleteOneById(id)
+    return this.dataConnector.base$dbDeleteOneById(id, this, context)
   }
 
   static async find({
@@ -177,14 +241,17 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       filter = access.filter
     }
 
-    const {count, results} = await this.base$dbFind({
-      context,
-      fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
-      filter,
-      pageNumber,
-      pageSize,
-      sort,
-    })
+    const {count, results} = await this.dataConnector.base$dbFind(
+      {
+        fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
+        filter,
+        pageNumber,
+        pageSize,
+        sort,
+      },
+      this,
+      context
+    )
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
     )
@@ -213,11 +280,14 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       filter = access.filter
     }
 
-    const {results} = await this.base$dbFind({
-      context,
-      fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
-      filter,
-    })
+    const {results} = await this.dataConnector.base$dbFind(
+      {
+        fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
+        filter,
+      },
+      this,
+      context
+    )
 
     if (results.length === 0) {
       return null
@@ -247,12 +317,15 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       filter = access.filter
     }
 
-    const fields = await this.base$dbFindOneById({
-      context,
-      fieldSet: FieldSet.unite(fieldSet, INTERNAL_FIELDS),
-      filter,
-      id,
-    })
+    const fields = await this.dataConnector.base$dbFindOneById(
+      {
+        fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
+        filter,
+        id,
+      },
+      this,
+      context
+    )
 
     if (!fields) return null
 
@@ -277,7 +350,12 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       filter = access.filter
     }
 
-    const {results} = await this.base$dbUpdate(filter, update)
+    const {results} = await this.dataConnector.base$dbUpdate(
+      filter,
+      update,
+      this,
+      context
+    )
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
     )
@@ -301,7 +379,12 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     }
 
     const filter = QueryFilter.parse({_id: id})
-    const {results} = await this.base$dbUpdate(filter, update)
+    const {results} = await this.dataConnector.base$dbUpdate(
+      filter,
+      update,
+      this,
+      context
+    )
 
     return new this(results[0], {fromDb: true})
   }
@@ -327,9 +410,9 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       this._dirtyFields.delete(fieldName)
     })
 
-    const result = await (<typeof GenericModel>(
+    const result = await (<typeof BaseModel>(
       this.constructor
-    )).base$dbCreateOne(entry)
+    )).dataConnector.base$dbCreateOne(entry, <typeof BaseModel>this.constructor)
 
     this.base$hydrate(result, {fromDb: true})
 
@@ -338,9 +421,9 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
 
   base$getFieldDefaults(fields: Fields) {
     const fieldsWithDefaults = Object.keys(
-      (<typeof GenericModel>this.constructor).schema.fields
+      (<typeof BaseModel>this.constructor).schema.fields
     ).reduce((result, fieldName) => {
-      const fieldSchema = (<typeof GenericModel>this.constructor).schema.fields[
+      const fieldSchema = (<typeof BaseModel>this.constructor).schema.fields[
         fieldName
       ]
 
@@ -368,7 +451,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
   }
 
   base$hydrate(fields: Fields, {fromDb}: {fromDb: boolean}) {
-    const {schema} = <typeof GenericModel>this.constructor
+    const {schema} = <typeof BaseModel>this.constructor
 
     this._fields = {}
     this._virtuals = {}
@@ -401,8 +484,9 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
 
     await Promise.all(
       Object.keys(fields).map(async (fieldName) => {
-        const fieldSchema = (<typeof GenericModel>this.constructor).schema
-          .fields[fieldName]
+        const fieldSchema = (<typeof BaseModel>this.constructor).schema.fields[
+          fieldName
+        ]
 
         let value = fields[fieldName]
 
@@ -431,7 +515,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
   base$runVirtualSetters(fields: Fields) {
     const fieldsAfterSetters = Object.keys(this._virtuals).reduce(
       async (fieldsAfterSetters, name) => {
-        const virtualSchema = (<typeof GenericModel>this.constructor).schema
+        const virtualSchema = (<typeof BaseModel>this.constructor).schema
           .virtuals[name]
 
         if (!virtualSchema || typeof virtualSchema.set !== 'function') {
@@ -468,7 +552,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
       this._dirtyFields.add(fieldName)
     })
 
-    const updatedResult = await (<typeof GenericModel>(
+    const updatedResult = await (<typeof BaseModel>(
       this.constructor
     )).updateOneById({
       id: this.id,
@@ -488,9 +572,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
   }
 
   get(fieldName: string) {
-    const field = (<typeof GenericModel>this.constructor).schema.fields[
-      fieldName
-    ]
+    const field = (<typeof BaseModel>this.constructor).schema.fields[fieldName]
 
     if (field) {
       return typeof (field.options && field.options.get) === 'function'
@@ -521,7 +603,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
 
     await Promise.all(
       Object.keys(this._fields).map(async (name) => {
-        if (fieldSet && name[0] !== '_' && !fieldSet.includes(name)) {
+        if (fieldSet && name[0] !== '_' && !fieldSet.has(name)) {
           return
         }
 
@@ -534,10 +616,10 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
     if (includeVirtuals) {
       await Promise.all(
         Object.entries(
-          (<typeof GenericModel>this.constructor).schema.virtuals
+          (<typeof BaseModel>this.constructor).schema.virtuals
         ).map(async ([name, virtual]: [string, VirtualSchema]) => {
           if (
-            (fieldSet && !fieldSet.includes(name)) ||
+            (fieldSet && !fieldSet.has(name)) ||
             typeof virtual.get !== 'function'
           ) {
             return
@@ -566,7 +648,7 @@ export default class GenericModel extends ModelInterfaceWithDataStore {
         ...this._fields,
         ...this._unknownFields,
       },
-      schema: (<typeof GenericModel>this.constructor).schema.fields,
+      schema: (<typeof BaseModel>this.constructor).schema.fields,
     })
   }
 }

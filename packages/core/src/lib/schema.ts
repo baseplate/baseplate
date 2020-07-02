@@ -9,7 +9,7 @@ import {
 
 import {InvalidFieldTypeError} from './errors'
 import {ExtendedSchema, FieldDefinition} from './fieldDefinition'
-import GenericModel from './model/generic'
+import GenericModel from './model/base'
 import isPlainObject from './utils/isPlainObject'
 import ModelStore from './modelStore/base'
 

@@ -1,7 +1,7 @@
 import {EntryNotFoundError} from '../errors'
 import AccessClass from './access'
 import Context from '../context'
-import GenericModel from '../model/generic'
+import GenericModel from '../model/base'
 import JsonApiEntry from '../specs/jsonApi/entry'
 
 export default class BaseModel extends GenericModel {

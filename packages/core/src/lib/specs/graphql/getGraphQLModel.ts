@@ -11,11 +11,10 @@ import {ForbiddenError, UnauthorizedError} from '../../errors'
 import AccessModel from '../../models/access'
 import Context from '../../context'
 import FieldSet from '../../fieldSet'
-import GenericModel from '../../model/generic'
+import GenericModel from '../../model/base'
 import GraphQLDeleteResponse from './deleteResponse'
 import GraphQLError from './error'
 import QueryFilter from '../../queryFilter'
-import {string} from '@baseplate/validator/dist/types'
 
 interface Mutation {
   type: any
@@ -161,7 +160,7 @@ export default function getGraphQLModel(
                 .filter(Boolean)
               const {entries} = await this.find({
                 context,
-                fieldSet: requestedFields,
+                fieldSet: new FieldSet(requestedFields),
                 filter: QueryFilter.parse(args, '_'),
                 user: context.user,
               })
@@ -206,7 +205,10 @@ export default function getGraphQLModel(
               })
               const entry = await this.findOneById({
                 context,
-                fieldSet: FieldSet.intersect(requestedFields, access.fields),
+                fieldSet: FieldSet.intersect(
+                  new FieldSet(requestedFields),
+                  access.fields
+                ),
                 filter: access.filter,
                 id,
               })

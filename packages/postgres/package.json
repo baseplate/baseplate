@@ -7,7 +7,7 @@
     "dist"
   ],
   "dependencies": {
-    "@baseplate/core": "beta",
+    "@baseplate/core": "^0.2.5",
     "pg": "^8.2.1"
   },
   "scripts": {

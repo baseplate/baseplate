@@ -20,7 +20,7 @@
     "nodemon": "^2.0.4"
   },
   "dependencies": {
-    "@baseplate/core": "beta",
+    "@baseplate/core": "^0.2.5",
     "dotenv": "^8.2.0"
   },
   "repository": "github:baseplate/baseplate",

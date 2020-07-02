@@ -1,4 +1,4 @@
-import GenericModel from '../../model/generic'
+import GenericModel from '../../model/base'
 import JsonApiEntry from './entry'
 
 export default abstract class ModelWithJsonApiMethods extends GenericModel {

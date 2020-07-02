@@ -3,8 +3,8 @@ import {CustomError} from '@baseplate/validator'
 import {InvalidQueryParameterError} from '../../errors'
 import AccessModel from '../../models/access'
 import Context from '../../context'
-import FieldSet, {FieldSetType} from '../../fieldSet'
-import GenericModel from '../../model/generic'
+import FieldSet from '../../fieldSet'
+import GenericModel from '../../model/base'
 import HttpRequest from '../../http/request'
 import JsonApiModel from './model'
 import JsonApiURL from './url'
@@ -45,7 +45,7 @@ export type ResolveRelationshipsParameters = {
 export default class JsonApiRequest {
   bodyFields: Record<string, any>
   context: Context
-  fields: Record<string, FieldSetType>
+  fields: Record<string, FieldSet>
   filter: QueryFilter
   includeMap: IncludeMap
   pageNumber: number

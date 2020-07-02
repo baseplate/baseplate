@@ -1,9 +1,9 @@
 import {AccessValue} from '../accessValue'
+import BaseModel from '../model/base'
 import Context from '../context'
 import createModelAccessEntry from './accessControllers/createModelAccessEntry'
 import findModelAccessEntries from './accessControllers/findModelAccessEntries'
 import findModelAccessEntry from './accessControllers/findModelAccessEntry'
-import Model from '../model/generic'
 import QueryFilter from '../queryFilter'
 import updateModelAccessEntry from './accessControllers/updateModelAccessEntry'
 import User from './user'
@@ -29,7 +29,7 @@ const accessValueProps = {
   },
 }
 
-export default class BaseAccess extends Model {
+export default class BaseAccess extends BaseModel {
   static customRoutes = {
     '/base_models/:modelName/access': {
       get: findModelAccessEntries,
@@ -155,11 +155,12 @@ export default class BaseAccess extends Model {
       filter = filter ? filter.uniteWith(publicUserFilter) : publicUserFilter
     }
 
-    const {results}: {results: Array<DatabaseAccess>} = await super.base$dbFind(
+    const {results} = await super.dataConnector.base$dbFind(
       {
-        context,
         filter,
-      }
+      },
+      this,
+      context
     )
     const entries = results
       .filter((result) => result.model === modelName)
@@ -196,7 +197,11 @@ export default class BaseAccess extends Model {
       filter.intersectWith(publicUserQuery)
     }
 
-    const {results} = await super.base$dbUpdate(filter, update)
+    const {results} = await super.dataConnector.base$dbUpdate(
+      filter,
+      update,
+      this
+    )
 
     return results.map((result: DatabaseAccess) => {
       const id = this.encodeModelAccessKey(result.user)
