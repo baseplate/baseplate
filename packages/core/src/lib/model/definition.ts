@@ -1,21 +1,20 @@
 import {FieldDefinition} from '../fieldDefinition'
 
 export abstract class ClassModelDefinition {
-  static customRoutes: Record<string, Record<string, Function>>
   static fields: Record<string, FieldDefinition>
-  static handle?: string
-  static handlePlural?: string
+  static namePlural?: string
   static interfaces?: Record<string, boolean>
   static label?: string
+  static routes: Record<string, Record<string, Function>>
 }
 
 export interface ObjectModelDefinition {
-  customRoutes?: Record<string, Record<string, Function>>
   fields: Record<string, FieldDefinition>
-  handle?: string
-  handlePlural?: string
+  name: string
+  namePlural?: string
   interfaces?: Record<string, boolean>
   label?: string
+  routes?: Record<string, Record<string, Function>>
 }
 
 export function isModelDefinitionClass(

@@ -7,12 +7,10 @@ import User from './user'
 const TOKEN_EXPIRATION = 360000
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
-export default class BaseRefreshToken extends GenericModel {
+export default class Base$RefreshToken extends GenericModel {
   static fields = {
     token: String,
   }
-
-  static handle = 'base_refreshToken'
 
   static decode(token: string) {
     return jwt.verify(token, TOKEN_PRIVATE_KEY)
@@ -28,7 +26,7 @@ export default class BaseRefreshToken extends GenericModel {
   static generate(user: User) {
     const data = {
       id: user.id,
-      modelName: (<typeof User>user.constructor).handle,
+      modelName: (<typeof User>user.constructor).base$handle,
     }
     const token = jwt.sign(
       {

@@ -32,12 +32,12 @@ export default async function (
       context,
       id,
       update: jsonApiReq.bodyFields,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const references = await jsonApiReq.resolveRelationships({
       entries: [entry],
       Model,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
       entries: entry,
