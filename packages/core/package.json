@@ -17,15 +17,21 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@baseplate/data-connector": "^0.1.0",
     "@baseplate/validator": "^0.2.5",
+    "@types/bcryptjs": "^2.4.2",
+    "@types/cookie": "^0.4.0",
+    "@types/graphql": "^14.5.0",
+    "@types/inflected": "^1.1.29",
+    "@types/jsonwebtoken": "^8.5.0",
+    "@types/route-recognizer": "^0.3.0",
+    "@types/winston": "^2.4.4",
     "bcryptjs": "^2.4.3",
     "cookie": "^0.4.1",
     "graphql": "^14.6.0",
     "inflected": "^2.0.4",
     "jsonwebtoken": "^8.5.1",
     "route-recognizer": "^0.3.4",
-    "uuid": "^8.0.0"
+    "winston": "^3.3.3"
   },
   "repository": "github:baseplate/baseplate",
   "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
