@@ -3,12 +3,8 @@ import {InvalidFieldSetError} from './errors'
 export default class FieldSet {
   fields: Set<string>
 
-  constructor(fields: Set<string> = new Set()) {
-    this.fields = fields
-  }
-
-  static fromArray(input: Array<string>) {
-    return new this(new Set(input))
+  constructor(fields: Set<string> | Array<string>) {
+    this.fields = new Set(fields)
   }
 
   static intersect(a: FieldSet, b: FieldSet): FieldSet {
