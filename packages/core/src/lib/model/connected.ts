@@ -1,21 +1,17 @@
-import {
-  DataConnector,
-  FindManyByIdParameters,
-  FindOneByIdParameters,
-  FindParameters,
-  Result,
-  Results,
-} from '@baseplate/data-connector'
+import {DataConnector} from '../dataConnector'
 
+import type {GraphQLModelCache} from '../specs/graphql/modelCache'
 import type ModelStore from '../modelStore/base'
+import type Schema from '../schema'
 
 export default abstract class ConnectedModel {
-  static dataConnector: DataConnector
-  static isBaseModel: boolean
-  static handle: string
-  static handlePlural: string
-  static label?: string
-  static schema: any
-  static settings: {[key: string]: any}
-  static store: ModelStore
+  static base$db: DataConnector
+  static base$graphQL: GraphQLModelCache
+  static base$handle: string
+  static base$handlePlural: string
+  static base$label: string
+  static base$modelStore: ModelStore
+  static base$routes: Record<string, Record<string, Function>>
+  static base$schema: Schema
+  static base$settings: {[key: string]: any}
 }

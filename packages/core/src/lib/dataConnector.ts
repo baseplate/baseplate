@@ -1,49 +1,51 @@
-import type {FieldSet, QueryFilter, SortObject} from '../../core/src'
-import type BaseModel from '../../core/src/lib/model/base'
-import type Context from '../../core/src/lib/context'
+import type BaseModel from './model/base'
+import type Context from './context'
+import type FieldSet from './fieldSet'
+import type QueryFilter from './queryFilter'
+import type SortObject from './sortObject'
 
 export type Result = Record<string, any>
 export type Results = Array<Result>
 
 export abstract class DataConnector {
-  abstract base$dbCreateOne(entry: Result, model: typeof BaseModel): Result
+  abstract createOne(entry: Result, Model: typeof BaseModel): Promise<Result>
 
-  abstract base$dbDelete(
+  abstract delete(
     filter: QueryFilter,
-    model: typeof BaseModel,
+    Model: typeof BaseModel,
     context?: Context
   ): Promise<{deleteCount: number}>
 
-  abstract base$dbDeleteOneById(
+  abstract deleteOneById(
     id: string,
-    model: typeof BaseModel,
+    Model: typeof BaseModel,
     context?: Context
   ): Promise<{deleteCount: number}>
 
-  abstract base$dbFind(
+  abstract find(
     props: FindParameters,
-    model: typeof BaseModel,
+    Model: typeof BaseModel,
     context?: Context
-  ): Result
+  ): Promise<FindReturnValue>
 
-  abstract base$dbFindManyById(
+  abstract findManyById(
     props: FindManyByIdParameters,
-    model: typeof BaseModel,
+    Model: typeof BaseModel,
     context?: Context
   ): Promise<Results>
 
-  abstract base$dbFindOneById(
+  abstract findOneById(
     props: FindOneByIdParameters,
-    model: typeof BaseModel,
+    Model: typeof BaseModel,
     context?: Context
-  ): Result
+  ): Promise<Result>
 
-  abstract base$dbUpdate(
+  abstract update(
     filter: QueryFilter,
     update: Result,
-    model: typeof BaseModel,
+    Model: typeof BaseModel,
     context?: Context
-  ): Result
+  ): Promise<Result>
 }
 
 export interface FindManyByIdParameters {
@@ -61,6 +63,11 @@ export interface FindOneByIdParameters {
 export interface FindOneParameters {
   fieldSet: FieldSet
   filter: QueryFilter
+}
+
+export interface FindReturnValue {
+  count: number
+  results: Results
 }
 
 export interface FindParameters {

@@ -9,6 +9,8 @@ import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
 import {Virtual as VirtualSchema} from '../schema'
 import ConnectedModel from './connected'
 import Context from '../context'
+import type {FindReturnValue, Result} from '../dataConnector'
+import * as log from '../logger'
 import FieldSet from '../fieldSet'
 import QueryFilter from '../queryFilter'
 import type SortObject from '../sortObject'
@@ -23,6 +25,13 @@ interface AuthenticateParameters {
   fieldSet?: FieldSet
   filter?: QueryFilter
   user: UserModel
+}
+
+interface GetFromDBOrCacheParameters {
+  bypassCache?: boolean
+  cache: Map<string, any>
+  key: string
+  method: Function
 }
 
 export interface CreateParameters {
@@ -61,6 +70,7 @@ export interface FindOneByIdParameters {
   filter?: QueryFilter
   id: string
   user?: UserModel
+  useRequestCache?: boolean
 }
 
 export interface FindOneParameters {
@@ -69,6 +79,7 @@ export interface FindOneParameters {
   fieldSet: FieldSet
   filter: QueryFilter
   user?: UserModel
+  useRequestCache?: boolean
 }
 
 export interface FindParameters {
@@ -80,6 +91,7 @@ export interface FindParameters {
   pageSize?: number
   sort?: SortObject
   user?: UserModel
+  useRequestCache?: boolean
 }
 
 export interface UpdateParameters {
@@ -128,10 +140,6 @@ export default class BaseModel extends ConnectedModel {
     this.base$hydrate(fields, {fromDb})
   }
 
-  /**
-   * STATIC METHODS
-   */
-
   static async base$authenticate({
     accessType,
     context,
@@ -139,11 +147,11 @@ export default class BaseModel extends ConnectedModel {
     filter,
     user,
   }: AuthenticateParameters) {
-    const Access = <typeof AccessModel>this.store.get('base_access')
+    const Access = <typeof AccessModel>this.base$modelStore.get('base$access')
     const access = await Access.getAccess({
       accessType,
       context,
-      modelName: this.handle,
+      modelName: this.base$handle,
       user,
     })
 
@@ -160,6 +168,10 @@ export default class BaseModel extends ConnectedModel {
     }
 
     return access
+  }
+
+  static base$isInternal() {
+    return this.base$handle.startsWith('base$')
   }
 
   static async create(
@@ -196,7 +208,7 @@ export default class BaseModel extends ConnectedModel {
       filter = access.filter
     }
 
-    return this.dataConnector.base$dbDelete(filter, this, context)
+    return this.base$db.delete(filter, this, context)
   }
 
   static async deleteOneById({
@@ -213,18 +225,19 @@ export default class BaseModel extends ConnectedModel {
       })
     }
 
-    return this.dataConnector.base$dbDeleteOneById(id, this, context)
+    return this.base$db.deleteOneById(id, this, context)
   }
 
   static async find({
     authenticate = true,
-    context,
+    context = new Context(),
     fieldSet,
     filter,
     pageNumber,
     pageSize: suppliedPageSize,
     sort,
     user,
+    useRequestCache = true,
   }: FindParameters) {
     const pageSize = suppliedPageSize || DEFAULT_PAGE_SIZE
 
@@ -241,16 +254,18 @@ export default class BaseModel extends ConnectedModel {
       filter = access.filter
     }
 
-    const {count, results} = await this.dataConnector.base$dbFind(
-      {
-        fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
-        filter,
-        pageNumber,
-        pageSize,
-        sort,
-      },
-      this,
-      context
+    const opParameters = {
+      fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
+      filter,
+      pageNumber,
+      pageSize,
+      sort,
+    }
+    const {count, results} = await this.getFromDatabaseOrCache<FindReturnValue>(
+      () => this.base$db.find(opParameters, this, context),
+      context.get('base$cache'),
+      JSON.stringify(opParameters),
+      !useRequestCache
     )
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
@@ -262,10 +277,11 @@ export default class BaseModel extends ConnectedModel {
 
   static async findOne({
     authenticate = true,
-    context,
+    context = new Context(),
     fieldSet,
     filter,
     user,
+    useRequestCache = true,
   }: FindOneParameters) {
     if (authenticate) {
       const access = await this.base$authenticate({
@@ -280,13 +296,15 @@ export default class BaseModel extends ConnectedModel {
       filter = access.filter
     }
 
-    const {results} = await this.dataConnector.base$dbFind(
-      {
-        fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
-        filter,
-      },
-      this,
-      context
+    const opParameters = {
+      fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
+      filter,
+    }
+    const {results} = await this.getFromDatabaseOrCache<FindReturnValue>(
+      () => this.base$db.find(opParameters, this, context),
+      context.get('base$cache'),
+      JSON.stringify(opParameters),
+      !useRequestCache
     )
 
     if (results.length === 0) {
@@ -298,11 +316,12 @@ export default class BaseModel extends ConnectedModel {
 
   static async findOneById({
     authenticate = true,
-    context,
+    context = new Context(),
     fieldSet,
     filter,
     id,
     user,
+    useRequestCache = true,
   }: FindOneByIdParameters) {
     if (authenticate) {
       const access = await this.base$authenticate({
@@ -317,14 +336,16 @@ export default class BaseModel extends ConnectedModel {
       filter = access.filter
     }
 
-    const fields = await this.dataConnector.base$dbFindOneById(
-      {
-        fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
-        filter,
-        id,
-      },
-      this,
-      context
+    const opParameters = {
+      fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
+      filter,
+      id,
+    }
+    const fields = await this.getFromDatabaseOrCache<Result>(
+      () => this.base$db.findOneById(opParameters, this, context),
+      context.get('base$cache'),
+      JSON.stringify(opParameters),
+      !useRequestCache
     )
 
     if (!fields) return null
@@ -350,12 +371,7 @@ export default class BaseModel extends ConnectedModel {
       filter = access.filter
     }
 
-    const {results} = await this.dataConnector.base$dbUpdate(
-      filter,
-      update,
-      this,
-      context
-    )
+    const {results} = await this.base$db.update(filter, update, this, context)
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
     )
@@ -379,12 +395,7 @@ export default class BaseModel extends ConnectedModel {
     }
 
     const filter = QueryFilter.parse({_id: id})
-    const {results} = await this.dataConnector.base$dbUpdate(
-      filter,
-      update,
-      this,
-      context
-    )
+    const {results} = await this.base$db.update(filter, update, this, context)
 
     return new this(results[0], {fromDb: true})
   }
@@ -392,6 +403,33 @@ export default class BaseModel extends ConnectedModel {
   /**
    * INSTANCE METHODS
    */
+
+  static async getFromDatabaseOrCache<T>(
+    method: Function,
+    cache: Map<string, any>,
+    key: string,
+    bypassCache?: boolean
+  ): Promise<T> {
+    if (typeof method !== 'function') {
+      throw new Error('A function must be supplied')
+    }
+
+    if (bypassCache) {
+      return method()
+    }
+
+    if (cache.has(key)) {
+      log.debug('[findOne] Retrieving from request cache: %o', key)
+
+      return cache.get(key)
+    }
+
+    const dbOp = method()
+
+    cache.set(key, dbOp)
+
+    return await dbOp
+  }
 
   async base$create() {
     const fields = await this.validate({enforceRequiredFields: true})
@@ -410,9 +448,10 @@ export default class BaseModel extends ConnectedModel {
       this._dirtyFields.delete(fieldName)
     })
 
-    const result = await (<typeof BaseModel>(
-      this.constructor
-    )).dataConnector.base$dbCreateOne(entry, <typeof BaseModel>this.constructor)
+    const result = await (<typeof BaseModel>this.constructor).base$db.createOne(
+      entry,
+      <typeof BaseModel>this.constructor
+    )
 
     this.base$hydrate(result, {fromDb: true})
 
@@ -421,11 +460,10 @@ export default class BaseModel extends ConnectedModel {
 
   base$getFieldDefaults(fields: Fields) {
     const fieldsWithDefaults = Object.keys(
-      (<typeof BaseModel>this.constructor).schema.fields
+      (<typeof BaseModel>this.constructor).base$schema.fields
     ).reduce((result, fieldName) => {
-      const fieldSchema = (<typeof BaseModel>this.constructor).schema.fields[
-        fieldName
-      ]
+      const fieldSchema = (<typeof BaseModel>this.constructor).base$schema
+        .fields[fieldName]
 
       if (
         fields[fieldName] === undefined &&
@@ -451,7 +489,7 @@ export default class BaseModel extends ConnectedModel {
   }
 
   base$hydrate(fields: Fields, {fromDb}: {fromDb: boolean}) {
-    const {schema} = <typeof BaseModel>this.constructor
+    const {base$schema: schema} = <typeof BaseModel>this.constructor
 
     this._fields = {}
     this._virtuals = {}
@@ -484,9 +522,8 @@ export default class BaseModel extends ConnectedModel {
 
     await Promise.all(
       Object.keys(fields).map(async (fieldName) => {
-        const fieldSchema = (<typeof BaseModel>this.constructor).schema.fields[
-          fieldName
-        ]
+        const fieldSchema = (<typeof BaseModel>this.constructor).base$schema
+          .fields[fieldName]
 
         let value = fields[fieldName]
 
@@ -515,7 +552,7 @@ export default class BaseModel extends ConnectedModel {
   base$runVirtualSetters(fields: Fields) {
     const fieldsAfterSetters = Object.keys(this._virtuals).reduce(
       async (fieldsAfterSetters, name) => {
-        const virtualSchema = (<typeof BaseModel>this.constructor).schema
+        const virtualSchema = (<typeof BaseModel>this.constructor).base$schema
           .virtuals[name]
 
         if (!virtualSchema || typeof virtualSchema.set !== 'function') {
@@ -572,7 +609,9 @@ export default class BaseModel extends ConnectedModel {
   }
 
   get(fieldName: string) {
-    const field = (<typeof BaseModel>this.constructor).schema.fields[fieldName]
+    const field = (<typeof BaseModel>this.constructor).base$schema.fields[
+      fieldName
+    ]
 
     if (field) {
       return typeof (field.options && field.options.get) === 'function'
@@ -616,7 +655,7 @@ export default class BaseModel extends ConnectedModel {
     if (includeVirtuals) {
       await Promise.all(
         Object.entries(
-          (<typeof BaseModel>this.constructor).schema.virtuals
+          (<typeof BaseModel>this.constructor).base$schema.virtuals
         ).map(async ([name, virtual]: [string, VirtualSchema]) => {
           if (
             (fieldSet && !fieldSet.has(name)) ||
@@ -648,7 +687,7 @@ export default class BaseModel extends ConnectedModel {
         ...this._fields,
         ...this._unknownFields,
       },
-      schema: (<typeof BaseModel>this.constructor).schema.fields,
+      schema: (<typeof BaseModel>this.constructor).base$schema.fields,
     })
   }
 }

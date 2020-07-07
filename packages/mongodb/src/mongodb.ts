@@ -2,23 +2,17 @@ import {FindOneOptions, MongoClient, ObjectID} from 'mongodb'
 
 import {
   BaseModel,
+  DataConnector,
   FieldSet,
   QueryFilter,
   QueryFilterField,
 } from '@baseplate/core'
-import {
-  DataConnector,
-  FindManyByIdParameters,
-  FindOneByIdParameters,
-  FindParameters,
-  Result,
-} from '@baseplate/data-connector'
 
 const POOL_SIZE = 10
 
 let connectionPool: MongoClient
 
-export default class MongoDB extends DataConnector {
+export default class MongoDB extends DataConnector.DataConnector {
   databaseName: string
   host: string
   username?: string
@@ -38,185 +32,12 @@ export default class MongoDB extends DataConnector {
     this.password = password
   }
 
-  async base$dbCreateOne(
-    entry: Result,
-    model: typeof BaseModel
-  ): Promise<Result> {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-    const encodedEntry = this.base$mongoDBEncodeAndDecodeObjectIdsInEntry(
-      entry,
-      model,
-      'encode'
-    )
-    const {ops} = await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .insertOne(encodedEntry)
-    const decodedResult = this.base$mongoDBEncodeAndDecodeObjectIdsInEntry(
-      ops[0],
-      model,
-      'decode'
-    )
-
-    return decodedResult
-  }
-
-  async base$dbDelete(filter: QueryFilter, model: typeof BaseModel) {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-    const query = filter
-      ? this.base$mongoDBEncodeQuery(filter, model).toObject('$')
-      : {}
-    const {result} = await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .deleteMany(query)
-
-    return {deleteCount: result.n}
-  }
-
-  async base$dbDeleteOneById(id: string, model: typeof BaseModel) {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-    const encodedId = ObjectID.createFromHexString(id)
-    const {result} = await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .deleteOne({_id: encodedId})
-
-    return {deleteCount: result.n}
-  }
-
-  async base$dbFind(
-    {fieldSet, filter, pageNumber = 1, pageSize}: FindParameters,
-    model: typeof BaseModel
-  ) {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-    const options: FindOneOptions = {
-      projection: this.base$mongoDBGetProjectionFromFieldSet(fieldSet),
-    }
-
-    if (pageSize) {
-      options.limit = pageSize
-      options.skip = (pageNumber - 1) * pageSize
-    }
-
-    const query = filter
-      ? this.base$mongoDBEncodeQuery(filter, model).toObject('$')
-      : {}
-    const cursor = await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .find(query, options)
-    const count = await cursor.count()
-    const results = await cursor.toArray()
-    const decodedResults = results.map((result) =>
-      this.base$mongoDBEncodeAndDecodeObjectIdsInEntry(result, model, 'decode')
-    )
-
-    return {count, results: decodedResults}
-  }
-
-  async base$dbFindManyById(
-    {fieldSet, filter, ids}: FindManyByIdParameters,
-    model: typeof BaseModel
-  ) {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-    const encodedIds = ids.map(ObjectID.createFromHexString)
-    const options = {
-      projection: this.base$mongoDBGetProjectionFromFieldSet(fieldSet),
-    }
-    const query = QueryFilter.parse({_id: {$in: encodedIds}}, '$')
-
-    if (filter) {
-      query.intersectWith(filter)
-    }
-
-    const results = await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .find(query.toObject('$'), options)
-      .toArray()
-    const decodedResults = results.map((result) =>
-      this.base$mongoDBEncodeAndDecodeObjectIdsInEntry(result, model, 'decode')
-    )
-
-    return decodedResults
-  }
-
-  async base$dbFindOneById(
-    {fieldSet, filter, id}: FindOneByIdParameters,
-    model: typeof BaseModel
-  ) {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-    const encodedId = ObjectID.createFromHexString(id)
-    const options = {
-      projection: this.base$mongoDBGetProjectionFromFieldSet(fieldSet),
-    }
-    const query = QueryFilter.parse({_id: encodedId}, '$')
-
-    if (filter) {
-      query.intersectWith(filter)
-    }
-
-    const result = await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .findOne(query.toObject('$'), options)
-    const decodedResult = this.base$mongoDBEncodeAndDecodeObjectIdsInEntry(
-      result,
-      model,
-      'decode'
-    )
-
-    return decodedResult
-  }
-
-  async base$dbSetup() {}
-
-  async base$dbUpdate(
-    filter: QueryFilter,
-    update: Record<string, any>,
-    model: typeof BaseModel
-  ) {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-
-    await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .updateMany(filter.toObject('$'), {$set: update})
-
-    return this.base$dbFind({filter}, model)
-  }
-
-  async base$dbUpdateOneById(
-    id: string,
-    update: Record<string, any>,
-    model: typeof BaseModel
-  ) {
-    const connection = await this.base$mongoDBConnect()
-    const collectionName = this.base$mongoDBGetCollectionName(model)
-    const encodedId = ObjectID.createFromHexString(id)
-
-    await connection
-      .db(this.databaseName)
-      .collection(collectionName)
-      .updateOne({_id: encodedId}, {$set: update})
-
-    return this.base$dbFindOneById({id}, model)
-  }
-
-  async base$mongoDBConnect() {
+  private async connect() {
     if (connectionPool && connectionPool.isConnected()) {
       return connectionPool
     }
 
-    const connectionString = this.base$mongoDBCreateConnectionString()
+    const connectionString = this.createConnectionString()
     const connection = await MongoClient.connect(connectionString, {
       poolSize: POOL_SIZE,
       useUnifiedTopology: true,
@@ -227,7 +48,7 @@ export default class MongoDB extends DataConnector {
     return connection
   }
 
-  base$mongoDBCreateConnectionString() {
+  private createConnectionString() {
     const credentials =
       this.username && this.password
         ? `${encodeURIComponent(this.username)}:${encodeURIComponent(
@@ -239,22 +60,22 @@ export default class MongoDB extends DataConnector {
     return connectionString
   }
 
-  base$mongoDBDecodeObjectId(input: any) {
+  private base$mongoDBDecodeObjectId(input: any) {
     return input.toString()
   }
 
-  base$mongoDBEncodeAndDecodeObjectIdsInEntry(
-    entry: Result,
-    model: typeof BaseModel,
+  private encodeAndDecodeObjectIdsInEntry(
+    entry: DataConnector.Result,
+    Model: typeof BaseModel,
     opType: 'encode' | 'decode'
   ) {
     if (!entry) return entry
 
     const opMethod =
       opType === 'encode'
-        ? this.base$mongoDBEncodeObjectId
+        ? this.encodeObjectId
         : this.base$mongoDBDecodeObjectId
-    const encodedEntry: Result = Object.entries(entry).reduce(
+    const encodedEntry: DataConnector.Result = Object.entries(entry).reduce(
       (encodedEntry, [fieldName, value]) => {
         let encodedValue = value
 
@@ -262,7 +83,7 @@ export default class MongoDB extends DataConnector {
           value = opMethod(value)
         }
 
-        if (model.schema.isReferenceField(fieldName)) {
+        if (Model.base$schema.isReferenceField(fieldName)) {
           const references = Array.isArray(value) ? value : [value]
           const encodedReferences = references.map((reference) => {
             return reference && reference.id
@@ -286,9 +107,9 @@ export default class MongoDB extends DataConnector {
     return encodedEntry
   }
 
-  base$mongoDBEncodeObjectId(input: any): any {
+  private encodeObjectId(input: any): any {
     if (Array.isArray(input)) {
-      return input.map(this.base$mongoDBEncodeObjectId)
+      return input.map(this.encodeObjectId)
     }
 
     if (typeof input === 'string' && ObjectID.isValid(input)) {
@@ -298,7 +119,7 @@ export default class MongoDB extends DataConnector {
     return input
   }
 
-  base$mongoDBEncodeQuery(query: QueryFilter, model: typeof BaseModel) {
+  private encodeQuery(query: QueryFilter, Model: typeof BaseModel) {
     const encodedQuery = query.clone()
 
     encodedQuery.traverse((fieldPath: string, field: QueryFilterField) => {
@@ -310,26 +131,26 @@ export default class MongoDB extends DataConnector {
       // (!) TO DO: This should be a more comprehensive mechanism that is able
       // to detect every single place a node might need to be cast to ObjectID.
       if (
-        (model.schema.isReferenceField(fieldPathNodes[0]) &&
+        (Model.base$schema.isReferenceField(fieldPathNodes[0]) &&
           fieldPathNodes[1] === 'id') ||
         fieldPath === '_id'
       ) {
-        field.value = this.base$mongoDBEncodeObjectId(field.value)
+        field.value = this.encodeObjectId(field.value)
       }
     })
 
     return encodedQuery
   }
 
-  base$mongoDBGetCollectionName(model: typeof BaseModel) {
-    if (model.isBaseModel) {
-      return model.handle
+  private getCollectionName(Model: typeof BaseModel) {
+    if (Model.base$isInternal()) {
+      return Model.base$handle.replace('$', '_')
     }
 
-    return `model_${model.handle}`
+    return `model_${Model.base$handle}`
   }
 
-  base$mongoDBGetProjectionFromFieldSet(fieldSet: FieldSet) {
+  private getProjectionFromFieldSet(fieldSet: FieldSet) {
     if (!fieldSet) {
       return
     }
@@ -344,6 +165,177 @@ export default class MongoDB extends DataConnector {
     )
 
     return projection
+  }
+
+  async createOne(
+    entry: DataConnector.Result,
+    Model: typeof BaseModel
+  ): Promise<DataConnector.Result> {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const encodedEntry = this.encodeAndDecodeObjectIdsInEntry(
+      entry,
+      Model,
+      'encode'
+    )
+    const {ops} = await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .insertOne(encodedEntry)
+    const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
+      ops[0],
+      Model,
+      'decode'
+    )
+
+    return decodedResult
+  }
+
+  async delete(filter: QueryFilter, Model: typeof BaseModel) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
+    const {result} = await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .deleteMany(query)
+
+    return {deleteCount: result.n}
+  }
+
+  async deleteOneById(id: string, Model: typeof BaseModel) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const encodedId = ObjectID.createFromHexString(id)
+    const {result} = await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .deleteOne({_id: encodedId})
+
+    return {deleteCount: result.n}
+  }
+
+  async find(
+    {fieldSet, filter, pageNumber = 1, pageSize}: DataConnector.FindParameters,
+    Model: typeof BaseModel
+  ) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const options: FindOneOptions = {
+      projection: this.getProjectionFromFieldSet(fieldSet),
+    }
+
+    if (pageSize) {
+      options.limit = pageSize
+      options.skip = (pageNumber - 1) * pageSize
+    }
+
+    const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
+    const cursor = await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .find(query, options)
+    const count = await cursor.count()
+    const results = await cursor.toArray()
+    const decodedResults: DataConnector.Results = results.map(
+      (result: DataConnector.Result) =>
+        this.encodeAndDecodeObjectIdsInEntry(result, Model, 'decode')
+    )
+
+    return {count, results: decodedResults}
+  }
+
+  async findManyById(
+    {fieldSet, filter, ids}: DataConnector.FindManyByIdParameters,
+    Model: typeof BaseModel
+  ) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const encodedIds = ids.map(ObjectID.createFromHexString)
+    const options = {
+      projection: this.getProjectionFromFieldSet(fieldSet),
+    }
+    const query = QueryFilter.parse({_id: {$in: encodedIds}}, '$')
+
+    if (filter) {
+      query.intersectWith(filter)
+    }
+
+    const results = await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .find(query.toObject('$'), options)
+      .toArray()
+    const decodedResults: DataConnector.Results = results.map(
+      (result: DataConnector.Result) =>
+        this.encodeAndDecodeObjectIdsInEntry(result, Model, 'decode')
+    )
+
+    return decodedResults
+  }
+
+  async findOneById(
+    {fieldSet, filter, id}: DataConnector.FindOneByIdParameters,
+    Model: typeof BaseModel
+  ) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const encodedId = ObjectID.createFromHexString(id)
+    const options = {
+      projection: this.getProjectionFromFieldSet(fieldSet),
+    }
+    const query = QueryFilter.parse({_id: encodedId}, '$')
+
+    if (filter) {
+      query.intersectWith(filter)
+    }
+
+    const result = await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .findOne(query.toObject('$'), options)
+    const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
+      result,
+      Model,
+      'decode'
+    )
+
+    return decodedResult
+  }
+
+  async setup() {}
+
+  async update(
+    filter: QueryFilter,
+    update: Record<string, any>,
+    Model: typeof BaseModel
+  ) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+
+    await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .updateMany(filter.toObject('$'), {$set: update})
+
+    return this.find({filter}, Model)
+  }
+
+  async updateOneById(
+    id: string,
+    update: Record<string, any>,
+    Model: typeof BaseModel
+  ) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const encodedId = ObjectID.createFromHexString(id)
+
+    await connection
+      .db(this.databaseName)
+      .collection(collectionName)
+      .updateOne({_id: encodedId}, {$set: update})
+
+    return this.findOneById({id}, Model)
   }
 }
 
