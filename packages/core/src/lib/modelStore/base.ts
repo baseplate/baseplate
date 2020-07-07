@@ -1,9 +1,9 @@
 import {classify, pluralize, titleize} from 'inflected'
 
-import {DataConnector} from '@baseplate/data-connector'
-
+import * as log from '../logger'
 import AccessModel from '../models/access'
-import GenericModel from '../model/base'
+import BaseModel from '../model/base'
+import {DataConnector} from '../dataConnector'
 import {isModelDefinitionClass, ModelDefinition} from '../model/definition'
 import ModelsModel from '../models/model'
 import RefreshTokenModel from '../models/refreshToken'
@@ -11,7 +11,6 @@ import Schema from '../schema'
 import UserModel from '../models/user'
 
 const INTERNAL_MODELS = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
-
 const INTERFACES = [
   'graphQLCreateMutation',
   'graphQLDeleteMutation',
@@ -29,63 +28,76 @@ const INTERFACES = [
 
 export default class ModelStore {
   dataConnector: DataConnector
-  models: Map<string, typeof GenericModel>
-  SchemaClass: typeof Schema
+  models: Map<string, typeof BaseModel>
 
-  constructor(SchemaClass: typeof Schema) {
-    this.SchemaClass = SchemaClass
+  constructor() {
+    this.models = new Map()
   }
 
-  buildModel(handle: string, source: ModelDefinition, database: DataConnector) {
-    const isBaseModel = handle.startsWith('base_')
-    const schema = new this.SchemaClass({
+  private buildModel(
+    name: string,
+    source: ModelDefinition,
+    database: DataConnector
+  ): typeof BaseModel {
+    const handle = this.normalizeHandle(name)
+    const isInternalModel = name.startsWith('base$')
+    const schema = new Schema({
       fields: source.fields,
       name: handle,
     })
     const modelProperties = {
-      database: {
+      base$db: {
         value: database,
       },
-      label: {
-        value: source.label || pluralize(titleize(handle)),
-      },
-      isBaseModel: {
-        value: isBaseModel,
-      },
-      handle: {
+      base$handle: {
         value: handle,
       },
-      handlePlural: {
-        value: source.handlePlural || pluralize(handle),
+      base$handlePlural: {
+        value: source.namePlural || pluralize(handle),
+      },
+      base$graphQL: {
+        value: {},
+      },
+      base$label: {
+        value: source.label || pluralize(titleize(name)),
+      },
+      base$modelStore: {
+        value: this,
+      },
+      base$routes: {
+        value: source.routes || {},
+      },
+      base$schema: {
+        value: schema,
+      },
+      base$settings: {
+        value: this.buildSettingsBlock(source, isInternalModel),
       },
       name: {
         value:
-          (isModelDefinitionClass(source) && source.name) || classify(handle),
-      },
-      schema: {
-        value: schema,
-      },
-      settings: {
-        value: this.buildSettingsBlock(source, isBaseModel),
-      },
-      store: {
-        value: this,
+          (isModelDefinitionClass(source) && source.name) || classify(name),
       },
     }
+
     const NewModel = isModelDefinitionClass(source)
       ? class extends source {}
-      : class extends GenericModel {}
+      : class extends BaseModel {}
+
+    log.debug('Loading model: %s', handle)
 
     return Object.defineProperties(NewModel, modelProperties)
   }
 
-  buildSettingsBlock(source: ModelDefinition, isBaseModel: boolean) {
+  private buildSettingsBlock(
+    source: ModelDefinition,
+    isInternalModel: boolean
+  ) {
     const interfaces = INTERFACES.reduce((interfaces, interfaceName) => {
       const modelInterfaces = (source && source.interfaces) || {}
       const value =
         modelInterfaces[interfaceName] !== undefined
           ? modelInterfaces[interfaceName]
-          : !isBaseModel
+          : !isInternalModel
 
       return {
         ...interfaces,
@@ -96,6 +108,10 @@ export default class ModelStore {
     return {
       interfaces,
     }
+  }
+
+  private normalizeHandle(handle: string) {
+    return handle.toString().toLowerCase()
   }
 
   get(handle: string) {
@@ -110,7 +126,7 @@ export default class ModelStore {
     const normalizedHandle = this.normalizeHandle(handlePlural)
 
     return Array.from(this.models.values()).find((Model) => {
-      return Model.handlePlural === normalizedHandle
+      return Model.base$handlePlural === normalizedHandle
     })
   }
 
@@ -122,28 +138,43 @@ export default class ModelStore {
     const normalizedHandle = this.normalizeHandle(handlePlural)
 
     return Array.from(this.models.values()).some((source) => {
-      return source.handlePlural === normalizedHandle
+      return source.base$handlePlural === normalizedHandle
     })
   }
 
-  loadInternalModels() {
-    return INTERNAL_MODELS.reduce((models, source) => {
-      const Model = this.buildModel(source.handle, source, this.dataConnector)
+  load(input: ModelDefinition | Array<ModelDefinition>) {
+    const sources = Array.isArray(input) ? input : [input]
+    const loadedModels: typeof BaseModel[] = []
 
-      return models.set(source.handle, Model)
-    }, new Map())
-  }
+    sources.forEach((source) => {
+      if (!source.name) {
+        log.error(
+          'Model using the object syntax is missing a `name` property: %o',
+          source
+        )
 
-  normalizeHandle(handle: string) {
-    return handle.toString().toLowerCase()
+        return
+      }
+
+      const Model = this.buildModel(source.name, source, this.dataConnector)
+
+      loadedModels.push(Model)
+
+      this.models.set(this.normalizeHandle(Model.base$handle), Model)
+    })
+
+    loadedModels.forEach((Model) => {
+      Model.base$schema.loadFieldHandlers()
+    })
+
+    return this
   }
 
   setDataConnector(dataConnector: DataConnector) {
+    log.debug('Setting main data connector: %s', dataConnector.constructor.name)
+
     this.dataConnector = dataConnector
 
-    this.models = this.loadInternalModels()
-    this.models.forEach((Model) => {
-      Model.schema.loadFieldHandlers({modelStore: this})
-    })
+    this.load(INTERNAL_MODELS)
   }
 }

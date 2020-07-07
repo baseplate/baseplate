@@ -1,6 +1,5 @@
 import ModelStore from './base'
-import Schema from '../schema'
 
-const modelStore = new ModelStore(Schema)
+const modelStore = new ModelStore()
 
 export default modelStore
