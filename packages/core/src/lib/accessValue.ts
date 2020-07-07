@@ -92,7 +92,7 @@ export class AccessValue {
     let fields
 
     if (value.fields) {
-      fields = FieldSet.fromArray(value.fields).validate()
+      fields = new FieldSet(value.fields).validate()
     }
 
     const filter = value.filter && QueryFilter.parse(value.filter, filterPrefix)
