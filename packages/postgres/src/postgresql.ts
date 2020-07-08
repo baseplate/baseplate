@@ -2,6 +2,8 @@ import {Pool} from 'pg'
 
 import {
   BaseModel,
+  Context,
+  createLogger,
   DataConnector,
   FieldSet,
   QueryFilter,
@@ -11,6 +13,7 @@ import {
   SortObject,
 } from '@baseplate/core'
 
+const logger = createLogger('postgres')
 const pool = new Pool()
 
 type Fields = Record<string, any>
@@ -324,8 +327,13 @@ export default class PostgreSQL extends DataConnector.DataConnector {
 
   async findManyById(
     {fieldSet, filter, ids}: DataConnector.FindManyByIdParameters,
-    Model: typeof BaseModel
+    Model: typeof BaseModel,
+    context: Context
   ) {
+    logger.debug('findManyById: %s', ids, {
+      model: Model.base$handle,
+    })
+
     const filterWithIds = QueryFilter.parse({
       _id: {$in: ids},
     }).intersectWith(filter)
@@ -341,9 +349,21 @@ export default class PostgreSQL extends DataConnector.DataConnector {
   }
 
   async findOneById(
-    {fieldSet, filter, id}: DataConnector.FindOneByIdParameters,
-    Model: typeof BaseModel
+    {batch, fieldSet, filter, id}: DataConnector.FindOneByIdParameters,
+    Model: typeof BaseModel,
+    context: Context
   ) {
+    if (batch) {
+      return PostgreSQL.base$batchFindOneById(
+        {fieldSet, filter, id},
+        context,
+        (ids: string[]) =>
+          this.findManyById({fieldSet, filter, ids}, Model, context)
+      )
+    }
+
+    logger.debug('findOneById: %s', id, {model: Model.base$handle})
+
     const filterWithIds = QueryFilter.parse({_id: id}).intersectWith(filter)
     const {results} = await this.find(
       {
