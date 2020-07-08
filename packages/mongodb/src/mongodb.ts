@@ -5,7 +5,6 @@ import {
   Context,
   createLogger,
   DataConnector,
-  DataConnectorBatcher,
   FieldSet,
   QueryFilter,
   QueryFilterField,
@@ -257,7 +256,9 @@ export default class MongoDB extends DataConnector.DataConnector {
     Model: typeof BaseModel,
     context: Context
   ) {
-    logger.debug('findManyById: %s', ids)
+    logger.debug('findManyById: %s', ids, {
+      model: Model.base$handle,
+    })
 
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
@@ -285,12 +286,12 @@ export default class MongoDB extends DataConnector.DataConnector {
   }
 
   async findOneById(
-    {fieldSet, filter, id}: DataConnector.FindOneByIdParameters,
+    {batch, fieldSet, filter, id}: DataConnector.FindOneByIdParameters,
     Model: typeof BaseModel,
     context: Context
   ) {
-    if (MongoDB.base$useBatching()) {
-      return DataConnectorBatcher.findOneById(
+    if (batch) {
+      return MongoDB.base$batchFindOneById(
         {fieldSet, filter, id},
         context,
         (ids: string[]) =>
@@ -298,7 +299,7 @@ export default class MongoDB extends DataConnector.DataConnector {
       )
     }
 
-    logger.debug('findOneById: %s', id)
+    logger.debug('findOneById: %s', id, {model: Model.base$handle})
 
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)

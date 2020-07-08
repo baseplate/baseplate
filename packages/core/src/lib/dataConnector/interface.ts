@@ -7,9 +7,60 @@ import type SortObject from '../sortObject'
 export type Result = Record<string, any>
 export type Results = Array<Result>
 
+const cachedPromise = Promise.resolve()
+
+interface DataConnectorBatchItem {
+  parameter: string
+  resolve: Function
+  reject: Function
+}
+
 export abstract class DataConnector {
-  static base$useBatching() {
-    return process.env.DISABLE_BATCHING !== 'true'
+  static base$batchFindOneById(
+    props: FindOneByIdParameters,
+    context: Context,
+    combiner: Function
+  ) {
+    return new Promise((resolve, reject) => {
+      const key =
+        'base$batcher/' +
+        JSON.stringify({
+          fieldSet: props.fieldSet,
+          filter: props.filter,
+        })
+      const existingBatch: DataConnectorBatchItem[] = context.get(key)
+
+      if (existingBatch) {
+        existingBatch.push({parameter: props.id, resolve, reject})
+
+        return
+      }
+
+      const newBatch: DataConnectorBatchItem[] = [
+        {
+          parameter: props.id,
+          resolve,
+          reject,
+        },
+      ]
+
+      context.set(key, newBatch)
+
+      cachedPromise.then(() => {
+        process.nextTick(async () => {
+          const batch: DataConnectorBatchItem[] = context.get(key)
+          const parameters = batch.map(({parameter}) => parameter)
+
+          try {
+            const result = combiner(parameters)
+
+            batch.forEach(({resolve}) => resolve(result))
+          } catch (error) {
+            batch.forEach(({reject}) => reject(error))
+          }
+        })
+      })
+    })
   }
 
   abstract createOne(entry: Result, Model: typeof BaseModel): Promise<Result>
@@ -59,6 +110,7 @@ export interface FindManyByIdParameters {
 }
 
 export interface FindOneByIdParameters {
+  batch?: boolean
   fieldSet?: FieldSet
   filter?: QueryFilter
   id: string

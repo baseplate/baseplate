@@ -55,7 +55,7 @@ export interface DeleteOneByIdParameters {
 }
 
 export interface FindManyByIdParameters {
-  authenticate?: Boolean
+  authenticate?: boolean
   context?: Context
   fieldSet: FieldSet
   filter?: QueryFilter
@@ -64,26 +64,28 @@ export interface FindManyByIdParameters {
 }
 
 export interface FindOneByIdParameters {
-  authenticate?: Boolean
+  authenticate?: boolean
+  batch?: boolean
+  cache?: boolean
   context?: Context
   fieldSet?: FieldSet
   filter?: QueryFilter
   id: string
   user?: UserModel
-  useRequestCache?: boolean
 }
 
 export interface FindOneParameters {
-  authenticate?: Boolean
+  authenticate?: boolean
+  cache?: boolean
   context: Context
   fieldSet: FieldSet
   filter: QueryFilter
   user?: UserModel
-  useRequestCache?: boolean
 }
 
 export interface FindParameters {
-  authenticate?: Boolean
+  authenticate?: boolean
+  cache?: boolean
   context?: Context
   fieldSet?: FieldSet
   filter?: QueryFilter
@@ -91,11 +93,10 @@ export interface FindParameters {
   pageSize?: number
   sort?: SortObject
   user?: UserModel
-  useRequestCache?: boolean
 }
 
 export interface UpdateParameters {
-  authenticate?: Boolean
+  authenticate?: boolean
   context?: Context
   filter: QueryFilter
   update: Record<string, any>
@@ -103,7 +104,7 @@ export interface UpdateParameters {
 }
 
 export interface UpdateOneByIdParameters {
-  authenticate?: Boolean
+  authenticate?: boolean
   context?: Context
   id: string
   update: Record<string, any>
@@ -230,6 +231,7 @@ export default class BaseModel extends ConnectedModel {
 
   static async find({
     authenticate = true,
+    cache = true,
     context = new Context(),
     fieldSet,
     filter,
@@ -237,7 +239,6 @@ export default class BaseModel extends ConnectedModel {
     pageSize: suppliedPageSize,
     sort,
     user,
-    useRequestCache = true,
   }: FindParameters) {
     const pageSize = suppliedPageSize || DEFAULT_PAGE_SIZE
 
@@ -265,7 +266,7 @@ export default class BaseModel extends ConnectedModel {
       () => this.base$db.find(opParameters, this, context),
       context,
       JSON.stringify(opParameters),
-      !useRequestCache
+      cache
     )
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
@@ -277,11 +278,11 @@ export default class BaseModel extends ConnectedModel {
 
   static async findOne({
     authenticate = true,
+    cache = true,
     context = new Context(),
     fieldSet,
     filter,
     user,
-    useRequestCache = true,
   }: FindOneParameters) {
     if (authenticate) {
       const access = await this.base$authenticate({
@@ -304,7 +305,7 @@ export default class BaseModel extends ConnectedModel {
       () => this.base$db.find(opParameters, this, context),
       context,
       JSON.stringify(opParameters),
-      !useRequestCache
+      cache
     )
 
     if (results.length === 0) {
@@ -316,12 +317,13 @@ export default class BaseModel extends ConnectedModel {
 
   static async findOneById({
     authenticate = true,
+    batch = true,
+    cache = true,
     context = new Context(),
     fieldSet,
     filter,
     id,
     user,
-    useRequestCache = true,
   }: FindOneByIdParameters) {
     if (authenticate) {
       const access = await this.base$authenticate({
@@ -337,6 +339,7 @@ export default class BaseModel extends ConnectedModel {
     }
 
     const opParameters = {
+      batch,
       fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
       filter,
       id,
@@ -345,7 +348,7 @@ export default class BaseModel extends ConnectedModel {
       () => this.base$db.findOneById(opParameters, this, context),
       context,
       JSON.stringify(opParameters),
-      !useRequestCache
+      cache
     )
 
     if (!fields) return null
@@ -408,13 +411,13 @@ export default class BaseModel extends ConnectedModel {
     method: Function,
     context: Context,
     key: string,
-    bypassCache?: boolean
+    cache?: boolean
   ): Promise<T> {
     if (typeof method !== 'function') {
       throw new Error('A function must be supplied')
     }
 
-    if (bypassCache) {
+    if (!cache) {
       return method()
     }
 
