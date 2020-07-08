@@ -421,7 +421,7 @@ export default class BaseModel extends ConnectedModel {
     const cacheKey = `base$cache/${key}`
 
     if (context.has(cacheKey)) {
-      logger.debug('[findOne] Retrieving from request cache: %o', cacheKey)
+      logger.debug('Retrieving from request cache: %s', cacheKey)
 
       return context.get(cacheKey)
     }
