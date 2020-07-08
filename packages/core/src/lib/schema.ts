@@ -1,12 +1,12 @@
 import {camelize} from 'inflected'
 import {FieldDefinition as NormalizedFieldDefinition} from '@baseplate/validator'
 
-import * as log from './logger'
 import {InvalidFieldTypeError} from './errors'
 import {ExtendedSchema, FieldDefinition} from './fieldDefinition'
 import fieldTypes, {FieldHandler} from './fieldTypes'
 import GenericModel from './model/base'
 import isPlainObject from './utils/isPlainObject'
+import logger from './logger'
 import modelStore from './modelStore/'
 
 export type FieldHandlers = Record<string, FieldHandler | NestedObjectMarker>
@@ -186,7 +186,7 @@ export default class Schema {
       {}
     )
 
-    log.debug('Loaded field handlers: %s', this.name)
+    logger.debug('Loaded field handlers: %s', this.name)
   }
 
   normalize(

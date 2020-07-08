@@ -9,8 +9,8 @@ import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
 import {Virtual as VirtualSchema} from '../schema'
 import ConnectedModel from './connected'
 import Context from '../context'
-import type {FindReturnValue, Result} from '../dataConnector'
-import * as log from '../logger'
+import type {FindReturnValue, Result} from '../dataConnector/interface'
+import logger from '../logger'
 import FieldSet from '../fieldSet'
 import QueryFilter from '../queryFilter'
 import type SortObject from '../sortObject'
@@ -263,7 +263,7 @@ export default class BaseModel extends ConnectedModel {
     }
     const {count, results} = await this.getFromDatabaseOrCache<FindReturnValue>(
       () => this.base$db.find(opParameters, this, context),
-      context.get('base$cache'),
+      context,
       JSON.stringify(opParameters),
       !useRequestCache
     )
@@ -302,7 +302,7 @@ export default class BaseModel extends ConnectedModel {
     }
     const {results} = await this.getFromDatabaseOrCache<FindReturnValue>(
       () => this.base$db.find(opParameters, this, context),
-      context.get('base$cache'),
+      context,
       JSON.stringify(opParameters),
       !useRequestCache
     )
@@ -343,7 +343,7 @@ export default class BaseModel extends ConnectedModel {
     }
     const fields = await this.getFromDatabaseOrCache<Result>(
       () => this.base$db.findOneById(opParameters, this, context),
-      context.get('base$cache'),
+      context,
       JSON.stringify(opParameters),
       !useRequestCache
     )
@@ -406,7 +406,7 @@ export default class BaseModel extends ConnectedModel {
 
   static async getFromDatabaseOrCache<T>(
     method: Function,
-    cache: Map<string, any>,
+    context: Context,
     key: string,
     bypassCache?: boolean
   ): Promise<T> {
@@ -418,15 +418,17 @@ export default class BaseModel extends ConnectedModel {
       return method()
     }
 
-    if (cache.has(key)) {
-      log.debug('[findOne] Retrieving from request cache: %o', key)
+    const cacheKey = `base$cache/${key}`
 
-      return cache.get(key)
+    if (context.has(cacheKey)) {
+      logger.debug('[findOne] Retrieving from request cache: %o', cacheKey)
+
+      return context.get(cacheKey)
     }
 
     const dbOp = method()
 
-    cache.set(key, dbOp)
+    context.set(cacheKey, dbOp)
 
     return await dbOp
   }

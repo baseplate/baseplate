@@ -1,7 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 
-import * as log from '../logger'
+import logger from '../logger'
 
 export default function requireDirectory(
   directoryPath: string,
@@ -30,7 +30,7 @@ export default function requireDirectory(
 
     return sourceFiles
   } catch (error) {
-    log.error(error)
+    logger.error(error)
 
     return []
   }

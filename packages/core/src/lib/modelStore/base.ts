@@ -1,10 +1,10 @@
 import {classify, pluralize, titleize} from 'inflected'
 
-import * as log from '../logger'
 import AccessModel from '../models/access'
 import BaseModel from '../model/base'
-import {DataConnector} from '../dataConnector'
+import {DataConnector} from '../dataConnector/interface'
 import {isModelDefinitionClass, ModelDefinition} from '../model/definition'
+import logger from '../logger'
 import ModelsModel from '../models/model'
 import RefreshTokenModel from '../models/refreshToken'
 import Schema from '../schema'
@@ -83,7 +83,7 @@ export default class ModelStore {
       ? class extends source {}
       : class extends BaseModel {}
 
-    log.debug('Loading model: %s', handle)
+    logger.debug('Loading model: %s', handle)
 
     return Object.defineProperties(NewModel, modelProperties)
   }
@@ -148,7 +148,7 @@ export default class ModelStore {
 
     sources.forEach((source) => {
       if (!source.name) {
-        log.error(
+        logger.error(
           'Model using the object syntax is missing a `name` property: %o',
           source
         )
@@ -171,7 +171,10 @@ export default class ModelStore {
   }
 
   setDataConnector(dataConnector: DataConnector) {
-    log.debug('Setting main data connector: %s', dataConnector.constructor.name)
+    logger.debug(
+      'Setting main data connector: %s',
+      dataConnector.constructor.name
+    )
 
     this.dataConnector = dataConnector
 

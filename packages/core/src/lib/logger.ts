@@ -1,6 +1,7 @@
-import {createLogger, format, transports} from 'winston'
+import {createLogger, format, Logger, transports} from 'winston'
 
-const logger = createLogger({
+const defaultMeta = {service: 'baseplate'}
+const mainLogger = createLogger({
   level: 'debug',
   format: format.combine(
     format.timestamp({
@@ -10,11 +11,11 @@ const logger = createLogger({
     format.splat(),
     format.json()
   ),
-  defaultMeta: {service: 'Baseplate'},
+  defaultMeta,
 })
 
 if (process.env.NODE_ENV !== 'production') {
-  logger.add(
+  mainLogger.add(
     new transports.Console({
       format: format.combine(
         format.colorize(),
@@ -25,20 +26,38 @@ if (process.env.NODE_ENV !== 'production') {
   )
 }
 
-function debug(...args: any[]) {
-  return logger.log.apply(logger, ['debug', ...args])
+class Base$Logger {
+  winstonLogger: Logger
+  __id: number
+
+  constructor(winstonLogger: Logger) {
+    this.__id = Math.random()
+    this.winstonLogger = winstonLogger
+  }
+
+  debug(...args: any[]) {
+    return this.winstonLogger.log.apply(this.winstonLogger, ['debug', ...args])
+  }
+
+  error(...args: any[]) {
+    return this.winstonLogger.log.apply(this.winstonLogger, ['error', ...args])
+  }
+
+  info(...args: any[]) {
+    return this.winstonLogger.log.apply(this.winstonLogger, ['info', ...args])
+  }
+
+  warn(...args: any[]) {
+    return this.winstonLogger.log.apply(this.winstonLogger, ['warn', ...args])
+  }
 }
 
-function error(...args: any[]) {
-  return logger.log.apply(logger, ['error', ...args])
-}
+const instance = new Base$Logger(mainLogger)
 
-function info(...args: any[]) {
-  return logger.log.apply(logger, ['info', ...args])
-}
+export default instance
 
-function warn(...args: any[]) {
-  return logger.log.apply(logger, ['warn', ...args])
-}
+export function create(name: string) {
+  const meta = {...defaultMeta, service: `${defaultMeta.service}/${name}`}
 
-export {debug, error, info, warn}
+  return new Base$Logger(mainLogger.child(meta))
+}

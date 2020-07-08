@@ -2,13 +2,18 @@ import {FindOneOptions, MongoClient, ObjectID} from 'mongodb'
 
 import {
   BaseModel,
+  Context,
+  createLogger,
   DataConnector,
+  DataConnectorBatcher,
   FieldSet,
   QueryFilter,
   QueryFilterField,
 } from '@baseplate/core'
 
 const POOL_SIZE = 10
+
+const logger = createLogger('mongodb')
 
 let connectionPool: MongoClient
 
@@ -44,6 +49,8 @@ export default class MongoDB extends DataConnector.DataConnector {
     })
 
     connectionPool = connection
+
+    logger.debug('Connected to MongoDB')
 
     return connection
   }
@@ -247,8 +254,11 @@ export default class MongoDB extends DataConnector.DataConnector {
 
   async findManyById(
     {fieldSet, filter, ids}: DataConnector.FindManyByIdParameters,
-    Model: typeof BaseModel
+    Model: typeof BaseModel,
+    context: Context
   ) {
+    logger.debug('findManyById: %s', ids)
+
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
     const encodedIds = ids.map(ObjectID.createFromHexString)
@@ -276,8 +286,20 @@ export default class MongoDB extends DataConnector.DataConnector {
 
   async findOneById(
     {fieldSet, filter, id}: DataConnector.FindOneByIdParameters,
-    Model: typeof BaseModel
+    Model: typeof BaseModel,
+    context: Context
   ) {
+    if (MongoDB.base$useBatching()) {
+      return DataConnectorBatcher.findOneById(
+        {fieldSet, filter, id},
+        context,
+        (ids: string[]) =>
+          this.findManyById({fieldSet, filter, ids}, Model, context)
+      )
+    }
+
+    logger.debug('findOneById: %s', id)
+
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
     const encodedId = ObjectID.createFromHexString(id)
@@ -324,7 +346,8 @@ export default class MongoDB extends DataConnector.DataConnector {
   async updateOneById(
     id: string,
     update: Record<string, any>,
-    Model: typeof BaseModel
+    Model: typeof BaseModel,
+    context: Context
   ) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
@@ -335,7 +358,7 @@ export default class MongoDB extends DataConnector.DataConnector {
       .collection(collectionName)
       .updateOne({_id: encodedId}, {$set: update})
 
-    return this.findOneById({id}, Model)
+    return this.findOneById({id}, Model, context)
   }
 }
 

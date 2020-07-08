@@ -1,13 +1,17 @@
-import type BaseModel from './model/base'
-import type Context from './context'
-import type FieldSet from './fieldSet'
-import type QueryFilter from './queryFilter'
-import type SortObject from './sortObject'
+import type BaseModel from '../model/base'
+import type Context from '../context'
+import type FieldSet from '../fieldSet'
+import type QueryFilter from '../queryFilter'
+import type SortObject from '../sortObject'
 
 export type Result = Record<string, any>
 export type Results = Array<Result>
 
 export abstract class DataConnector {
+  static base$useBatching() {
+    return process.env.DISABLE_BATCHING !== 'true'
+  }
+
   abstract createOne(entry: Result, Model: typeof BaseModel): Promise<Result>
 
   abstract delete(

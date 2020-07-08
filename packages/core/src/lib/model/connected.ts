@@ -1,4 +1,4 @@
-import {DataConnector} from '../dataConnector'
+import {DataConnector} from '../dataConnector/interface'
 
 import type {GraphQLModelCache} from '../specs/graphql/modelCache'
 import type ModelStore from '../modelStore/base'

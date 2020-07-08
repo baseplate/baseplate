@@ -1,6 +1,5 @@
 import {Validator} from '@baseplate/validator'
 
-import * as log from '../../logger'
 import {UnauthorizedError} from '../../errors'
 import Context from '../../context'
 import cookie from 'cookie'
@@ -8,6 +7,7 @@ import HttpRequest from '../../http/request'
 import HttpResponse from '../../http/response'
 import JsonApiRequest from '../../specs/jsonApi/request'
 import JsonApiResponse from '../../specs/jsonApi/response'
+import logger from '../../logger'
 import QueryFilter from '../../queryFilter'
 import Schema from '../../schema'
 
@@ -154,7 +154,7 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
       return res.status(200).json(responseBody)
     }
   } catch (errors) {
-    log.error(errors)
+    logger.error(errors)
 
     const jsonApiRes = new JsonApiResponse({
       errors,

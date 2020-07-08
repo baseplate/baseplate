@@ -1,6 +1,5 @@
 import {CustomError} from '@baseplate/validator'
 
-import * as log from '../../logger'
 import FieldSet from '../../fieldSet'
 import {
   IncludedRelationship,
@@ -12,6 +11,7 @@ import JsonApiEntry, {LinksBlock, MetaBlock} from './entry'
 import JsonApiError from './error'
 import JsonApiURL from './url'
 import JsonApiModel from './model'
+import logger from '../../logger'
 
 interface JsonApiResponseBody {
   data?: JsonApiEntry | Array<JsonApiEntry>
@@ -293,7 +293,7 @@ export default class JsonApiResponse {
     if (this.errors) {
       this.errors.forEach((error) => {
         if (!(error instanceof CustomError)) {
-          log.error(error)
+          logger.error(error)
         }
       })
     }
