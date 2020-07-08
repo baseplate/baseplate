@@ -1,42 +1,56 @@
 import {InvalidFieldSetError} from './errors'
 
-export type FieldSetType = Array<string>
-
 export default class FieldSet {
-  static intersect(a: FieldSetType, b: FieldSetType): FieldSetType {
+  fields: Set<string>
+
+  constructor(fields: Set<string> | Array<string>) {
+    this.fields = new Set(fields)
+  }
+
+  static intersect(a: FieldSet, b: FieldSet): FieldSet {
     if (!a) return b
     if (!b) return a
 
-    const newFieldSet: FieldSetType = []
+    const fields = new Set(a.fields)
 
-    a.forEach((item) => {
-      if (b.includes(item)) {
-        newFieldSet.push(item)
+    a.fields.forEach((item) => {
+      if (b.fields.has(item)) {
+        fields.add(item)
       }
     })
 
-    return newFieldSet
+    return new this(fields)
   }
 
-  static validate(fieldSet: FieldSetType) {
-    const isValid =
-      Array.isArray(fieldSet) &&
-      fieldSet.every((item) => item && typeof item === 'string')
-
-    if (!isValid) {
-      throw new InvalidFieldSetError({fieldSet})
-    }
-  }
-
-  static unite(a: FieldSetType, b: FieldSetType): FieldSetType {
+  static unite(a: FieldSet, b: FieldSet): FieldSet {
     if (!a || !b) return
 
-    const newFieldSet = new Set(a)
+    const fields = new Set(a.fields)
 
-    b.forEach((item) => {
-      newFieldSet.add(item)
+    b.fields.forEach((item) => {
+      fields.add(item)
     })
 
-    return Array.from(newFieldSet)
+    return new this(fields)
+  }
+
+  has(fieldName: string) {
+    return this.fields.has(fieldName)
+  }
+
+  toArray() {
+    return Array.from(this.fields)
+  }
+
+  validate() {
+    const isValid = Array.from(this.fields).every(
+      (item) => item && typeof item === 'string'
+    )
+
+    if (!isValid) {
+      throw new InvalidFieldSetError({fieldSet: this})
+    }
+
+    return this
   }
 }

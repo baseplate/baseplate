@@ -17,5 +17,6 @@
   "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
-  }
+  },
+  "devDependencies": {}
 }

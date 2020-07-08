@@ -1,11 +1,11 @@
 import {FieldArray} from '@baseplate/validator'
-import {GraphQLList} from 'graphql'
+import type GraphQL from 'graphql'
 
 interface ConstructorParameters extends FieldArray.ConstructorParameters {
   memberType: any
 }
 
-export default class GraphQLFieldArray extends FieldArray.FieldHandler {
+export default class CoreFieldArray extends FieldArray.FieldHandler {
   memberType: any
 
   constructor({memberType, ...options}: ConstructorParameters) {
@@ -14,19 +14,19 @@ export default class GraphQLFieldArray extends FieldArray.FieldHandler {
     this.memberType = memberType
   }
 
-  getGraphQLInputType({fieldName}: {fieldName: string}) {
+  getGraphQLInputType(graphql: typeof GraphQL, fieldName: string) {
     const memberType = this.memberType.getGraphQLInputType({fieldName})
 
     return {
-      type: new GraphQLList(memberType.type),
+      type: new graphql.GraphQLList(memberType.type),
     }
   }
 
-  getGraphQLOutputType({fieldName}: {fieldName: string}) {
+  getGraphQLOutputType(graphql: typeof GraphQL, fieldName: string) {
     const memberType = this.memberType.getGraphQLOutputType({fieldName})
 
     return {
-      type: new GraphQLList(memberType.type),
+      type: new graphql.GraphQLList(memberType.type),
     }
   }
 }

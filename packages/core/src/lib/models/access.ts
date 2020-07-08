@@ -1,9 +1,9 @@
 import {AccessValue} from '../accessValue'
+import BaseModel from '../model/base'
 import Context from '../context'
 import createModelAccessEntry from './accessControllers/createModelAccessEntry'
 import findModelAccessEntries from './accessControllers/findModelAccessEntries'
 import findModelAccessEntry from './accessControllers/findModelAccessEntry'
-import Model from '../model/generic'
 import QueryFilter from '../queryFilter'
 import updateModelAccessEntry from './accessControllers/updateModelAccessEntry'
 import User from './user'
@@ -29,13 +29,13 @@ const accessValueProps = {
   },
 }
 
-export default class BaseAccess extends Model {
-  static customRoutes = {
-    '/base_models/:modelName/access': {
+export default class Base$Access extends BaseModel {
+  static routes = {
+    '/base$models/:modelName/access': {
       get: findModelAccessEntries,
       post: createModelAccessEntry,
     },
-    '/base_models/:modelName/access/:id': {
+    '/base$models/:modelName/access/:id': {
       get: findModelAccessEntry,
       patch: updateModelAccessEntry,
     },
@@ -43,7 +43,7 @@ export default class BaseAccess extends Model {
 
   static fields = {
     user: {
-      type: 'base_user',
+      type: 'base$user',
       required: true,
     },
     model: {
@@ -64,8 +64,6 @@ export default class BaseAccess extends Model {
       ...accessValueProps,
     },
   }
-
-  static handle = 'base_access'
 
   static decodeModelAccessKey(key: string) {
     if (key === 'public') {
@@ -118,7 +116,7 @@ export default class BaseAccess extends Model {
       return AccessValue.parse(false)
     }
 
-    const value = entries.reduce((value, entry) => {
+    const value = entries.reduce((value: AccessValue, entry: Base$Access) => {
       const valueForType = AccessValue.parse(entry.get(accessType))
 
       return AccessValue.unite(value, valueForType)
@@ -143,7 +141,7 @@ export default class BaseAccess extends Model {
     if (user) {
       const userFilter = QueryFilter.parse({
         'user.id': user.id,
-        'user.type': (<typeof User>user.constructor).handle,
+        'user.type': (<typeof User>user.constructor).base$handle,
       })
 
       filter = userFilter
@@ -155,15 +153,16 @@ export default class BaseAccess extends Model {
       filter = filter ? filter.uniteWith(publicUserFilter) : publicUserFilter
     }
 
-    const {results}: {results: Array<DatabaseAccess>} = await super.base$dbFind(
+    const {results} = await this.base$db.find(
       {
-        context,
         filter,
-      }
+      },
+      this,
+      context
     )
     const entries = results
-      .filter((result) => result.model === modelName)
-      .map((result) => {
+      .filter((result: DatabaseAccess) => result.model === modelName)
+      .map((result: DatabaseAccess) => {
         const id = this.encodeModelAccessKey(result.user)
 
         return new this({...result, _id: id})
@@ -186,7 +185,7 @@ export default class BaseAccess extends Model {
     if (user) {
       const userQuery = {
         'user.id': user.id,
-        'user.type': (<typeof User>user.constructor).handle,
+        'user.type': (<typeof User>user.constructor).base$handle,
       }
 
       filter.intersectWith(QueryFilter.parse(userQuery))
@@ -196,7 +195,7 @@ export default class BaseAccess extends Model {
       filter.intersectWith(publicUserQuery)
     }
 
-    const {results} = await super.base$dbUpdate(filter, update)
+    const {results} = await this.base$db.update(filter, update, this)
 
     return results.map((result: DatabaseAccess) => {
       const id = this.encodeModelAccessKey(result.user)

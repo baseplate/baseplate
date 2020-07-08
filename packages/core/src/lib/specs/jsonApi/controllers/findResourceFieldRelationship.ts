@@ -31,20 +31,25 @@ export default async function (
     const access = await Model.base$authenticate({
       accessType: 'read',
       context,
-      user: context.user,
+      user: context.get('base$user'),
     })
 
     if (access.toObject() === false) {
-      throw context.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.get('base$user')
+        ? new ForbiddenError()
+        : new UnauthorizedError()
     }
 
     const {id, fieldName} = jsonApiReq.params
 
     if (
-      !Model.schema.fields[fieldName] ||
-      (access.fields && !access.fields.includes(fieldName))
+      !Model.base$schema.fields[fieldName] ||
+      (access.fields && !access.fields.has(fieldName))
     ) {
-      throw new EntryFieldNotFoundError({fieldName, modelName: Model.handle})
+      throw new EntryFieldNotFoundError({
+        fieldName,
+        modelName: Model.base$handle,
+      })
     }
 
     const entry = await Model.findOneById({context, id})
@@ -58,7 +63,7 @@ export default async function (
     const referenceArray = isReferenceArray ? fieldValue : [fieldValue]
     const referenceEntries = referenceArray.map(
       ({id, type}: RelationshipData) => {
-        const ReferenceModel = Model.store.get(type)
+        const ReferenceModel = Model.base$modelStore.get(type)
 
         return new ReferenceModel({_id: id})
       }

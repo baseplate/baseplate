@@ -59,7 +59,7 @@ export class InvalidFieldSetError extends CustomError {
   detail: string
   statusCode: number
 
-  constructor({fieldSet}: {fieldSet: Array<string>}) {
+  constructor({fieldSet}: {fieldSet: any}) {
     super('Invalid field set')
 
     this.detail = `\`${fieldSet.toString()}\` is not a valid field set`

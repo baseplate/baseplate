@@ -1,22 +1,15 @@
 import {camelize} from 'inflected'
-import {
-  Field,
-  FieldDefinition as NormalizedFieldDefinition,
-  FieldHandler,
-  primitives,
-  system,
-} from '@baseplate/validator'
+import {FieldDefinition as NormalizedFieldDefinition} from '@baseplate/validator'
 
 import {InvalidFieldTypeError} from './errors'
 import {ExtendedSchema, FieldDefinition} from './fieldDefinition'
-import GenericModel from './model/generic'
+import fieldTypes, {FieldHandler} from './fieldTypes'
+import GenericModel from './model/base'
 import isPlainObject from './utils/isPlainObject'
-import ModelStore from './modelStore/base'
+import logger from './logger'
+import modelStore from './modelStore/'
 
-interface FieldHandlers {
-  primitives: {[key: string]: FieldHandler}
-  system: {[key: string]: FieldHandler}
-}
+export type FieldHandlers = Record<string, FieldHandler | NestedObjectMarker>
 
 export interface NestedObjectMarker {
   __nestedObjectId: string
@@ -29,47 +22,34 @@ export interface Virtual {
 
 export interface SchemaConstructorParameters {
   fields: Record<string, FieldDefinition>
-  fieldTypes?: FieldHandlers
   name: string
   virtuals?: {[key: string]: Virtual}
 }
 
 export default class Schema {
   fields: Record<string, NormalizedFieldDefinition>
-  fieldHandlers: Record<string, Field>
-  fieldTypes: FieldHandlers
+  fieldHandlers: FieldHandlers
   name: string
   virtuals: {[key: string]: Virtual}
 
-  constructor({
-    fields = {},
-    fieldTypes = {primitives, system},
-    name,
-    virtuals,
-  }: SchemaConstructorParameters) {
-    const normalizedFields = this.normalize(fields, fieldTypes)
+  constructor({fields = {}, name, virtuals}: SchemaConstructorParameters) {
+    const normalizedFields = this.normalize(fields)
 
     this.fields = normalizedFields
     this.fieldHandlers = {}
-    this.fieldTypes = fieldTypes
     this.name = name
     this.virtuals = virtuals || {}
   }
 
   getHandlerForField(
     field: NormalizedFieldDefinition,
-    modelStore: ModelStore,
     name: string,
     fieldPath: Array<string> = [this.name]
-  ): Field | NestedObjectMarker {
+  ): FieldHandler | NestedObjectMarker {
     fieldPath = fieldPath.concat(name)
 
-    if (
-      field.type === 'primitive' &&
-      field.subType in this.fieldTypes.primitives
-    ) {
-      return new this.fieldTypes.primitives[field.subType]({
-        modelStore,
+    if (field.type === 'primitive' && this.isValidPrimitive(field.subType)) {
+      return new fieldTypes.primitives[field.subType]({
         options: field.options,
         path: fieldPath,
       })
@@ -84,23 +64,24 @@ export default class Schema {
         })
       }
 
-      return new this.fieldTypes.system.reference({
+      return new fieldTypes.system.reference({
         models: [Model],
-        modelStore,
         options: field.options,
         path: fieldPath,
       })
     }
 
     if (field.type === 'array') {
-      const primitives: Array<Field> = []
+      const primitives: Array<FieldHandler> = []
       const references: Array<typeof GenericModel> = []
 
       field.children.forEach((child: NormalizedFieldDefinition) => {
-        if (child.type === 'primitive') {
+        if (
+          child.type === 'primitive' &&
+          this.isValidPrimitive(child.subType)
+        ) {
           primitives.push(
-            new this.fieldTypes.primitives[child.subType]({
-              modelStore,
+            new fieldTypes.primitives[child.subType]({
               options: child.options,
               path: fieldPath,
             })
@@ -123,9 +104,8 @@ export default class Schema {
           throw new Error('Arrays cannot mix primitives and references')
         }
 
-        return new this.fieldTypes.system.reference({
+        return new fieldTypes.system.reference({
           models: references,
-          modelStore,
           options: field,
           path: fieldPath,
         })
@@ -135,9 +115,8 @@ export default class Schema {
         throw new Error('Arrays cannot mix different primitives')
       }
 
-      return new this.fieldTypes.system.array({
+      return new fieldTypes.system.array({
         memberType: primitives[0],
-        modelStore,
         options: {},
         path: fieldPath,
       })
@@ -150,7 +129,6 @@ export default class Schema {
             ...handlers,
             [fieldName]: this.getHandlerForField(
               <NormalizedFieldDefinition>field.children[fieldName],
-              modelStore,
               fieldName,
               fieldPath
             ),
@@ -187,10 +165,14 @@ export default class Schema {
     return false
   }
 
-  loadFieldHandlers({modelStore}: {modelStore: any}) {
+  isValidPrimitive(input: any): input is keyof typeof fieldTypes.primitives {
+    return input in fieldTypes.primitives
+  }
+
+  loadFieldHandlers() {
     this.fieldHandlers = Object.entries(this.fields).reduce(
       (result, [name, field]) => {
-        const handler = this.getHandlerForField(field, modelStore, name)
+        const handler = this.getHandlerForField(field, name)
 
         if (handler) {
           return {
@@ -203,14 +185,15 @@ export default class Schema {
       },
       {}
     )
+
+    logger.debug('Loaded field handlers: %s', this.name)
   }
 
   normalize(
-    fields: Record<string, FieldDefinition>,
-    fieldTypes: FieldHandlers
+    fields: Record<string, FieldDefinition>
   ): Record<string, NormalizedFieldDefinition> {
     return Object.entries(fields).reduce((normalizedFields, [name, field]) => {
-      const normalizedField = this.normalizeField(field, fieldTypes)
+      const normalizedField = this.normalizeField(field)
 
       if (!normalizedField) {
         return normalizedFields
@@ -220,10 +203,7 @@ export default class Schema {
     }, {})
   }
 
-  normalizeField(
-    fieldDefinition: FieldDefinition,
-    fieldTypes: FieldHandlers
-  ): NormalizedFieldDefinition {
+  normalizeField(fieldDefinition: FieldDefinition): NormalizedFieldDefinition {
     const field = this.normalizeFieldType(fieldDefinition) as ExtendedSchema<
       any
     >
@@ -233,7 +213,10 @@ export default class Schema {
       const typeName = type.trim().toLowerCase()
 
       return {
-        type: fieldTypes.primitives[typeName] ? 'primitive' : 'reference',
+        type:
+          this.isValidPrimitive(typeName) && fieldTypes.primitives[typeName]
+            ? 'primitive'
+            : 'reference',
         subType: typeName,
         options: options || {},
       }
@@ -244,7 +227,10 @@ export default class Schema {
       const typeName = type.name.trim().toLowerCase()
 
       return {
-        type: fieldTypes.primitives[typeName] ? 'primitive' : 'reference',
+        type:
+          this.isValidPrimitive(typeName) && fieldTypes.primitives[typeName]
+            ? 'primitive'
+            : 'reference',
         subType: typeName,
         options: options || {},
       }
@@ -252,9 +238,7 @@ export default class Schema {
 
     if (Array.isArray(field.type)) {
       const {type, ...options} = field
-      const children = field.type.map((member) =>
-        this.normalizeField(member, fieldTypes)
-      )
+      const children = field.type.map((member) => this.normalizeField(member))
 
       return {
         type: 'array',
@@ -268,7 +252,7 @@ export default class Schema {
 
       return {
         type: 'object',
-        children: this.normalize(type, fieldTypes),
+        children: this.normalize(type),
         options,
       }
     }
@@ -276,7 +260,7 @@ export default class Schema {
     if (isPlainObject(field)) {
       return {
         type: 'object',
-        children: this.normalize(field, fieldTypes),
+        children: this.normalize(field),
         options: {},
       }
     }

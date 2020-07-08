@@ -1,6 +1,8 @@
 import fs from 'fs'
 import path from 'path'
 
+import logger from '../logger'
+
 export default function requireDirectory(
   directoryPath: string,
   extensions = ['.js']
@@ -27,7 +29,9 @@ export default function requireDirectory(
       .filter(Boolean)
 
     return sourceFiles
-  } catch {
+  } catch (error) {
+    logger.error(error)
+
     return []
   }
 }

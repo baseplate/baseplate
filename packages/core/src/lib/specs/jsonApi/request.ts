@@ -3,8 +3,8 @@ import {CustomError} from '@baseplate/validator'
 import {InvalidQueryParameterError} from '../../errors'
 import AccessModel from '../../models/access'
 import Context from '../../context'
-import FieldSet, {FieldSetType} from '../../fieldSet'
-import GenericModel from '../../model/generic'
+import FieldSet from '../../fieldSet'
+import GenericModel from '../../model/base'
 import HttpRequest from '../../http/request'
 import JsonApiModel from './model'
 import JsonApiURL from './url'
@@ -45,7 +45,7 @@ export type ResolveRelationshipsParameters = {
 export default class JsonApiRequest {
   bodyFields: Record<string, any>
   context: Context
-  fields: Record<string, FieldSetType>
+  fields: Record<string, FieldSet>
   filter: QueryFilter
   includeMap: IncludeMap
   pageNumber: number
@@ -154,7 +154,7 @@ export default class JsonApiRequest {
 
     if (
       !fieldValue ||
-      !(<typeof GenericModel>entry.constructor).schema.isReferenceField(
+      !(<typeof GenericModel>entry.constructor).base$schema.isReferenceField(
         fieldName
       )
     ) {
@@ -172,7 +172,7 @@ export default class JsonApiRequest {
       const access = await Access.getAccess({
         accessType: 'read',
         context: this.context,
-        modelName: ReferencedModel.handle,
+        modelName: ReferencedModel.base$handle,
         user,
       })
 
@@ -186,6 +186,7 @@ export default class JsonApiRequest {
         fieldSet,
         filter: access.filter,
         id,
+        user,
       })
 
       if (includeMap && typeof includeMap === 'object') {
@@ -217,7 +218,7 @@ export default class JsonApiRequest {
 
     if (referencesHash) {
       includedReferences
-        .filter(Boolean)
+        .filter((reference) => reference.entry)
         .forEach((reference: IncludedRelationship) => {
           referencesHash[reference.entry.id] = reference
         })
@@ -234,7 +235,7 @@ export default class JsonApiRequest {
   }: ResolveRelationshipsParameters): Promise<
     Record<string, IncludedRelationship>
   > {
-    const Access = <typeof AccessModel>Model.store.get('base_access')
+    const Access = <typeof AccessModel>Model.base$modelStore.get('base$access')
     const referencesHash: Record<string, IncludedRelationship> = {}
     const errors: Record<string, CustomError> = {}
     const queue: Array<Promise<
@@ -244,7 +245,9 @@ export default class JsonApiRequest {
     entries.forEach((entry) => {
       Object.keys(includeMap).forEach((fieldName) => {
         if (
-          !(<typeof Model>entry.constructor).schema.isReferenceField(fieldName)
+          !(<typeof Model>entry.constructor).base$schema.isReferenceField(
+            fieldName
+          )
         ) {
           errors[fieldName] = new InvalidQueryParameterError({
             name: 'include',
@@ -260,7 +263,7 @@ export default class JsonApiRequest {
             entry,
             fieldName,
             includeMap: includeMap[fieldName],
-            modelStore: Model.store,
+            modelStore: Model.base$modelStore,
             referencesHash,
             user,
           })

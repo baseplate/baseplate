@@ -1,22 +1,37 @@
-import ModelInterface, {
-  FindManyByIdParameters,
-  FindOneByIdParameters,
-  FindParameters,
-} from './lib/model/interface'
-import routesGraphQL from './routes/graphql'
-import routesRest from './routes/rest'
+import BaseModel from './lib/model/base'
+import {create as createLogger} from './lib/logger'
+import Context from './lib/context'
+import * as DataConnector from './lib/dataConnector/interface'
+import FieldSet from './lib/fieldSet'
+import * as routesGraphQL from './routes/graphql'
+import * as routesRest from './routes/rest'
 import HttpRequest from './lib/http/request'
 import HttpResponse from './lib/http/response'
 import modelStore from './lib/modelStore/'
+import QueryFilter, {
+  Branch as QueryFilterBranch,
+  Field as QueryFilterField,
+  Fork as QueryFilterFork,
+} from './lib/queryFilter'
+import SortObject from './lib/sortObject'
+
+const load = modelStore.load.bind(modelStore)
 
 export {
-  FindManyByIdParameters,
-  FindOneByIdParameters,
-  FindParameters,
+  BaseModel,
+  Context,
+  createLogger,
+  DataConnector,
+  FieldSet,
   HttpRequest,
   HttpResponse,
-  ModelInterface,
+  load,
   modelStore,
+  QueryFilter,
+  QueryFilterBranch,
+  QueryFilterField,
+  QueryFilterFork,
   routesGraphQL,
   routesRest,
+  SortObject,
 }

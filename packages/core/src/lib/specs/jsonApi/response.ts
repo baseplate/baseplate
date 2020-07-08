@@ -1,6 +1,6 @@
 import {CustomError} from '@baseplate/validator'
 
-import {FieldSetType} from '../../fieldSet'
+import FieldSet from '../../fieldSet'
 import {
   IncludedRelationship,
   Relationship,
@@ -11,6 +11,7 @@ import JsonApiEntry, {LinksBlock, MetaBlock} from './entry'
 import JsonApiError from './error'
 import JsonApiURL from './url'
 import JsonApiModel from './model'
+import logger from '../../logger'
 
 interface JsonApiResponseBody {
   data?: JsonApiEntry | Array<JsonApiEntry>
@@ -26,7 +27,7 @@ interface JsonApiResponseBody {
 interface JsonApiResponseConstructorParameters {
   entries?: JsonApiModel | Array<JsonApiModel>
   errors?: Array<CustomError>
-  fieldSet?: FieldSetType
+  fieldSet?: FieldSet
   includedReferences?: Array<IncludedRelationship>
   includeTopLevelLinks?: boolean
   pageSize?: number
@@ -46,7 +47,7 @@ export default class JsonApiResponse {
   pageSize: number
   relationships: RelationshipData | Array<RelationshipData>
   res: HttpResponse
-  topLevelFieldSet: FieldSetType
+  topLevelFieldSet: FieldSet
   totalEntries: number
   totalPages: number
   statusCode: number
@@ -131,7 +132,7 @@ export default class JsonApiResponse {
       const formattedRelationships = relationshipsArray.map((entry) =>
         this.formatRelationshipObject({
           id: entry.id,
-          type: (<typeof JsonApiModel>entry.constructor).handle,
+          type: (<typeof JsonApiModel>entry.constructor).base$handle,
         })
       )
 
@@ -189,7 +190,7 @@ export default class JsonApiResponse {
     }
   }
 
-  async formatEntry(entry: JsonApiModel, fieldSet?: FieldSetType) {
+  async formatEntry(entry: JsonApiModel, fieldSet?: FieldSet) {
     const fields = await entry.toObject({
       fieldSet,
     })
@@ -209,7 +210,9 @@ export default class JsonApiResponse {
       }
 
       if (
-        (<typeof JsonApiModel>entry.constructor).schema.isReferenceField(name)
+        (<typeof JsonApiModel>entry.constructor).base$schema.isReferenceField(
+          name
+        )
       ) {
         const links = this.getRelationshipLinksBlock(entry, name)
         const data = Array.isArray(value)
@@ -223,7 +226,7 @@ export default class JsonApiResponse {
     })
 
     const formattedEntry: JsonApiEntry = {
-      type: (<typeof JsonApiModel>entry.constructor).handle,
+      type: (<typeof JsonApiModel>entry.constructor).base$handle,
       id: entry.id,
       attributes,
     }
@@ -284,6 +287,20 @@ export default class JsonApiResponse {
     return formattedError
   }
 
+  async end() {
+    const {body, statusCode} = await this.toObject()
+
+    if (this.errors) {
+      this.errors.forEach((error) => {
+        if (!(error instanceof CustomError)) {
+          logger.error(error)
+        }
+      })
+    }
+
+    this.res.status(statusCode).json(body, 'application/vnd.api+json')
+  }
+
   formatRelationshipObject(object: RelationshipData) {
     const result = {
       type: object.type,
@@ -333,12 +350,6 @@ export default class JsonApiResponse {
     })
 
     return {self, related}
-  }
-
-  async end() {
-    const {body, statusCode} = await this.toObject()
-
-    this.res.status(statusCode).json(body, 'application/vnd.api+json')
   }
 
   async toObject() {

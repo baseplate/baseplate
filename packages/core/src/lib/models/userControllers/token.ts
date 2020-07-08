@@ -7,6 +7,7 @@ import HttpRequest from '../../http/request'
 import HttpResponse from '../../http/response'
 import JsonApiRequest from '../../specs/jsonApi/request'
 import JsonApiResponse from '../../specs/jsonApi/response'
+import logger from '../../logger'
 import QueryFilter from '../../queryFilter'
 import Schema from '../../schema'
 
@@ -37,7 +38,7 @@ async function deleteFn(
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const RefreshTokenModel = this.store.get('base_refreshToken')
+    const RefreshTokenModel = this.base$modelStore.get('base$refreshtoken')
 
     if (req.headers.cookie) {
       const {refresh_token: refreshToken} = cookie.parse(req.headers.cookie)
@@ -69,7 +70,7 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
       schema: tokenEndpointSchema.fields,
     })
 
-    const RefreshTokenModel = this.store.get('base_refreshToken')
+    const RefreshTokenModel = this.base$modelStore.get('base$refreshtoken')
     const {username, grant_type: grantType, password} = data
 
     if (grantType === 'password') {
@@ -119,7 +120,7 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
 
       // TO DO: Validate payload
 
-      const UserModel = this.store.get(payload.modelName)
+      const UserModel = this.base$modelStore.get(payload.modelName)
       const user = await UserModel.findOneById({
         authenticate: false,
         context,
@@ -153,6 +154,8 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
       return res.status(200).json(responseBody)
     }
   } catch (errors) {
+    logger.error(errors)
+
     const jsonApiRes = new JsonApiResponse({
       errors,
       res,

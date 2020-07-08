@@ -24,7 +24,9 @@ export class FieldHandler {
     this.models = models
     this.options = options
 
-    this.modelNames = models ? models.map((model) => model.handle) : [subType]
+    this.modelNames = models
+      ? models.map((model) => model.base$handle)
+      : [subType]
   }
 
   cast({path, value}: {path: Array<string>; value: ReferenceValue}) {

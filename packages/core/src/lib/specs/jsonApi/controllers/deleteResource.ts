@@ -25,7 +25,7 @@ export default async function (
     const {deleteCount} = await Model.deleteOneById({
       context,
       id,
-      user: context.user,
+      user: context.get('base$user'),
     })
 
     if (deleteCount === 0) {

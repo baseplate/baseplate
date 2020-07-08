@@ -1,7 +1,7 @@
-import ModelStore from '../modelStore/base'
+import modelStore from '../modelStore/'
 import TokenData from './tokenData'
 
-const getUserFromToken = (tokenData: TokenData, modelStore: ModelStore) => {
+const getUserFromToken = (tokenData: TokenData) => {
   if (!tokenData) return
 
   const {id, level, model} = tokenData

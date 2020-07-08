@@ -14,7 +14,7 @@ async function createModelAccessEntry(
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const Model = this.store.get(req.params.modelName)
+    const Model = this.base$modelStore.get(req.params.modelName)
 
     if (!Model) {
       throw new ModelNotFoundError({name: req.params.modelName})
