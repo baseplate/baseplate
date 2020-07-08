@@ -1,10 +1,10 @@
 import {EntryNotFoundError} from '../errors'
 import AccessClass from './access'
 import Context from '../context'
-import GenericModel from '../model/generic'
+import GenericModel from '../model/base'
 import JsonApiEntry from '../specs/jsonApi/entry'
 
-export default class BaseModel extends GenericModel {
+export default class Base$Model extends GenericModel {
   static fields = {
     label: String,
     fields: 'Mixed',
@@ -12,51 +12,49 @@ export default class BaseModel extends GenericModel {
     handlePlural: String,
   }
 
-  static handle = 'base_model'
-
   static interfaces = {
     jsonApiFetchResource: true,
     jsonApiFetchResources: true,
   }
 
   static async find({context}: {context: Context}) {
-    const schemas = this.store.getAll().map(async (Model) => {
-      if (Model.isBaseModel) {
+    const schemas = this.base$modelStore.getAll().map(async (Model) => {
+      if (Model.base$isInternal()) {
         return
       }
 
-      const Access = <typeof AccessClass>this.store.get('base_access')
+      const Access = <typeof AccessClass>this.base$modelStore.get('base$access')
       const access = await Access.getAccess({
         accessType: 'create',
         context,
-        modelName: Model.handle,
-        user: context.user,
+        modelName: Model.base$handle,
+        user: context.get('base$user'),
       })
 
       if (access.toObject() === false) {
         return
       }
 
-      const fields = Object.keys(Model.schema.fields).reduce(
+      const fields = Object.keys(Model.base$schema.fields).reduce(
         (allowedFields, fieldName) => {
-          if (access.fields && !access.fields.includes(fieldName)) {
+          if (access.fields && !access.fields.has(fieldName)) {
             return allowedFields
           }
 
           return {
             ...allowedFields,
-            [fieldName]: Model.schema.fields[fieldName],
+            [fieldName]: Model.base$schema.fields[fieldName],
           }
         },
         {}
       )
 
       return new this({
-        _id: Model.handle,
-        label: Model.label,
+        _id: Model.base$handle,
+        label: Model.base$label,
         fields,
-        handle: Model.handle,
-        handlePlural: Model.handlePlural,
+        handle: Model.base$handle,
+        handlePlural: Model.base$handlePlural,
       })
     })
     const entries = (await Promise.all(schemas)).filter(Boolean)
@@ -70,28 +68,28 @@ export default class BaseModel extends GenericModel {
   }
 
   static async findOneById({id}: {id: string}) {
-    const Model = this.store.get(id)
+    const Model = this.base$modelStore.get(id)
 
     if (!Model) {
       throw new EntryNotFoundError({id})
     }
 
-    return new this({_id: Model.handle, fields: Model.schema.fields})
+    return new this({_id: Model.base$handle, fields: Model.base$schema.fields})
   }
 
   base$jsonApiPostFormat(
     formattedEntry: JsonApiEntry,
     originalEntry: GenericModel
   ) {
-    const Model = (<typeof GenericModel>originalEntry.constructor).store.get(
-      originalEntry.id
-    )
+    const Model = (<typeof GenericModel>(
+      originalEntry.constructor
+    )).base$modelStore.get(originalEntry.id)
 
     return {
       ...formattedEntry,
       links: {
         ...formattedEntry.links,
-        root: `/${Model.handlePlural}`,
+        root: `/${Model.base$handlePlural}`,
       },
     }
   }

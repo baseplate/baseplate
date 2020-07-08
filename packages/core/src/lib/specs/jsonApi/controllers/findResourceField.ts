@@ -31,24 +31,29 @@ export default async function (
     const access = await Model.base$authenticate({
       accessType: 'read',
       context,
-      user: context.user,
+      user: context.get('base$user'),
     })
 
     if (access.toObject() === false) {
-      throw context.user ? new ForbiddenError() : new UnauthorizedError()
+      throw context.get('base$user')
+        ? new ForbiddenError()
+        : new UnauthorizedError()
     }
 
     const {fieldName, id} = jsonApiReq.params
 
     if (
-      !Model.schema.fields[fieldName] ||
-      (access.fields && !access.fields.includes(fieldName))
+      !Model.base$schema.fields[fieldName] ||
+      (access.fields && !access.fields.has(fieldName))
     ) {
-      throw new EntryFieldNotFoundError({fieldName, modelName: Model.handle})
+      throw new EntryFieldNotFoundError({
+        fieldName,
+        modelName: Model.base$handle,
+      })
     }
 
     const entry = <JsonApiModel>(
-      await Model.findOneById({context, id, user: context.user})
+      await Model.findOneById({context, id, user: context.get('base$user')})
     )
 
     if (!entry || !entry.get(fieldName)) {
@@ -62,13 +67,13 @@ export default async function (
         [fieldName]: true,
       },
       Model,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const fieldValue = Object.values(references).map(({entry}) => entry)
     const childReferences = await jsonApiReq.resolveRelationships({
       entries: fieldValue,
       Model,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
       entries: hasMultipleReferences ? fieldValue : fieldValue[0],

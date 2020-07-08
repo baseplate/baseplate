@@ -1,7 +1,10 @@
+import {CustomError} from '@baseplate/validator'
+
 import {ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
+import JsonApiModel from '../model'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore/'
@@ -23,7 +26,7 @@ export default async function (
     }
 
     const query = QueryFilter.parse(jsonApiReq.filter, '$')
-    const fieldSet = jsonApiReq.fields[Model.handle]
+    const fieldSet = jsonApiReq.fields[Model.base$handle]
     const {entries, pageSize, totalEntries, totalPages} = await Model.find({
       context,
       fieldSet,
@@ -31,15 +34,15 @@ export default async function (
       pageNumber: jsonApiReq.pageNumber,
       pageSize: jsonApiReq.pageSize,
       sort: jsonApiReq.sort,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const references = await jsonApiReq.resolveRelationships({
-      entries,
+      entries: <JsonApiModel[]>entries,
       Model,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
-      entries,
+      entries: <JsonApiModel[]>entries,
       fieldSet,
       includedReferences: Object.values(references),
       includeTopLevelLinks: true,

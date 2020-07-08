@@ -1,4 +1,4 @@
-import HttpRequest from '@baseplate/core/dist/lib/http/request'
+import {HttpRequest} from '@baseplate/core'
 import {IncomingMessage} from 'http'
 import {URL} from 'url'
 

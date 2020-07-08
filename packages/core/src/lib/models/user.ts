@@ -2,16 +2,15 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 import * as tokenRoute from './userControllers/token'
-import {FindOneByIdParameters} from '../model/interface'
 import {ForbiddenError} from '../errors'
-import GenericModel from '../model/generic'
+import GenericModel, {FindOneByIdParameters} from '../model/base'
 
 const TOKEN_EXPIRATION = 3600
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
-export default class BaseUser extends GenericModel {
-  static customRoutes = {
-    '/base_users/token': tokenRoute,
+export default class Base$User extends GenericModel {
+  static routes = {
+    '/base$users/token': tokenRoute,
   }
 
   static fields = {
@@ -36,8 +35,6 @@ export default class BaseUser extends GenericModel {
     },
   }
 
-  static handle = 'base_user'
-
   static interfaces = {
     jsonApiCreateResource: true,
     jsonApiDeleteResource: true,
@@ -51,9 +48,9 @@ export default class BaseUser extends GenericModel {
       return super.findOneById(props)
     }
 
-    const {user} = props.context
+    const user = props.context.get('base$user')
 
-    if (!user || !(user instanceof BaseUser)) {
+    if (!user || !(user instanceof Base$User)) {
       throw new ForbiddenError()
     }
 
@@ -64,11 +61,11 @@ export default class BaseUser extends GenericModel {
     })
   }
 
-  static async generateAccessToken(user: BaseUser) {
+  static async generateAccessToken(user: Base$User) {
     const data = {
       id: user.id,
       level: user.get('accessLevel'),
-      model: (<typeof BaseUser>user.constructor).handle,
+      model: (<typeof Base$User>user.constructor).base$handle,
     }
     const accessToken = jwt.sign(
       {

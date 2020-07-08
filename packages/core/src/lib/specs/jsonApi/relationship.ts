@@ -1,4 +1,4 @@
-import {FieldSetType} from '../../fieldSet'
+import FieldSet from '../../fieldSet'
 import {LinksBlock} from './entry'
 import JsonApiModel from './model'
 
@@ -6,7 +6,7 @@ export type IncludeMap = Record<string, any>
 
 export interface IncludedRelationship {
   entry: JsonApiModel
-  fieldSet?: FieldSetType
+  fieldSet?: FieldSet
 }
 
 export interface Relationship {

@@ -8,6 +8,7 @@
   ],
   "dependencies": {
     "@baseplate/core": "^0.2.5",
+    "@types/mongodb": "^3.5.25",
     "mongodb": "^3.5.7"
   },
   "scripts": {

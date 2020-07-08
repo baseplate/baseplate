@@ -1,36 +1,36 @@
 import * as graphql from 'graphql'
 
-import AccessModel from '../lib/models/access'
 import Context from '../lib/context'
-import getGraphQLModel from '../lib/specs/graphql/getGraphQLModel'
+import {getMutations, getQueries} from '../lib/specs/graphql/modelExtension'
 import getUserFromToken from '../lib/acl/getUserFromToken'
 import HttpRequest from '../lib/http/request'
 import HttpResponse from '../lib/http/response'
-import modelStore from '../lib/specs/graphql/modelStore'
+import modelStore from '../lib/modelStore'
 import parseAuthorizationHeader from '../lib/acl/parseAuthorizationHeader'
 
-export default async function handler(req: HttpRequest, res: HttpResponse) {
+export async function handler(req: HttpRequest, res: HttpResponse) {
   const {body, headers} = req
   const authTokenData = parseAuthorizationHeader(headers.authorization)
-  const context: Context = {
-    user: getUserFromToken(authTokenData, modelStore),
-  }
-  const Access = <typeof AccessModel>modelStore.get('base_access')
-  const graphQLModels = modelStore.getAll().map((Model) => {
-    return getGraphQLModel(Model, Access)
+  const context = new Context({
+    base$user: getUserFromToken(authTokenData),
   })
-  const queries = graphQLModels.reduce((queries, Model) => {
-    return {
-      ...queries,
-      ...Model.getGraphQLQueries(),
+  const mutations: Record<string, any> = {}
+  const queries: Record<string, any> = {}
+
+  modelStore.getAll().forEach((Model) => {
+    if (Model.base$isInternal()) {
+      return
     }
-  }, {})
-  const mutations = graphQLModels.reduce((result, Model) => {
-    return {
-      ...result,
-      ...Model.getGraphQLMutations(),
+
+    for (const [key, mutation] of getMutations(Model)) {
+      mutations[key] = mutation
     }
-  }, {})
+
+    for (const [key, query] of getQueries(Model)) {
+      queries[key] = query
+    }
+  })
+
   const schema = new graphql.GraphQLSchema({
     query: new graphql.GraphQLObjectType({
       name: 'Query',

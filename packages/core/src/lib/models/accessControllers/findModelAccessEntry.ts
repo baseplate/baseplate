@@ -14,7 +14,7 @@ async function findModelAccessEntry(
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const Model = this.store.get(req.params.modelName)
+    const Model = this.base$modelStore.get(req.params.modelName)
 
     if (!Model) {
       throw new ModelNotFoundError({name: req.params.modelName})
@@ -29,7 +29,7 @@ async function findModelAccessEntry(
     let user = null
 
     if (userData !== null) {
-      const UserModel = this.store.get(userData.modelName)
+      const UserModel = this.base$modelStore.get(userData.modelName)
 
       if (!UserModel) {
         throw new EntryNotFoundError({id: req.params.id})
@@ -50,7 +50,7 @@ async function findModelAccessEntry(
     const references = await jsonApiReq.resolveRelationships({
       entries,
       Model,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
       entries: entries[0],

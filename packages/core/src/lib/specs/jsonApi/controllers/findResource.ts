@@ -22,13 +22,13 @@ export default async function (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const fieldSet = jsonApiReq.fields[Model.handle]
+    const fieldSet = jsonApiReq.fields[Model.base$handle]
     const {id} = jsonApiReq.params
     const entry = <JsonApiModel>await Model.findOneById({
       context,
       fieldSet,
       id,
-      user: context.user,
+      user: context.get('base$user'),
     })
 
     if (!entry) {
@@ -38,7 +38,7 @@ export default async function (
     const references = await jsonApiReq.resolveRelationships({
       entries: [entry],
       Model,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
       entries: entry,

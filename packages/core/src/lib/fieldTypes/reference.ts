@@ -1,43 +1,33 @@
 import {camelize} from 'inflected'
 import {FieldReference} from '@baseplate/validator'
-import {GraphQLList, GraphQLString, GraphQLUnionType} from 'graphql'
+import type GraphQL from 'graphql'
 
-import {GraphQLModelStore} from '../modelStore'
-import AccessModel from '../../../models/access'
-import Context from '../../../context'
-import getGraphQLModel from '../getGraphQLModel'
+import AccessModel from '../models/access'
+import type BaseModel from '../model/base'
+import Context from '../context'
+import modelStore from '../modelStore'
 
-export default class GraphQLFieldReference extends FieldReference.FieldHandler {
-  modelStore: GraphQLModelStore
-
-  constructor({modelStore, ...props}: FieldReference.ConstructorParameters) {
-    super(props)
-
-    this.modelStore = modelStore
-  }
-
+export default class CoreFieldReference extends FieldReference.FieldHandler {
   // (!) TO DO
-  getGraphQLInputType() {
+  getGraphQLInputType(graphql: typeof GraphQL, fieldName: string) {
     return {
-      type: GraphQLString,
+      type: graphql.GraphQLString,
     }
   }
 
-  getGraphQLOutputType({
-    fieldName,
-    modelName,
-  }: {
-    fieldName: string
-    modelName: string
-  }) {
+  getGraphQLOutputType(
+    graphql: typeof GraphQL,
+    fieldName: string,
+    Model: typeof BaseModel
+  ) {
     const isMultiple =
       Array.isArray(this.options) || Array.isArray(this.options.type)
     const type =
       this.models.length === 1
-        ? this.models[0].schema.graphQLType
-        : new GraphQLUnionType({
-            name: camelize(`${modelName}_${fieldName}_output`),
-            types: this.models.map(({schema}) => schema.graphQLType),
+        ? this.models[0].base$graphQL.objectType
+        : new graphql.GraphQLUnionType({
+            name: camelize(`${Model.base$handle}_${fieldName}_output`),
+            types: this.models.map((Model) => Model.base$graphQL.objectType),
           })
     const resolve = async (root: any, args: object, context: Context) => {
       const references = root[fieldName]
@@ -58,32 +48,31 @@ export default class GraphQLFieldReference extends FieldReference.FieldHandler {
         }
 
         const ReferencedModel = this.models.find(
-          (Model) => Model.handle === type
+          (Model) => Model.base$handle === type
         )
 
         if (!ReferencedModel) {
           return null
         }
 
-        const Access = <typeof AccessModel>this.modelStore.get('base_access')
+        const Access = <typeof AccessModel>modelStore.get('base$access')
         const access = await Access.getAccess({
           accessType: 'create',
           context,
-          modelName: ReferencedModel.handle,
-          user: context.user,
+          modelName: ReferencedModel.base$handle,
+          user: context.get('base$user'),
         })
 
         if (access.toObject() === false) {
           return null
         }
 
-        const ReferencedGraphQLModel = getGraphQLModel(ReferencedModel, Access)
-
-        return ReferencedGraphQLModel.findOneById({
+        return ReferencedModel.findOneById({
           context,
           fieldSet: access.fields,
           filter: access.filter,
           id,
+          user: context.get('base$user'),
         })
       })
       const entries = await Promise.all(referenceModels)
@@ -95,7 +84,7 @@ export default class GraphQLFieldReference extends FieldReference.FieldHandler {
     }
 
     return {
-      type: isMultiple ? new GraphQLList(type) : type,
+      type: isMultiple ? new graphql.GraphQLList(type) : type,
       resolve,
     }
   }

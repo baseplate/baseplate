@@ -6,11 +6,13 @@ import ServerRequest from './request'
 import ServerResponse from './response'
 
 interface App {
-  routesGraphQL: Handler
-  routesRest: Handler
+  routesGraphQL: CoreHandler
+  routesRest: CoreHandler
 }
 
 type Handler = Function
+
+type CoreHandler = {handler: Handler; initialize?: Function}
 
 interface StartServerParameters {
   host: string
@@ -30,12 +32,20 @@ export default class Server {
   }
 
   attach(app: App) {
+    if (app.routesGraphQL.initialize) {
+      app.routesGraphQL.initialize()
+    }
+
+    if (app.routesRest.initialize) {
+      app.routesRest.initialize()
+    }
+
     this.use((req: ServerRequest, res: ServerResponse) => {
       if (req.method === 'post' && req.url.pathname === '/graphql') {
-        return app.routesGraphQL(req, res)
+        return app.routesGraphQL.handler(req, res)
       }
 
-      return app.routesRest(req, res)
+      return app.routesRest.handler(req, res)
     })
 
     this.app = app
@@ -74,7 +84,7 @@ export default class Server {
 
   start({host, port}: StartServerParameters) {
     if (!this.app) {
-      //throw new Error('No app attached. Have you called `.attach()`?')
+      throw new Error('No app attached. Have you called `.attach()`?')
     }
 
     const serverOptions: ListenOptions = {

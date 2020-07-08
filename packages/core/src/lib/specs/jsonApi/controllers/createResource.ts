@@ -24,7 +24,7 @@ export default async function (
 
     const model = await Model.create(jsonApiReq.bodyFields, {
       context,
-      user: context.user,
+      user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
       entries: [<JsonApiModel>model],

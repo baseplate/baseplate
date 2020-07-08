@@ -1,20 +1,16 @@
 import {classify, pluralize, titleize} from 'inflected'
-import path from 'path'
 
-import GenericModel from '../model/generic'
-import ModelDefinition from '../model/definition'
-import requireDirectory from '../utils/requireDirectory'
+import AccessModel from '../models/access'
+import BaseModel from '../model/base'
+import {DataConnector} from '../dataConnector/interface'
+import {isModelDefinitionClass, ModelDefinition} from '../model/definition'
+import logger from '../logger'
+import ModelsModel from '../models/model'
+import RefreshTokenModel from '../models/refreshToken'
 import Schema from '../schema'
+import UserModel from '../models/user'
 
-const modelPaths = [
-  path.resolve(__dirname, '../models'),
-  path.join(process.cwd(), 'models'),
-]
-const sourceFiles = modelPaths.reduce(
-  (files, path) => files.concat(requireDirectory(path)),
-  []
-)
-
+const INTERNAL_MODELS = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
 const INTERFACES = [
   'graphQLCreateMutation',
   'graphQLDeleteMutation',
@@ -31,73 +27,77 @@ const INTERFACES = [
 ]
 
 export default class ModelStore {
-  models: Map<string, typeof GenericModel>
-  SchemaClass: typeof Schema
+  dataConnector: DataConnector
+  models: Map<string, typeof BaseModel>
 
-  constructor(SchemaClass: typeof Schema) {
-    this.SchemaClass = SchemaClass
-
-    this.models = sourceFiles.reduce((models, {name: fileName, source}) => {
-      const handle = this.normalizeHandle(
-        source.handle || source.name || fileName
-      )
-      const Model = this.buildModel(handle, source)
-
-      return models.set(handle, Model)
-    }, new Map())
-
-    this.models.forEach((Model) => {
-      Model.schema.loadFieldHandlers({modelStore: this})
-    })
+  constructor() {
+    this.models = new Map()
   }
 
-  buildModel(handle: string, source: typeof ModelDefinition) {
-    const isBaseModel = handle.startsWith('base_')
-    const schema = new this.SchemaClass({
+  private buildModel(
+    name: string,
+    source: ModelDefinition,
+    database: DataConnector
+  ): typeof BaseModel {
+    const handle = this.normalizeHandle(name)
+    const isInternalModel = name.startsWith('base$')
+    const schema = new Schema({
       fields: source.fields,
       name: handle,
     })
     const modelProperties = {
-      label: {
-        value: source.label || pluralize(titleize(handle)),
+      base$db: {
+        value: database,
       },
-      isBaseModel: {
-        value: isBaseModel,
-      },
-      handle: {
+      base$handle: {
         value: handle,
       },
-      handlePlural: {
-        value: source.handlePlural || pluralize(handle),
+      base$handlePlural: {
+        value: source.namePlural || pluralize(handle),
       },
-      name: {
-        value: source.name || classify(handle),
+      base$graphQL: {
+        value: {},
       },
-      schema: {
-        value: schema,
+      base$label: {
+        value: source.label || pluralize(titleize(name)),
       },
-      settings: {
-        value: this.buildSettingsBlock(source, isBaseModel),
-      },
-      store: {
+      base$modelStore: {
         value: this,
       },
+      base$routes: {
+        value: source.routes || {},
+      },
+      base$schema: {
+        value: schema,
+      },
+      base$settings: {
+        value: this.buildSettingsBlock(source, isInternalModel),
+      },
+      name: {
+        value:
+          (isModelDefinitionClass(source) && source.name) || classify(name),
+      },
     }
-    const NewModel =
-      typeof source === 'function'
-        ? class extends source {}
-        : class extends GenericModel {}
+
+    const NewModel = isModelDefinitionClass(source)
+      ? class extends source {}
+      : class extends BaseModel {}
+
+    logger.debug('Loading model: %s', handle)
 
     return Object.defineProperties(NewModel, modelProperties)
   }
 
-  buildSettingsBlock(source: typeof ModelDefinition, isBaseModel: boolean) {
+  private buildSettingsBlock(
+    source: ModelDefinition,
+    isInternalModel: boolean
+  ) {
     const interfaces = INTERFACES.reduce((interfaces, interfaceName) => {
       const modelInterfaces = (source && source.interfaces) || {}
       const value =
         modelInterfaces[interfaceName] !== undefined
           ? modelInterfaces[interfaceName]
-          : !isBaseModel
+          : !isInternalModel
 
       return {
         ...interfaces,
@@ -108,6 +108,10 @@ export default class ModelStore {
     return {
       interfaces,
     }
+  }
+
+  private normalizeHandle(handle: string) {
+    return handle.toString().toLowerCase()
   }
 
   get(handle: string) {
@@ -122,7 +126,7 @@ export default class ModelStore {
     const normalizedHandle = this.normalizeHandle(handlePlural)
 
     return Array.from(this.models.values()).find((Model) => {
-      return Model.handlePlural === normalizedHandle
+      return Model.base$handlePlural === normalizedHandle
     })
   }
 
@@ -134,11 +138,46 @@ export default class ModelStore {
     const normalizedHandle = this.normalizeHandle(handlePlural)
 
     return Array.from(this.models.values()).some((source) => {
-      return source.handlePlural === normalizedHandle
+      return source.base$handlePlural === normalizedHandle
     })
   }
 
-  normalizeHandle(handle: string) {
-    return handle.toString().toLowerCase()
+  load(input: ModelDefinition | Array<ModelDefinition>) {
+    const sources = Array.isArray(input) ? input : [input]
+    const loadedModels: typeof BaseModel[] = []
+
+    sources.forEach((source) => {
+      if (!source.name) {
+        logger.error(
+          'Model using the object syntax is missing a `name` property: %o',
+          source
+        )
+
+        return
+      }
+
+      const Model = this.buildModel(source.name, source, this.dataConnector)
+
+      loadedModels.push(Model)
+
+      this.models.set(this.normalizeHandle(Model.base$handle), Model)
+    })
+
+    loadedModels.forEach((Model) => {
+      Model.base$schema.loadFieldHandlers()
+    })
+
+    return this
+  }
+
+  setDataConnector(dataConnector: DataConnector) {
+    logger.debug(
+      'Setting main data connector: %s',
+      dataConnector.constructor.name
+    )
+
+    this.dataConnector = dataConnector
+
+    this.load(INTERNAL_MODELS)
   }
 }
