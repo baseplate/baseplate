@@ -142,8 +142,10 @@ export default class ModelStore {
     })
   }
 
-  load(input: ModelDefinition | Array<ModelDefinition>) {
-    const sources = Array.isArray(input) ? input : [input]
+  load(input: any) {
+    const sources = (Array.isArray(input) ? input : [input]).map((source) =>
+      this.resolveSourceModule(source)
+    )
     const loadedModels: typeof BaseModel[] = []
 
     sources.forEach((source) => {
@@ -168,6 +170,10 @@ export default class ModelStore {
     })
 
     return this
+  }
+
+  resolveSourceModule(input: any): ModelDefinition {
+    return input.__esModule ? input.default : input
   }
 
   setDataConnector(dataConnector: DataConnector) {
