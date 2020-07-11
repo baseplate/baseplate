@@ -175,6 +175,10 @@ export default class BaseModel extends ConnectedModel {
     return this.base$handle.startsWith('base$')
   }
 
+  static base$onBootstrap() {
+    return this.base$db.bootstrap(this)
+  }
+
   static async create(
     fields: Fields,
     {authenticate = true, context, user}: CreateParameters = {}

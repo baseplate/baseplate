@@ -223,6 +223,19 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     }
   }
 
+  async bootstrap(Model: typeof BaseModel) {
+    const tableName = this.getTableName(Model)
+    const columns = this.getTableSchema()
+    const columnString = Object.entries(columns)
+      .map(([name, description]) => `"${name}" ${description}`)
+      .join(', ')
+    const query = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnString});`
+
+    await pool.query(query)
+
+    return
+  }
+
   async createOne(
     entry: DataConnector.Result,
     Model: typeof BaseModel
@@ -354,7 +367,7 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     context: Context
   ) {
     if (batch) {
-      return PostgreSQL.base$batchFindOneById(
+      return PostgreSQL.batchFindOneById(
         {fieldSet, filter, id},
         context,
         (ids: string[]) =>
@@ -374,17 +387,6 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     )
 
     return results[0] || null
-  }
-
-  async setup(Model: typeof BaseModel) {
-    const tableName = this.getTableName(Model)
-    const columns = this.getTableSchema()
-    const columnString = Object.entries(columns)
-      .map(([name, description]) => `"${name}" ${description}`)
-      .join(', ')
-    const query = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnString});`
-
-    return pool.query(query)
   }
 
   async update(filter: QueryFilter, update: Fields, Model: typeof BaseModel) {
