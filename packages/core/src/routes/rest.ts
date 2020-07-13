@@ -2,6 +2,7 @@ import RouteRecognizer from 'route-recognizer'
 
 import {instance as endpointStore} from '../lib/endpointStore'
 import Context from '../lib/context'
+import type EntryPoint from '../lib/entryPoint'
 import getUserFromToken from '../lib/acl/getUserFromToken'
 import HttpRequest, {ParamsMap as HttpParams} from '../lib/http/request'
 import HttpResponse from '../lib/http/response'
@@ -106,68 +107,76 @@ router.add([
   },
 ])
 
-export function handler(req: HttpRequest, res: HttpResponse) {
-  const authTokenData = parseAuthorizationHeader(req.headers.authorization)
-  const context = new Context({
-    base$user: getUserFromToken(authTokenData),
-  })
-  const routes = router.recognize(req.url.pathname)
+const restEntryPoint: EntryPoint = {
+  handler(req: HttpRequest, res: HttpResponse) {
+    const authTokenData = parseAuthorizationHeader(req.headers.authorization)
+    const context = new Context({
+      base$user: getUserFromToken(authTokenData),
+    })
+    const routes = router.recognize(req.url.pathname)
 
-  if (!routes) {
-    res.status(404).end()
-  }
-
-  const hasMatch = Array.from(routes).some((route) => {
-    const handler = (<Function>route.handler)(req.method, route.params, context)
-
-    if (!handler) {
-      return false
+    if (!routes) {
+      res.status(404).end()
     }
 
-    req.params = <HttpParams>route.params
+    const hasMatch = Array.from(routes).some((route) => {
+      const handler = (<Function>route.handler)(
+        req.method,
+        route.params,
+        context
+      )
 
-    handler(req, res, context)
+      if (!handler) {
+        return false
+      }
 
-    return true
-  })
+      req.params = <HttpParams>route.params
 
-  if (!hasMatch) {
-    res.status(404).end()
-  }
-}
+      handler(req, res, context)
 
-export function initialize() {
-  endpointStore.endpoints.forEach((endpoint) => {
-    const {handler, route} = endpoint
-
-    router.add([
-      {
-        path: <any>route,
-        handler: (method: HttpVerb) => {
-          if (typeof handler[method] === 'function') {
-            return handler[method]
-          }
-        },
-      },
-    ])
-  })
-
-  modelStore.getAll().forEach((Model) => {
-    const routes = Model.base$routes || {}
-
-    Object.entries(routes).forEach(([path, customRoute]) => {
-      router.add([
-        {
-          path,
-          handler: (method: string) => {
-            if (typeof customRoute[method] !== 'function') {
-              return
-            }
-
-            return customRoute[method].bind(Model)
-          },
-        },
-      ])
+      return true
     })
-  })
+
+    if (!hasMatch) {
+      res.status(404).end()
+    }
+  },
+
+  initialize() {
+    // endpointStore.endpoints.forEach((endpoint) => {
+    //   const {handler, route} = endpoint
+
+    //   router.add([
+    //     {
+    //       path: <any>route,
+    //       handler: (method: HttpVerb) => {
+    //         if (typeof handler[method] === 'function') {
+    //           return handler[method]
+    //         }
+    //       },
+    //     },
+    //   ])
+    // })
+
+    modelStore.getAll().forEach((Model) => {
+      const routes = Model.base$routes || {}
+
+      Object.entries(routes).forEach(([path, customRoute]) => {
+        router.add([
+          {
+            path,
+            handler: (method: string) => {
+              if (typeof customRoute[method] !== 'function') {
+                return
+              }
+
+              return customRoute[method].bind(Model)
+            },
+          },
+        ])
+      })
+    })
+  },
 }
+
+export default restEntryPoint

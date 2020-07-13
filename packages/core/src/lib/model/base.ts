@@ -19,19 +19,12 @@ import UserModel from '../models/user'
 const DEFAULT_PAGE_SIZE = 20
 const INTERNAL_FIELDS = ['_createdAt', '_id', '_updatedAt']
 
-interface AuthenticateParameters {
+export interface AuthenticateParameters {
   accessType: AccessType
   context: Context
   fieldSet?: FieldSet
   filter?: QueryFilter
   user: UserModel
-}
-
-interface GetFromDBOrCacheParameters {
-  bypassCache?: boolean
-  cache: Map<string, any>
-  key: string
-  method: Function
 }
 
 export interface CreateParameters {
@@ -173,6 +166,10 @@ export default class BaseModel extends ConnectedModel {
 
   static base$isInternal() {
     return this.base$handle.startsWith('base$')
+  }
+
+  static base$sync() {
+    return this.base$db.sync(this)
   }
 
   static async create(

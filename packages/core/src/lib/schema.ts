@@ -1,5 +1,8 @@
 import {camelize} from 'inflected'
-import {FieldDefinition as NormalizedFieldDefinition} from '@baseplate/validator'
+import {
+  FieldDefinition as NormalizedFieldDefinition,
+  FieldIndexDefinitionWithOptions,
+} from '@baseplate/validator'
 
 import {InvalidFieldTypeError} from './errors'
 import {ExtendedSchema, FieldDefinition} from './fieldDefinition'
@@ -8,16 +11,19 @@ import GenericModel from './model/base'
 import isPlainObject from './utils/isPlainObject'
 import logger from './logger'
 import modelStore from './modelStore/'
+import type QueryFilter from './queryFilter'
 
 export type FieldHandlers = Record<string, FieldHandler | NestedObjectMarker>
 
-export interface NestedObjectMarker {
-  __nestedObjectId: string
+export interface Index {
+  fields: Record<string, 0 | 1>
+  filter?: QueryFilter
+  sparse?: boolean
+  unique?: boolean
 }
 
-export interface Virtual {
-  get?: Function
-  set?: Function
+export interface NestedObjectMarker {
+  __nestedObjectId: string
 }
 
 export interface SchemaConstructorParameters {
@@ -26,9 +32,15 @@ export interface SchemaConstructorParameters {
   virtuals?: {[key: string]: Virtual}
 }
 
+export interface Virtual {
+  get?: Function
+  set?: Function
+}
+
 export default class Schema {
   fields: Record<string, NormalizedFieldDefinition>
   fieldHandlers: FieldHandlers
+  indexes: Index[]
   name: string
   virtuals: {[key: string]: Virtual}
 
@@ -37,6 +49,7 @@ export default class Schema {
 
     this.fields = normalizedFields
     this.fieldHandlers = {}
+    this.indexes = this.getIndexes(normalizedFields)
     this.name = name
     this.virtuals = virtuals || {}
   }
@@ -44,7 +57,7 @@ export default class Schema {
   getHandlerForField(
     field: NormalizedFieldDefinition,
     name: string,
-    fieldPath: Array<string> = [this.name]
+    fieldPath: string[] = [this.name]
   ): FieldHandler | NestedObjectMarker {
     fieldPath = fieldPath.concat(name)
 
@@ -72,8 +85,8 @@ export default class Schema {
     }
 
     if (field.type === 'array') {
-      const primitives: Array<FieldHandler> = []
-      const references: Array<typeof GenericModel> = []
+      const primitives: FieldHandler[] = []
+      const references: typeof GenericModel[] = []
 
       field.children.forEach((child: NormalizedFieldDefinition) => {
         if (
@@ -141,6 +154,35 @@ export default class Schema {
     }
 
     throw new InvalidFieldTypeError({typeName: field.type})
+  }
+
+  getIndexes(fields: Record<string, NormalizedFieldDefinition>): Index[] {
+    return Object.keys(fields).reduce((indexes: Index[], fieldName: string) => {
+      const field = fields[fieldName]
+
+      if (field.type === 'object') {
+        return indexes.concat(this.getIndexes(field.children))
+      }
+
+      if (field.options.unique) {
+        return indexes.concat({
+          fields: {[fieldName]: 1},
+          unique: true,
+        })
+      }
+
+      if (field.options.index) {
+        return indexes.concat({
+          fields: {[fieldName]: 1},
+          sparse: Boolean(
+            isPlainObject(field.options.index) &&
+              (<FieldIndexDefinitionWithOptions>field.options.index).sparse
+          ),
+        })
+      }
+
+      return indexes
+    }, [])
   }
 
   isReferenceField(fieldName: string) {

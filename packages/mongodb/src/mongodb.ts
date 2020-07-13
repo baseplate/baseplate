@@ -1,4 +1,5 @@
 import {FindOneOptions, MongoClient, ObjectID} from 'mongodb'
+import generateHash from 'short-hash'
 
 import {
   BaseModel,
@@ -6,10 +7,12 @@ import {
   createLogger,
   DataConnector,
   FieldSet,
+  Index,
   QueryFilter,
   QueryFilterField,
 } from '@baseplate/core'
 
+const MAX_INDEX_LENGTH = 120
 const POOL_SIZE = 10
 
 const logger = createLogger('mongodb')
@@ -48,8 +51,6 @@ export default class MongoDB extends DataConnector.DataConnector {
     })
 
     connectionPool = connection
-
-    logger.debug('Connected to MongoDB')
 
     return connection
   }
@@ -326,7 +327,84 @@ export default class MongoDB extends DataConnector.DataConnector {
     return decodedResult
   }
 
-  async setup() {}
+  async sync(Model: typeof BaseModel) {
+    logger.debug('Syncinc model %s', Model.base$handle)
+
+    const newIndexes: Map<string, any> = new Map()
+
+    Model.base$schema.indexes.forEach((index) => {
+      const hash = generateHash(JSON.stringify(index.fields))
+      const nameNodes = Object.keys(index.fields).reduce(
+        (nodes, fieldName) =>
+          nodes.concat(`${fieldName}_${index.fields[fieldName]}`),
+        []
+      )
+      const name = `base$${hash}$${nameNodes.join('_')}`.slice(
+        0,
+        MAX_INDEX_LENGTH
+      )
+
+      newIndexes.set(hash, [
+        index.fields,
+        {
+          name,
+          sparse: Boolean(index.sparse),
+          unique: Boolean(index.unique),
+        },
+      ])
+    })
+
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+
+    try {
+      const collection = await connection
+        .db(this.databaseName)
+        .createCollection(collectionName)
+      const existingIndexes = await collection.listIndexes().toArray()
+
+      await Promise.all(
+        existingIndexes.map((rawIndex: any) => {
+          // Not touching any indexes that were not created by Baseplate.
+          if (!rawIndex.name.startsWith('base$')) {
+            return
+          }
+
+          const [, hash] = rawIndex.name.split('$')
+
+          // If an existing index is also in the `newIndexes` object, it means
+          // the index still stay unaltered. We simply need to remove the index
+          // from `newIndexes` so that we don't try to create it again.
+          if (newIndexes.get(hash)) {
+            newIndexes.delete(hash)
+
+            return
+          }
+
+          // If an existing index doesn't exist in the `newIndexes` object, it
+          // means it has been deleted from the schema and therefore we have to
+          // drop it from the database.
+          logger.debug('Dropping index: %s', rawIndex.name)
+
+          return collection.dropIndex(rawIndex.name)
+        })
+      )
+
+      await Promise.all(
+        Array.from(newIndexes.values()).map(async (index) => {
+          try {
+            await collection.createIndex(index[0], index[1])
+
+            logger.debug('Created index: %o', index[0])
+          } catch (error) {
+            logger.error(error)
+          }
+        })
+      )
+    } catch (error) {
+      logger.error(error)
+    }
+  }
 
   async update(
     filter: QueryFilter,

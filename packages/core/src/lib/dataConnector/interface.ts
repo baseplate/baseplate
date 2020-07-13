@@ -52,9 +52,16 @@ export abstract class DataConnector {
           const parameters = batch.map(({parameter}) => parameter)
 
           try {
-            const result = combiner(parameters)
+            const results = await combiner(parameters)
 
-            batch.forEach(({resolve}) => resolve(result))
+            batch.forEach((batchItem) => {
+              const batchItemResult =
+                results.find(
+                  (result: Result) => result._id === batchItem.parameter
+                ) || null
+
+              batchItem.resolve(batchItemResult)
+            })
           } catch (error) {
             batch.forEach(({reject}) => reject(error))
           }
@@ -94,6 +101,8 @@ export abstract class DataConnector {
     Model: typeof BaseModel,
     context?: Context
   ): Promise<Result>
+
+  abstract sync(Model: typeof BaseModel): Promise<void>
 
   abstract update(
     filter: QueryFilter,
