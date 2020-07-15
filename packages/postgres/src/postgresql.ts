@@ -6,7 +6,6 @@ import {
   createLogger,
   DataConnector,
   FieldSet,
-  Index,
   QueryFilter,
   QueryFilterBranch,
   QueryFilterField,

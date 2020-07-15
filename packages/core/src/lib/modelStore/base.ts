@@ -170,6 +170,10 @@ export default class ModelStore {
     return this
   }
 
+  reset() {
+    this.models = new Map()
+  }
+
   setDataConnector(dataConnector: DataConnector) {
     logger.debug(
       'Setting main data connector: %s',

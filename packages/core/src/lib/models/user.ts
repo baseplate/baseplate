@@ -3,12 +3,12 @@ import jwt from 'jsonwebtoken'
 
 import * as tokenRoute from './userControllers/token'
 import {ForbiddenError} from '../errors'
-import GenericModel, {FindOneByIdParameters} from '../model/base'
+import BaseModel, {FindOneByIdParameters} from '../model/base'
 
 const TOKEN_EXPIRATION = 3600
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
-export default class Base$User extends GenericModel {
+export default class Base$User extends BaseModel {
   static routes = {
     '/base$users/token': tokenRoute,
   }

@@ -17,11 +17,19 @@
     "clean": "rm -rf ./dist && rm -rf tsconfig.build.tsbuildinfo",
     "compile": "tsc -b tsconfig.build.json",
     "prepublishOnly": "npm run build",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
   "repository": "github:baseplate/baseplate",
   "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
+  },
+  "devDependencies": {
+    "@shelf/jest-mongodb": "^1.2.1",
+    "@types/jest": "^26.0.4",
+    "jest": "^26.1.0",
+    "ts-jest": "^26.1.2"
   }
 }

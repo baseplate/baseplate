@@ -8,6 +8,7 @@ import FieldSet from './lib/fieldSet'
 import type {Index} from './lib/schema'
 import HttpRequest from './lib/http/request'
 import HttpResponse from './lib/http/response'
+import {ModelDefinition} from './lib/model/definition'
 import modelStore from './lib/modelStore/'
 import QueryFilter, {
   Branch as QueryFilterBranch,
@@ -17,8 +18,6 @@ import QueryFilter, {
 import routesGraphQL from './routes/graphql'
 import routesRest from './routes/rest'
 import SortObject from './lib/sortObject'
-
-const load = modelStore.load.bind(modelStore)
 
 export {
   BaseModel,
@@ -31,7 +30,7 @@ export {
   HttpRequest,
   HttpResponse,
   Index,
-  load,
+  ModelDefinition,
   modelStore,
   QueryFilter,
   QueryFilterBranch,

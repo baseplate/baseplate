@@ -83,7 +83,7 @@ export default async function (
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   } catch (errors) {
     const jsonApiRes = new JsonApiResponse({
       errors,
@@ -91,6 +91,6 @@ export default async function (
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   }
 }

@@ -84,6 +84,8 @@ export abstract class DataConnector {
     context?: Context
   ): Promise<{deleteCount: number}>
 
+  abstract disconnect?(): Promise<void>
+
   abstract find(
     props: FindParameters,
     Model: typeof BaseModel,

@@ -7,7 +7,6 @@ import {
   createLogger,
   DataConnector,
   FieldSet,
-  Index,
   QueryFilter,
   QueryFilterField,
 } from '@baseplate/core'
@@ -19,24 +18,20 @@ const logger = createLogger('mongodb')
 
 let connectionPool: MongoClient
 
-export default class MongoDB extends DataConnector.DataConnector {
-  databaseName: string
-  host: string
-  username?: string
-  password?: string
+export interface Options {
+  name: string
+  uri: string
+}
 
-  constructor(
-    databaseName: string = process.env.MONGODB_DATABASE,
-    host: string = process.env.MONGODB_HOST,
-    username: string = process.env.MONGODB_USERNAME,
-    password: string = process.env.MONGODB_PASSWORD
-  ) {
+export class MongoDB extends DataConnector.DataConnector {
+  dbName: string
+  uri: string
+
+  constructor({name, uri}: Options) {
     super()
 
-    this.databaseName = databaseName
-    this.host = host
-    this.username = username
-    this.password = password
+    this.dbName = name
+    this.uri = uri
   }
 
   private async connect() {
@@ -47,6 +42,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     const connectionString = this.createConnectionString()
     const connection = await MongoClient.connect(connectionString, {
       poolSize: POOL_SIZE,
+      useNewUrlParser: true,
       useUnifiedTopology: true,
     })
 
@@ -56,18 +52,10 @@ export default class MongoDB extends DataConnector.DataConnector {
   }
 
   private createConnectionString() {
-    const credentials =
-      this.username && this.password
-        ? `${encodeURIComponent(this.username)}:${encodeURIComponent(
-            this.password
-          )}@`
-        : ''
-    const connectionString = `mongodb://${credentials}${this.host}/${this.databaseName}`
-
-    return connectionString
+    return this.uri
   }
 
-  private base$mongoDBDecodeObjectId(input: any) {
+  private decodeObjectId(input: any) {
     return input.toString()
   }
 
@@ -79,9 +67,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     if (!entry) return entry
 
     const opMethod =
-      opType === 'encode'
-        ? this.encodeObjectId
-        : this.base$mongoDBDecodeObjectId
+      opType === 'encode' ? this.encodeObjectId : this.decodeObjectId
     const encodedEntry: DataConnector.Result = Object.entries(entry).reduce(
       (encodedEntry, [fieldName, value]) => {
         let encodedValue = value
@@ -186,7 +172,7 @@ export default class MongoDB extends DataConnector.DataConnector {
       'encode'
     )
     const {ops} = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .insertOne(encodedEntry)
     const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
@@ -203,7 +189,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     const collectionName = this.getCollectionName(Model)
     const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
     const {result} = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .deleteMany(query)
 
@@ -215,11 +201,17 @@ export default class MongoDB extends DataConnector.DataConnector {
     const collectionName = this.getCollectionName(Model)
     const encodedId = ObjectID.createFromHexString(id)
     const {result} = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .deleteOne({_id: encodedId})
 
     return {deleteCount: result.n}
+  }
+
+  async disconnect() {
+    const connection = await this.connect()
+
+    return connection.close()
   }
 
   async find(
@@ -239,7 +231,7 @@ export default class MongoDB extends DataConnector.DataConnector {
 
     const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
     const cursor = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .find(query, options)
     const count = await cursor.count()
@@ -274,7 +266,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     }
 
     const results = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .find(query.toObject('$'), options)
       .toArray()
@@ -315,7 +307,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     }
 
     const result = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .findOne(query.toObject('$'), options)
     const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
@@ -359,7 +351,7 @@ export default class MongoDB extends DataConnector.DataConnector {
 
     try {
       const collection = await connection
-        .db(this.databaseName)
+        .db(this.dbName)
         .createCollection(collectionName)
       const existingIndexes = await collection.listIndexes().toArray()
 
@@ -415,7 +407,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     const collectionName = this.getCollectionName(Model)
 
     await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .updateMany(filter.toObject('$'), {$set: update})
 
@@ -433,12 +425,10 @@ export default class MongoDB extends DataConnector.DataConnector {
     const encodedId = ObjectID.createFromHexString(id)
 
     await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .updateOne({_id: encodedId}, {$set: update})
 
     return this.findOneById({id}, Model, context)
   }
 }
-
-module.exports = MongoDB

@@ -298,7 +298,7 @@ export default class JsonApiResponse {
       })
     }
 
-    this.res.status(statusCode).json(body, 'application/vnd.api+json')
+    return this.res.status(statusCode).json(body, 'application/vnd.api+json')
   }
 
   formatRelationshipObject(object: RelationshipData) {

@@ -1,10 +1,10 @@
 import {EntryNotFoundError} from '../errors'
 import AccessClass from './access'
+import BaseModel from '../model/base'
 import Context from '../context'
-import GenericModel from '../model/base'
 import JsonApiEntry from '../specs/jsonApi/entry'
 
-export default class Base$Model extends GenericModel {
+export default class Base$Model extends BaseModel {
   static fields = {
     label: String,
     fields: 'Mixed',
@@ -79,9 +79,9 @@ export default class Base$Model extends GenericModel {
 
   base$jsonApiPostFormat(
     formattedEntry: JsonApiEntry,
-    originalEntry: GenericModel
+    originalEntry: BaseModel
   ) {
-    const Model = (<typeof GenericModel>(
+    const Model = (<typeof BaseModel>(
       originalEntry.constructor
     )).base$modelStore.get(originalEntry.id)
 

@@ -22,6 +22,7 @@ if (process.env.NODE_ENV !== 'production') {
         format.simple(),
         format.splat()
       ),
+      silent: process.env.NODE_ENV === 'test',
     })
   )
 }
