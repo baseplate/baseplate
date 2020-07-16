@@ -1,8 +1,6 @@
-import apps, {App} from '../apps'
-import {Request, Response} from '../utils/requestResponse'
-import {seconds} from '../utils/timer'
+import {App, forEachApp, Request, Response, seconds} from '../../../test/utils'
 
-describe.each(apps)('%s', (name: string, app: App) => {
+forEachApp((app: App) => {
   describe('Authentication', () => {
     beforeAll(async () => {
       //app.initialize([Author, Book, Genre], options)
