@@ -16,7 +16,7 @@ interface DataConnectorBatchItem {
 }
 
 export abstract class DataConnector {
-  static base$batchFindOneById(
+  static batchFindOneById(
     props: FindOneByIdParameters,
     context: Context,
     combiner: Function
@@ -69,6 +69,8 @@ export abstract class DataConnector {
       })
     })
   }
+
+  abstract bootstrap(Model: typeof BaseModel): Promise<void>
 
   abstract createOne(entry: Result, Model: typeof BaseModel): Promise<Result>
 

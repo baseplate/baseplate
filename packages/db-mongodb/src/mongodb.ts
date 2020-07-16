@@ -160,6 +160,8 @@ export class MongoDB extends DataConnector.DataConnector {
     return projection
   }
 
+  async bootstrap() {}
+
   async createOne(
     entry: DataConnector.Result,
     Model: typeof BaseModel
@@ -284,7 +286,7 @@ export class MongoDB extends DataConnector.DataConnector {
     context: Context
   ) {
     if (batch) {
-      return MongoDB.base$batchFindOneById(
+      return MongoDB.batchFindOneById(
         {fieldSet, filter, id},
         context,
         (ids: string[]) =>
