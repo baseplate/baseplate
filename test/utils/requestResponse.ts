@@ -1,4 +1,4 @@
-import {HttpRequest, HttpResponse} from '../..'
+import {HttpRequest, HttpResponse} from '../../packages/core'
 import {URL} from 'url'
 
 export interface RequestOptions {

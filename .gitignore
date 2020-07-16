@@ -11,3 +11,4 @@ jspm_packages
 
 # Tests
 coverage
+globalConfig.json

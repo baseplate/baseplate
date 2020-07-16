@@ -1,14 +1,11 @@
-import {Request, Response} from '../tests/utils/requestResponse'
-import {seconds} from '../tests/utils/timer'
+import apps, {App} from '../apps'
+import {Request, Response} from '../utils/requestResponse'
+import {seconds} from '../utils/timer'
 
-import Author from './models/Author'
-import Book from './models/Book'
-import Genre from './models/Genre'
-
-export default (app: any, options: object) => {
+describe.each(apps)('%s', (name: string, app: App) => {
   describe('Authentication', () => {
     beforeAll(async () => {
-      app.initialize([Author, Book, Genre], options)
+      //app.initialize([Author, Book, Genre], options)
 
       const User = app.modelStore.get('base$user')
 
@@ -167,4 +164,4 @@ export default (app: any, options: object) => {
       expect(statusCode).toBe(400)
     })
   })
-}
+})

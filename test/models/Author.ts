@@ -1,4 +1,4 @@
-import {BaseModel} from '../../dist'
+import {BaseModel} from '../../packages/core'
 
 export default class Author extends BaseModel {
   static fields = {
