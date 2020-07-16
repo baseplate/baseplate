@@ -6,5 +6,6 @@ module.exports = {
   testPathIgnorePatterns: ['/lib/', '/node_modules/'],
   moduleFileExtensions: ['ts', 'js', 'json', 'node'],
   collectCoverage: true,
+  collectCoverageFrom: ['**/src/**'],
   preset: '@shelf/jest-mongodb',
 }

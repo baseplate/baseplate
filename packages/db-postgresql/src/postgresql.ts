@@ -263,6 +263,8 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     return this.delete(filter, Model)
   }
 
+  async disconnect() {}
+
   async find(
     {
       fieldSet,

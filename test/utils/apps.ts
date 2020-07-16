@@ -1,22 +1,27 @@
-import * as mongoDBApp from '../../packages/mongodb/dist'
-
-import Author from '../models/Author'
-import Book from '../models/Book'
-import Genre from '../models/Genre'
-
-mongoDBApp.initialize([Author, Book, Genre], {
-  database: {
-    name: global.__MONGO_DB_NAME__,
-    uri: global.__MONGO_URI__,
-  },
-})
+import * as mongoDBApp from '../../packages/db-mongodb/dist'
 
 const apps = [['@baseplate/mongodb', mongoDBApp]]
 
 export type App = typeof mongoDBApp
 
-export function forEachApp(callback: Function) {
+export function forEachApp(
+  models: mongoDBApp.ModelDefinition[],
+  callback: Function
+) {
   describe.each(apps)('%s', (name: string, app: App) => {
+    beforeAll(() => {
+      mongoDBApp.initialize(models, {
+        database: {
+          name: global.__MONGO_DB_NAME__,
+          uri: global.__MONGO_URI__,
+        },
+      })
+    })
+
+    afterAll(async () => {
+      await app.modelStore.dataConnector.disconnect()
+    })
+
     callback(app)
   })
 }

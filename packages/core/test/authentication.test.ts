@@ -1,10 +1,12 @@
 import {App, forEachApp, Request, Response, seconds} from '../../../test/utils'
 
-forEachApp((app: App) => {
+import Author from '../../../test/models/Author'
+import Book from '../../../test/models/Book'
+import Genre from '../../../test/models/Genre'
+
+forEachApp([Author, Book, Genre], (app: App) => {
   describe('Authentication', () => {
     beforeAll(async () => {
-      //app.initialize([Author, Book, Genre], options)
-
       const User = app.modelStore.get('base$user')
 
       await User.create(
@@ -15,12 +17,6 @@ forEachApp((app: App) => {
         },
         {authenticate: false}
       )
-    })
-
-    afterAll(async () => {
-      const User = app.modelStore.get('base$user')
-
-      await User.base$db.disconnect()
     })
 
     test('Returns access and refresh tokens if the request contains a correct set of credentials', async () => {
@@ -37,12 +33,9 @@ forEachApp((app: App) => {
 
       app.routesRest.initialize()
 
-      const {
-        $body,
-        contentType,
-        headers,
-        statusCode,
-      } = await app.routesRest.handler(req, res)
+      await app.routesRest.handler(req, res)
+
+      const {$body, contentType, headers, statusCode} = res
 
       expect(typeof $body.access_token).toBe('string')
       expect(typeof $body.expires_in).toBe('number')
@@ -69,10 +62,9 @@ forEachApp((app: App) => {
 
       app.routesRest.initialize()
 
-      const {$body: body1, headers: headers1} = await app.routesRest.handler(
-        req1,
-        res1
-      )
+      await app.routesRest.handler(req1, res1)
+
+      const {$body: body1, headers: headers1} = res1
       const [, refreshToken] = headers1['Set-Cookie'].match(
         /^refresh_token=([^;]*);(.*)HttpOnly$/
       )
@@ -91,12 +83,9 @@ forEachApp((app: App) => {
       })
       const res2 = new Response()
 
-      const {
-        $body: body2,
-        contentType,
-        headers: headers2,
-        statusCode,
-      } = await app.routesRest.handler(req2, res2)
+      await app.routesRest.handler(req2, res2)
+
+      const {$body: body2, contentType, headers: headers2, statusCode} = res2
 
       expect(body1.access_token).not.toBe(body2.access_token)
       expect(typeof body2.access_token).toBe('string')
@@ -126,10 +115,9 @@ forEachApp((app: App) => {
 
       app.routesRest.initialize()
 
-      const {$body, contentType, statusCode} = await app.routesRest.handler(
-        req,
-        res
-      )
+      await app.routesRest.handler(req, res)
+
+      const {$body, contentType, statusCode} = res
 
       expect($body.errors).toBeInstanceOf(Array)
       expect(contentType).toBe('application/vnd.api+json')
@@ -150,10 +138,9 @@ forEachApp((app: App) => {
 
       app.routesRest.initialize()
 
-      const {$body, contentType, statusCode} = await app.routesRest.handler(
-        req,
-        res
-      )
+      await app.routesRest.handler(req, res)
+
+      const {$body, contentType, statusCode} = res
 
       expect($body.errors).toBeInstanceOf(Array)
       expect($body.errors[0].status).toBe(400)

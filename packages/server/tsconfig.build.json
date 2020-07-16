@@ -8,7 +8,7 @@
   },
   "include": ["src/**/*"],
   "references": [
-    {"path": "../mongodb/tsconfig.build.json"},
-    {"path": "../postgres/tsconfig.build.json"}
+    {"path": "../db-mongodb/tsconfig.build.json"},
+    {"path": "../db-postgresql/tsconfig.build.json"}
   ]
 }

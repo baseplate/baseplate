@@ -1,10 +1,11 @@
+import type {App} from './apps'
 import {HttpRequest, HttpResponse} from '../../packages/core'
 import {URL} from 'url'
 
 export interface RequestOptions {
   accessToken?: string
   body?: object | string
-  contentType?: 'json'
+  contentType?: 'json' | 'jsonApi'
   method?: string
   refreshToken?: string
   url: string
@@ -27,6 +28,8 @@ export class Request extends HttpRequest {
 
     if (contentType === 'json') {
       headers['content-type'] = 'application/json'
+    } else if (contentType === 'jsonApi') {
+      headers['content-type'] = 'application/vnd.api+json'
     }
 
     if (refreshToken) {
@@ -46,7 +49,7 @@ export class Request extends HttpRequest {
 }
 
 export class Response extends HttpResponse {
-  $body: string | object
+  $body: any
 
   end() {
     return this
@@ -61,4 +64,33 @@ export class Response extends HttpResponse {
 
     return this.end()
   }
+}
+
+export async function getAccessToken({
+  app,
+  username,
+  password,
+  modelName = 'base$users',
+}: {
+  app: App
+  username: string
+  password: string
+  modelName?: string
+}) {
+  const req = new Request({
+    body: {
+      grant_type: 'password',
+      username,
+      password,
+    },
+    method: 'post',
+    url: `/${modelName}/token`,
+  })
+  const res = new Response()
+
+  app.routesRest.initialize()
+
+  const {$body} = await app.routesRest.handler(req, res)
+
+  return $body.access_token
 }
