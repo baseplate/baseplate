@@ -12,9 +12,9 @@ function initialize(models: ModelDefinition[], options?: Options) {
     uri: database.uri || process.env.MONGODB_URI,
   })
 
+  modelStore.setDataConnector(dataConnector)
   modelStore.reset()
   modelStore.load(models)
-  modelStore.setDataConnector(dataConnector)
 }
 
 export * from '@baseplate/core'

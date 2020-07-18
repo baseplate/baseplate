@@ -70,8 +70,6 @@ export abstract class DataConnector {
     })
   }
 
-  abstract bootstrap(Model: typeof BaseModel): Promise<void>
-
   abstract createOne(entry: Result, Model: typeof BaseModel): Promise<Result>
 
   abstract delete(
@@ -86,7 +84,7 @@ export abstract class DataConnector {
     context?: Context
   ): Promise<{deleteCount: number}>
 
-  abstract disconnect?(): Promise<void>
+  disconnect?(): Promise<void>
 
   abstract find(
     props: FindParameters,
@@ -114,6 +112,8 @@ export abstract class DataConnector {
     Model: typeof BaseModel,
     context?: Context
   ): Promise<Result>
+
+  wipe?(Model: typeof BaseModel): Promise<void>
 }
 
 export interface FindManyByIdParameters {

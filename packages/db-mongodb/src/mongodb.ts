@@ -73,7 +73,7 @@ export class MongoDB extends DataConnector.DataConnector {
         let encodedValue = value
 
         if (fieldName === '_id') {
-          value = opMethod(value)
+          encodedValue = opMethod(value)
         }
 
         if (Model.base$schema.isReferenceField(fieldName)) {
@@ -159,8 +159,6 @@ export class MongoDB extends DataConnector.DataConnector {
 
     return projection
   }
-
-  async bootstrap() {}
 
   async createOne(
     entry: DataConnector.Result,
@@ -432,5 +430,12 @@ export class MongoDB extends DataConnector.DataConnector {
       .updateOne({_id: encodedId}, {$set: update})
 
     return this.findOneById({id}, Model, context)
+  }
+
+  async wipe(Model: typeof BaseModel) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+
+    await connection.db(this.dbName).collection(collectionName).drop()
   }
 }

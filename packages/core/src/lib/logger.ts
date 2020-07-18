@@ -2,7 +2,7 @@ import {createLogger, format, Logger, transports} from 'winston'
 
 const defaultMeta = {service: 'baseplate'}
 const mainLogger = createLogger({
-  level: 'debug',
+  level: process.env.BASEPLATE_LOG_LEVEL || 'info',
   format: format.combine(
     format.timestamp({
       format: 'YYYY-MM-DD HH:mm:ss',

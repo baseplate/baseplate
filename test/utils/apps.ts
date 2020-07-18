@@ -19,6 +19,11 @@ export function forEachApp(
     })
 
     afterAll(async () => {
+      await Promise.all(
+        app.modelStore
+          .getAll()
+          .map((Model) => app.modelStore.dataConnector.wipe(Model))
+      )
       await app.modelStore.dataConnector.disconnect()
     })
 
