@@ -16,7 +16,7 @@ const POOL_SIZE = 10
 
 const logger = createLogger('mongodb')
 
-let connectionPool: MongoClient
+let connectionPool: Promise<MongoClient>
 
 export interface Options {
   name: string
@@ -35,20 +35,17 @@ export class MongoDB extends DataConnector.DataConnector {
   }
 
   private async connect() {
-    if (connectionPool && connectionPool.isConnected()) {
-      return connectionPool
+    if (!connectionPool) {
+      const connectionString = this.createConnectionString()
+
+      connectionPool = MongoClient.connect(connectionString, {
+        poolSize: POOL_SIZE,
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      })
     }
 
-    const connectionString = this.createConnectionString()
-    const connection = await MongoClient.connect(connectionString, {
-      poolSize: POOL_SIZE,
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    })
-
-    connectionPool = connection
-
-    return connection
+    return connectionPool
   }
 
   private createConnectionString() {

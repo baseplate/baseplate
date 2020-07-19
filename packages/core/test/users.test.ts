@@ -9,7 +9,6 @@ import {
 import Author from '../../../test/models/Author'
 import Book from '../../../test/models/Book'
 import Genre from '../../../test/models/Genre'
-import {createLogger} from 'winston'
 
 forEachApp([Author, Book, Genre], (app: App) => {
   describe('User Management', () => {
@@ -19,7 +18,16 @@ forEachApp([Author, Book, Genre], (app: App) => {
       await User.create(
         {
           accessLevel: 'admin',
-          username: 'baseplate',
+          username: 'baseplate-admin',
+          password: 'baseplate',
+        },
+        {authenticate: false}
+      )
+
+      await User.create(
+        {
+          accessLevel: 'user',
+          username: 'baseplate-user',
           password: 'baseplate',
         },
         {authenticate: false}
@@ -29,7 +37,7 @@ forEachApp([Author, Book, Genre], (app: App) => {
     test('Allows an administrator to create a new user', async () => {
       const accessToken = await getAccessToken({
         app,
-        username: 'baseplate',
+        username: 'baseplate-admin',
         password: 'baseplate',
       })
       const newUser = {
@@ -101,37 +109,14 @@ forEachApp([Author, Book, Genre], (app: App) => {
       ).toBe(true)
     })
 
-    test('Returs the authenticated user', async () => {
+    test('Returns an error if a non-admin user tries to create a user', async () => {
       const accessToken = await getAccessToken({
         app,
-        username: 'baseplate',
-        password: 'baseplate',
-      })
-      const req = new Request({
-        accessToken,
-        method: 'get',
-        url: '/base$users/me',
-      })
-      const res = new Response()
-
-      await app.routesRest.handler(req, res)
-
-      expect(res.statusCode).toBe(200)
-      expect(res.$body.data.type).toBe('base$user')
-      expect(typeof res.$body.data.id).toBe('string')
-      expect(res.$body.data.attributes.accessLevel).toBe('admin')
-      expect(res.$body.data.attributes.username).toBe('baseplate')
-      expect(res.$body.data.attributes.password).not.toBeDefined()
-    })
-
-    test('Returs a list of users', async () => {
-      const accessToken = await getAccessToken({
-        app,
-        username: 'baseplate',
+        username: 'baseplate-user',
         password: 'baseplate',
       })
       const newUser = {
-        username: 'yet-another-user',
+        username: 'unlucky-user',
         password: 'super-secret',
       }
       const req1 = new Request({
@@ -153,26 +138,100 @@ forEachApp([Author, Book, Genre], (app: App) => {
 
       await app.routesRest.handler(req1, res1)
 
+      expect(res1.statusCode).toBe(403)
+
       const req2 = new Request({
-        accessToken,
-        method: 'get',
-        url: '/base$users',
+        body: {
+          grant_type: 'password',
+          ...newUser,
+        },
+        method: 'post',
+        url: '/base$users/token',
       })
       const res2 = new Response()
 
       await app.routesRest.handler(req2, res2)
 
-      expect(res2.statusCode).toBe(200)
-      expect(res2.$body.data.length).toBe(3)
+      expect(res2.statusCode).toBe(401)
+      expect(res2.$body.errors).toBeInstanceOf(Array)
+    })
 
-      const createdUser = res2.$body.data.find(
-        (item: any) => item.attributes.username === newUser.username
-      )
+    test('Returns the authenticated user', async () => {
+      const accessToken = await getAccessToken({
+        app,
+        username: 'baseplate-user',
+        password: 'baseplate',
+      })
+      const req = new Request({
+        accessToken,
+        method: 'get',
+        url: '/base$users/me',
+      })
+      const res = new Response()
 
-      expect(typeof createdUser.id).toBe('string')
-      expect(createdUser.attributes.accessLevel).toBe('user')
-      expect(createdUser.attributes.username).toBe(newUser.username)
-      expect(createdUser.attributes.password).not.toBeDefined()
+      await app.routesRest.handler(req, res)
+
+      expect(res.statusCode).toBe(200)
+      expect(res.$body.data.type).toBe('base$user')
+      expect(typeof res.$body.data.id).toBe('string')
+      expect(res.$body.data.attributes.accessLevel).toBe('user')
+      expect(res.$body.data.attributes.username).toBe('baseplate-user')
+      expect(res.$body.data.attributes.password).not.toBeDefined()
+    })
+
+    describe('Returns a list of users', () => {
+      test('Shows all users if the requesting user is an admin', async () => {
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-admin',
+          password: 'baseplate',
+        })
+        const newUser = {
+          username: 'yet-another-user',
+          password: 'super-secret',
+        }
+        const req1 = new Request({
+          accessToken,
+          body: {
+            data: {
+              type: 'base$user',
+              attributes: {
+                accessLevel: 'user',
+                ...newUser,
+              },
+            },
+          },
+          contentType: 'jsonApi',
+          method: 'post',
+          url: '/base$users',
+        })
+        const res1 = new Response()
+
+        await app.routesRest.handler(req1, res1)
+
+        const req2 = new Request({
+          accessToken,
+          method: 'get',
+          url: '/base$users',
+        })
+        const res2 = new Response()
+
+        await app.routesRest.handler(req2, res2)
+
+        expect(res2.statusCode).toBe(200)
+        expect(res2.$body.data).toBeInstanceOf(Array)
+
+        const createdUser = res2.$body.data.find(
+          (item: any) => item.attributes.username === newUser.username
+        )
+
+        expect(typeof createdUser.id).toBe('string')
+        expect(createdUser.attributes.accessLevel).toBe('user')
+        expect(createdUser.attributes.username).toBe(newUser.username)
+        expect(createdUser.attributes.password).not.toBeDefined()
+      })
+
+      test.todo('Shows just the requesting client if they are not an admin')
     })
   })
 })

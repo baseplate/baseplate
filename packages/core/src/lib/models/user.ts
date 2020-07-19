@@ -22,6 +22,7 @@ export default class Base$User extends BaseModel {
     username: {
       type: String,
       required: true,
+      unique: true,
     },
     password: {
       type: String,

@@ -22,7 +22,8 @@ if (process.env.NODE_ENV !== 'production') {
         format.simple(),
         format.splat()
       ),
-      silent: process.env.NODE_ENV === 'test',
+      silent:
+        process.env.NODE_ENV === 'test' && !process.env.BASEPLATE_LOG_SHOW,
     })
   )
 }
