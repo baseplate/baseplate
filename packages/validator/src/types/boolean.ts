@@ -1,5 +1,5 @@
 import {CastError} from '../errors'
-import {FieldOptions} from '../field'
+import {FieldOptions} from '../index'
 
 export class FieldHandler {
   options: FieldOptions

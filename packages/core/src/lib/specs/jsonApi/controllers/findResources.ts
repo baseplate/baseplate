@@ -1,5 +1,3 @@
-import {CustomError} from '@baseplate/validator'
-
 import {ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
@@ -53,7 +51,7 @@ export default async function (
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   } catch (errors) {
     const jsonApiRes = new JsonApiResponse({
       errors,
@@ -61,6 +59,6 @@ export default async function (
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   }
 }

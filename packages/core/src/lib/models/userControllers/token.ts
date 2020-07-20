@@ -54,7 +54,7 @@ async function deleteFn(
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   }
 }
 
@@ -162,7 +162,7 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   }
 }
 

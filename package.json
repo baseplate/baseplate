@@ -9,17 +9,23 @@
     "format": "eslint --ext js,jsx . && prettier --check '**/*.{js,jsx,md,html,css}'",
     "postinstall": "npm run bootstrap",
     "release": "lerna publish --dist-tag beta ",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "watch": "lerna run --parallel watch"
   },
   "devDependencies": {
     "@eduardoboucas/eslint-config": "^1.1.0",
     "@eduardoboucas/prettier-config": "^1.1.0",
+    "@shelf/jest-mongodb": "^1.2.1",
+    "@types/jest": "^26.0.4",
     "@types/node": "^14.0.9",
     "eslint": "^6.7.0",
     "husky": "^3.1.0",
+    "jest": "^26.1.0",
     "lerna": "^3.21.0",
     "lint-staged": "^9.4.3",
     "prettier": "^2.0.5",
+    "ts-jest": "^26.1.2",
     "typescript": "^3.9.3"
   },
   "husky": {

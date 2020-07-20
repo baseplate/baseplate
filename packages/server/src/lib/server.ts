@@ -1,18 +1,15 @@
+import {createLogger} from '@baseplate/core'
 import {ListenOptions} from 'net'
 import http from 'http'
+import * as Core from '@baseplate/core'
 
 import cors from './cors'
 import ServerRequest from './request'
 import ServerResponse from './response'
 
-interface App {
-  routesGraphQL: CoreHandler
-  routesRest: CoreHandler
-}
+const logger = createLogger('server')
 
 type Handler = Function
-
-type CoreHandler = {handler: Handler; initialize?: Function}
 
 interface StartServerParameters {
   host: string
@@ -20,18 +17,20 @@ interface StartServerParameters {
 }
 
 export default class Server {
-  app: App
+  app: Promise<typeof Core>
   handlers: Array<Handler>
   httpServer: http.Server
 
-  constructor() {
+  constructor(app: typeof Core) {
     this.handlers = []
     this.httpServer = this.createServer()
 
     this.use(cors)
+
+    this.app = this.bootstrap(app)
   }
 
-  attach(app: App) {
+  async bootstrap(app: typeof Core) {
     if (app.routesGraphQL.initialize) {
       app.routesGraphQL.initialize()
     }
@@ -39,6 +38,8 @@ export default class Server {
     if (app.routesRest.initialize) {
       app.routesRest.initialize()
     }
+
+    await Promise.all(app.modelStore.getAll().map((Model) => Model.base$sync()))
 
     this.use((req: ServerRequest, res: ServerResponse) => {
       if (req.method === 'post' && req.url.pathname === '/graphql') {
@@ -48,9 +49,7 @@ export default class Server {
       return app.routesRest.handler(req, res)
     })
 
-    this.app = app
-
-    return this
+    return app
   }
 
   createServer() {
@@ -82,7 +81,7 @@ export default class Server {
     )
   }
 
-  start({host, port}: StartServerParameters) {
+  async start({host, port}: StartServerParameters) {
     if (!this.app) {
       throw new Error('No app attached. Have you called `.attach()`?')
     }
@@ -92,11 +91,11 @@ export default class Server {
       port,
     }
 
+    await this.app
+
     return new Promise((resolve, reject) => {
       this.httpServer.listen(serverOptions, () => {
-        console.log(
-          `[ @baseplate/server ] Server running at http://${host}:${port}`
-        )
+        logger.info(`Server running at http://${host}:${port}`)
 
         resolve()
       })

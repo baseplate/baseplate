@@ -9,13 +9,16 @@
   "dependencies": {
     "@baseplate/core": "^0.3.0",
     "@types/mongodb": "^3.5.25",
-    "mongodb": "^3.5.7"
+    "mongodb": "^3.5.7",
+    "short-hash": "^1.0.0"
   },
   "scripts": {
     "build": "npm run clean && npm run compile",
     "clean": "rm -rf ./dist && rm -rf tsconfig.build.tsbuildinfo",
     "compile": "tsc -b tsconfig.build.json",
     "prepublishOnly": "npm run build",
+    "test": "jest",
+    "test:watch": "jest --watch",
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
   "repository": "github:baseplate/baseplate",

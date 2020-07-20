@@ -1,13 +1,13 @@
 import jwt from 'jsonwebtoken'
 
-import GenericModel from '../model/base'
+import BaseModel from '../model/base'
 import QueryFilter from '../queryFilter'
 import User from './user'
 
 const TOKEN_EXPIRATION = 360000
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
-export default class Base$RefreshToken extends GenericModel {
+export default class Base$RefreshToken extends BaseModel {
   static fields = {
     token: String,
   }

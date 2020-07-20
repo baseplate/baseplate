@@ -34,7 +34,7 @@ async function createModelAccessEntry(
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   } catch (errors) {
     const jsonApiRes = new JsonApiResponse({
       errors,
@@ -42,7 +42,7 @@ async function createModelAccessEntry(
       url: jsonApiReq.url,
     })
 
-    jsonApiRes.end()
+    return jsonApiRes.end()
   }
 }
 

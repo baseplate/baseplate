@@ -1,11 +1,11 @@
 import {primitives as primitiveTypes, system as systemTypes} from './types'
-import {Field} from './field'
+import {NormalizedField} from './field'
 import {CustomError, EntryValidationError, FieldValidationError} from './errors'
 
-type Schema = Record<string, Field>
+type Schema = Record<string, NormalizedField>
 
 interface ValidateFieldParameters {
-  field: Field
+  field: NormalizedField
   path: Array<string>
   value: any
 }

@@ -1,4 +1,4 @@
-import {FieldConstructorParameters, FieldOptions} from '../field'
+import {FieldConstructorParameters, FieldOptions} from '../index'
 
 export {FieldConstructorParameters as ConstructorParameters}
 

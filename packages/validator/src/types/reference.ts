@@ -1,5 +1,6 @@
 import {CastError, FieldValidationError} from '../errors'
-import {FieldConstructorParameters, FieldOptions} from '../field'
+import {CastParameters, ValidateParameters} from '../field'
+import {FieldConstructorParameters, FieldOptions} from '../index'
 
 export interface ConstructorParameters extends FieldConstructorParameters {
   models?: Array<any>
@@ -29,7 +30,7 @@ export class FieldHandler {
       : [subType]
   }
 
-  cast({path, value}: {path: Array<string>; value: ReferenceValue}) {
+  cast({path, value}: CastParameters<ReferenceValue>) {
     if (!value) return value
 
     const normalizedValue = Array.isArray(value) ? value : [value]
@@ -44,7 +45,7 @@ export class FieldHandler {
     return value
   }
 
-  validate({path, value}: {path: Array<string>; value: ReferenceValue}) {
+  validate({path, value}: ValidateParameters<ReferenceValue>) {
     const normalizedValue = Array.isArray(value) ? value : [value]
     const isValid = normalizedValue.every(({type}) =>
       this.modelNames.includes(type)

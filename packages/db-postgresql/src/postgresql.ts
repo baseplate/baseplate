@@ -58,14 +58,16 @@ export default class PostgreSQL extends DataConnector.DataConnector {
             return null
           }
 
-          const value = Array.isArray(node.value) ? node.value : [node.value]
-          const variables = value.map((valueNode) => {
+          const isArray = Array.isArray(node.value)
+          const value = isArray ? node.value : [node.value]
+          const variables = value.map((valueNode: any) => {
             parameters.push(valueNode)
 
             return `$${parameters.length}`
           })
-          const variableExpression =
-            variables.length > 1 ? `(${variables.join(', ')})` : variables[0]
+          const variableExpression = isArray
+            ? `(${variables.join(', ')})`
+            : variables[0]
           const fieldName = this.getColumnName(name, true)
           const comparison = `${fieldName} ${operator} ${variableExpression}`
 
@@ -274,6 +276,8 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     return this.delete(filter, Model)
   }
 
+  async disconnect() {}
+
   async find(
     {
       fieldSet,
@@ -387,6 +391,21 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     )
 
     return results[0] || null
+  }
+
+  async sync(Model: typeof BaseModel) {
+    logger.debug('Syncing model: %s', Model.base$handle)
+
+    const tableName = this.getTableName(Model)
+    const columns = this.getTableSchema()
+    const columnString = Object.entries(columns)
+      .map(([name, description]) => `"${name}" ${description}`)
+      .join(', ')
+    const query = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnString});`
+
+    await pool.query(query)
+
+    return
   }
 
   async update(filter: QueryFilter, update: Fields, Model: typeof BaseModel) {

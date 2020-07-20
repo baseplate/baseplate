@@ -1,20 +1,24 @@
-export interface Field {
+import {FieldOperators, FieldOptions} from './index'
+
+export type CastParameters<T> = {
+  path: string[]
+  value: T
+}
+
+export abstract class FieldHandlerInterface {
+  operators?: FieldOperators
+  cast?({path, value}: CastParameters<any>): any
+  validate?({path, value}: ValidateParameters<any>): any
+}
+
+export interface NormalizedField {
   children?: any
   options: FieldOptions
   type: string
   subType?: string
 }
 
-export interface FieldConstructorParameters {
-  path: Array<string>
-  [propName: string]: any
-}
-
-export interface FieldOptions {
-  allowed?: Function
-  errorMessage?: string
-  label?: string
-  required?: boolean | Function
-  validate?: Function
-  [propName: string]: any
+export type ValidateParameters<T> = {
+  path: string[]
+  value: T
 }

@@ -1,4 +1,5 @@
 import {FindOneOptions, MongoClient, ObjectID} from 'mongodb'
+import generateHash from 'short-hash'
 
 import {
   BaseModel,
@@ -10,63 +11,48 @@ import {
   QueryFilterField,
 } from '@baseplate/core'
 
+const MAX_INDEX_LENGTH = 120
 const POOL_SIZE = 10
 
 const logger = createLogger('mongodb')
 
-let connectionPool: MongoClient
+let connectionPool: Promise<MongoClient>
 
-export default class MongoDB extends DataConnector.DataConnector {
-  databaseName: string
-  host: string
-  username?: string
-  password?: string
+export interface Options {
+  name: string
+  uri: string
+}
 
-  constructor(
-    databaseName: string = process.env.MONGODB_DATABASE,
-    host: string = process.env.MONGODB_HOST,
-    username: string = process.env.MONGODB_USERNAME,
-    password: string = process.env.MONGODB_PASSWORD
-  ) {
+export class MongoDB extends DataConnector.DataConnector {
+  dbName: string
+  uri: string
+
+  constructor({name, uri}: Options) {
     super()
 
-    this.databaseName = databaseName
-    this.host = host
-    this.username = username
-    this.password = password
+    this.dbName = name
+    this.uri = uri
   }
 
   private async connect() {
-    if (connectionPool && connectionPool.isConnected()) {
-      return connectionPool
+    if (!connectionPool) {
+      const connectionString = this.createConnectionString()
+
+      connectionPool = MongoClient.connect(connectionString, {
+        poolSize: POOL_SIZE,
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+      })
     }
 
-    const connectionString = this.createConnectionString()
-    const connection = await MongoClient.connect(connectionString, {
-      poolSize: POOL_SIZE,
-      useUnifiedTopology: true,
-    })
-
-    connectionPool = connection
-
-    logger.debug('Connected to MongoDB')
-
-    return connection
+    return connectionPool
   }
 
   private createConnectionString() {
-    const credentials =
-      this.username && this.password
-        ? `${encodeURIComponent(this.username)}:${encodeURIComponent(
-            this.password
-          )}@`
-        : ''
-    const connectionString = `mongodb://${credentials}${this.host}/${this.databaseName}`
-
-    return connectionString
+    return this.uri
   }
 
-  private base$mongoDBDecodeObjectId(input: any) {
+  private decodeObjectId(input: any) {
     return input.toString()
   }
 
@@ -78,15 +64,13 @@ export default class MongoDB extends DataConnector.DataConnector {
     if (!entry) return entry
 
     const opMethod =
-      opType === 'encode'
-        ? this.encodeObjectId
-        : this.base$mongoDBDecodeObjectId
+      opType === 'encode' ? this.encodeObjectId : this.decodeObjectId
     const encodedEntry: DataConnector.Result = Object.entries(entry).reduce(
       (encodedEntry, [fieldName, value]) => {
         let encodedValue = value
 
         if (fieldName === '_id') {
-          value = opMethod(value)
+          encodedValue = opMethod(value)
         }
 
         if (Model.base$schema.isReferenceField(fieldName)) {
@@ -173,8 +157,6 @@ export default class MongoDB extends DataConnector.DataConnector {
     return projection
   }
 
-  async bootstrap() {}
-
   async createOne(
     entry: DataConnector.Result,
     Model: typeof BaseModel
@@ -187,7 +169,7 @@ export default class MongoDB extends DataConnector.DataConnector {
       'encode'
     )
     const {ops} = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .insertOne(encodedEntry)
     const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
@@ -204,7 +186,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     const collectionName = this.getCollectionName(Model)
     const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
     const {result} = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .deleteMany(query)
 
@@ -216,11 +198,17 @@ export default class MongoDB extends DataConnector.DataConnector {
     const collectionName = this.getCollectionName(Model)
     const encodedId = ObjectID.createFromHexString(id)
     const {result} = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .deleteOne({_id: encodedId})
 
     return {deleteCount: result.n}
+  }
+
+  async disconnect() {
+    const connection = await this.connect()
+
+    return connection.close()
   }
 
   async find(
@@ -240,7 +228,7 @@ export default class MongoDB extends DataConnector.DataConnector {
 
     const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
     const cursor = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .find(query, options)
     const count = await cursor.count()
@@ -275,7 +263,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     }
 
     const results = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .find(query.toObject('$'), options)
       .toArray()
@@ -316,7 +304,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     }
 
     const result = await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .findOne(query.toObject('$'), options)
     const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
@@ -328,6 +316,85 @@ export default class MongoDB extends DataConnector.DataConnector {
     return decodedResult
   }
 
+  async sync(Model: typeof BaseModel) {
+    logger.debug('Syncinc model %s', Model.base$handle)
+
+    const newIndexes: Map<string, any> = new Map()
+
+    Model.base$schema.indexes.forEach((index) => {
+      const hash = generateHash(JSON.stringify(index.fields))
+      const nameNodes = Object.keys(index.fields).reduce(
+        (nodes, fieldName) =>
+          nodes.concat(`${fieldName}_${index.fields[fieldName]}`),
+        []
+      )
+      const name = `base$${hash}$${nameNodes.join('_')}`.slice(
+        0,
+        MAX_INDEX_LENGTH
+      )
+
+      newIndexes.set(hash, [
+        index.fields,
+        {
+          name,
+          sparse: Boolean(index.sparse),
+          unique: Boolean(index.unique),
+        },
+      ])
+    })
+
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+
+    try {
+      const collection = await connection
+        .db(this.dbName)
+        .createCollection(collectionName)
+      const existingIndexes = await collection.listIndexes().toArray()
+
+      await Promise.all(
+        existingIndexes.map((rawIndex: any) => {
+          // Not touching any indexes that were not created by Baseplate.
+          if (!rawIndex.name.startsWith('base$')) {
+            return
+          }
+
+          const [, hash] = rawIndex.name.split('$')
+
+          // If an existing index is also in the `newIndexes` object, it means
+          // the index still stay unaltered. We simply need to remove the index
+          // from `newIndexes` so that we don't try to create it again.
+          if (newIndexes.get(hash)) {
+            newIndexes.delete(hash)
+
+            return
+          }
+
+          // If an existing index doesn't exist in the `newIndexes` object, it
+          // means it has been deleted from the schema and therefore we have to
+          // drop it from the database.
+          logger.debug('Dropping index: %s', rawIndex.name)
+
+          return collection.dropIndex(rawIndex.name)
+        })
+      )
+
+      await Promise.all(
+        Array.from(newIndexes.values()).map(async (index) => {
+          try {
+            await collection.createIndex(index[0], index[1])
+
+            logger.debug('Created index: %o', index[0])
+          } catch (error) {
+            logger.error(error)
+          }
+        })
+      )
+    } catch (error) {
+      logger.error(error)
+    }
+  }
+
   async update(
     filter: QueryFilter,
     update: Record<string, any>,
@@ -337,7 +404,7 @@ export default class MongoDB extends DataConnector.DataConnector {
     const collectionName = this.getCollectionName(Model)
 
     await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .updateMany(filter.toObject('$'), {$set: update})
 
@@ -355,12 +422,17 @@ export default class MongoDB extends DataConnector.DataConnector {
     const encodedId = ObjectID.createFromHexString(id)
 
     await connection
-      .db(this.databaseName)
+      .db(this.dbName)
       .collection(collectionName)
       .updateOne({_id: encodedId}, {$set: update})
 
     return this.findOneById({id}, Model, context)
   }
-}
 
-module.exports = MongoDB
+  async wipe(Model: typeof BaseModel) {
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+
+    await connection.db(this.dbName).collection(collectionName).deleteMany({})
+  }
+}

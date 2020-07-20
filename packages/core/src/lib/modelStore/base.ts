@@ -78,7 +78,6 @@ export default class ModelStore {
           (isModelDefinitionClass(source) && source.name) || classify(name),
       },
     }
-
     const NewModel = isModelDefinitionClass(source)
       ? class extends source {}
       : class extends BaseModel {}
@@ -170,6 +169,11 @@ export default class ModelStore {
     })
 
     return this
+  }
+
+  reset() {
+    this.models = new Map()
+    this.load(INTERNAL_MODELS)
   }
 
   resolveSourceModule(input: any): ModelDefinition {

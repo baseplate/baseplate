@@ -1,5 +1,10 @@
 import {CastError, FieldValidationError} from '../errors'
-import {FieldConstructorParameters, FieldOptions} from '../field'
+import {FieldHandlerInterface} from '../field'
+import {
+  FieldConstructorParameters,
+  FieldOperators,
+  FieldOptions,
+} from '../index'
 
 export interface ConstructorParameters extends FieldConstructorParameters {
   options?: object
@@ -15,13 +20,22 @@ export interface Options extends FieldOptions {
   upperCase?: boolean
 }
 
-export class FieldHandler {
+export class FieldHandler implements FieldHandlerInterface {
   options: Options
   subType: 'string'
   type: 'primitive'
 
   constructor({options}: ConstructorParameters) {
     this.options = options || {}
+  }
+
+  operators = {
+    eq: {
+      label: 'is',
+    },
+    ne: {
+      label: 'is not',
+    },
   }
 
   cast({path, value}: {path: Array<string>; value: any}) {

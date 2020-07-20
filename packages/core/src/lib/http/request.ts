@@ -39,7 +39,12 @@ export default class HttpRequest {
 
     let parsedBody = body
 
-    if (body && this.headers['content-type'] === 'application/json') {
+    if (
+      body &&
+      ['application/json', 'application/vnd.api+json'].includes(
+        this.headers['content-type']
+      )
+    ) {
       try {
         parsedBody = JSON.parse(body)
       } catch (error) {
