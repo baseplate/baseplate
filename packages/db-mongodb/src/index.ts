@@ -1,12 +1,11 @@
-import {ModelDefinition, modelStore} from '@baseplate/core'
+import {InitializationParameters, modelStore} from '@baseplate/core'
 import {Options as DataConnectorOptions, MongoDB} from './mongodb'
 
-interface Options {
+interface Options extends InitializationParameters {
   database?: DataConnectorOptions
 }
 
-function initialize(models: ModelDefinition[], options?: Options) {
-  const {database} = options || {}
+function initialize({database, models}: Options) {
   const dataConnector = new MongoDB({
     name: database.name || process.env.MONGODB_DATABASE,
     uri: database.uri || process.env.MONGODB_URI,

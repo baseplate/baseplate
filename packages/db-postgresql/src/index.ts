@@ -1,10 +1,12 @@
-import {ModelDefinition, modelStore} from '@baseplate/core'
+import {InitializationParameters, modelStore} from '@baseplate/core'
 
 import PostgreSQL from './postgresql'
 
+interface Options extends InitializationParameters {}
+
 const dataConnector = new PostgreSQL()
 
-function initialize(models: ModelDefinition[]) {
+function initialize({models}: Options) {
   const dataConnector = new PostgreSQL()
 
   modelStore.setDataConnector(dataConnector)

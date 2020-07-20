@@ -433,6 +433,6 @@ export class MongoDB extends DataConnector.DataConnector {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
 
-    await connection.db(this.dbName).collection(collectionName).drop()
+    await connection.db(this.dbName).collection(collectionName).deleteMany({})
   }
 }

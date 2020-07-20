@@ -19,6 +19,10 @@ import routesGraphQL from './routes/graphql'
 import routesRest from './routes/rest'
 import SortObject from './lib/sortObject'
 
+interface InitializationParameters {
+  models: ModelDefinition[]
+}
+
 export {
   BaseModel,
   Context,
@@ -30,6 +34,7 @@ export {
   HttpRequest,
   HttpResponse,
   Index,
+  InitializationParameters,
   ModelDefinition,
   modelStore,
   QueryFilter,
