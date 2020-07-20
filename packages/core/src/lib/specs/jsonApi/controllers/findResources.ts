@@ -1,5 +1,3 @@
-import {CustomError} from '@baseplate/validator'
-
 import {ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'

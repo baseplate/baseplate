@@ -9,7 +9,6 @@ export default class Author extends BaseModel {
       type: String,
       label: 'First name',
       required: true,
-      unique: true,
       minLength: 1,
       maxLength: 85,
     },

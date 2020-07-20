@@ -8,13 +8,14 @@ export function forEachApp(
   models: mongoDBApp.ModelDefinition[],
   callback: Function
 ) {
-  describe.each(apps)('%s', (name: string, app: App) => {
+  describe.each(apps)('%s', (_, app: App) => {
     beforeAll(async () => {
-      mongoDBApp.initialize(models, {
+      mongoDBApp.initialize({
         database: {
           name: global.__MONGO_DB_NAME__,
           uri: global.__MONGO_URI__,
         },
+        models,
       })
 
       await Promise.all(
@@ -23,11 +24,14 @@ export function forEachApp(
     })
 
     afterAll(async () => {
-      await Promise.all(
-        app.modelStore
-          .getAll()
-          .map((Model) => app.modelStore.dataConnector.wipe(Model))
-      )
+      try {
+        await Promise.all(
+          app.modelStore
+            .getAll()
+            .map((Model) => app.modelStore.dataConnector.wipe(Model))
+        )
+      } catch {}
+
       await app.modelStore.dataConnector.disconnect()
     })
 
