@@ -1,5 +1,5 @@
 import {CastError, FieldValidationError} from '../errors'
-import {FieldConstructorParameters, FieldOptions} from '../field'
+import {FieldConstructorParameters, FieldOptions} from '../index'
 import {Validator} from '../validator'
 
 export interface ConstructorParameters extends FieldConstructorParameters {

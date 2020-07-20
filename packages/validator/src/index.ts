@@ -5,6 +5,7 @@ import * as FieldNumber from './types/number'
 import * as FieldObject from './types/object'
 import * as FieldReference from './types/reference'
 import * as FieldString from './types/string'
+import {string} from './types'
 
 export const primitives = {
   boolean: FieldBoolean.FieldHandler,
@@ -49,6 +50,12 @@ export type FieldHandler =
 export type FieldIndexDefinition = boolean | FieldIndexDefinitionWithOptions
 
 export type FieldIndexDefinitionWithOptions = {sparse: boolean}
+
+export interface FieldOperator {
+  label: string
+}
+
+export type FieldOperators = Record<string, FieldOperator>
 
 export interface FieldOptions {
   allowed?: Function

@@ -1,4 +1,4 @@
-import {Field, FieldOptions} from '../field'
+import {Field, FieldOptions} from '../index'
 
 export interface FieldHandler {
   children?: Record<string, Field>
