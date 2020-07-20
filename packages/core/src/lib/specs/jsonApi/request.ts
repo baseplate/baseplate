@@ -60,7 +60,7 @@ export default class JsonApiRequest {
     this.params = req.params
 
     const url = new JsonApiURL(req.url)
-    const fields = url.getQueryParameter('fields') || {}
+    const fields = this.createFieldSet(url.getQueryParameter('fields') || {})
     const {number: pageNumber, size: pageSize} =
       url.getQueryParameter('page') || {}
     const includeMap = url.getQueryParameter('include')
@@ -100,6 +100,16 @@ export default class JsonApiRequest {
     }
 
     return result
+  }
+
+  createFieldSet(parameters: Record<string, string[]>) {
+    return Object.keys(parameters).reduce(
+      (fieldSets, modelName) => ({
+        ...fieldSets,
+        [modelName]: new FieldSet(parameters[modelName]),
+      }),
+      {}
+    )
   }
 
   getEntryFieldsFromBody(body: JsonApiRequestBody) {

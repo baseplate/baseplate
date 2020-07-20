@@ -110,7 +110,8 @@ export default class JsonApiURL {
             ...this.queryParameters,
             ...overrideParameters,
           }
-    const queryString = Object.entries(queryParameters)
+    const formattedParameters = JsonApiURL.wrapArraySyntax(queryParameters)
+    const queryString = Object.entries(formattedParameters)
       .map((keyValue) => keyValue.join('='))
       .join('&')
 
