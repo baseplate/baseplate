@@ -1,6 +1,6 @@
 {
   "name": "@baseplate/serverless",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "main": "index.js",
   "directories": {
     "lib": "lib"
