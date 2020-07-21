@@ -2,8 +2,6 @@
 
 > ✋&nbsp;  If you just want to experiment with Baseplate, you might want to check out one of the [example projects](https://github.com/baseplate/examples). If you're looking to work on the framework itself, read on.
 
----
-
 ## Introduction
 
 This repository contains the API component of Baseplate. It is a [monorepo](https://en.wikipedia.org/wiki/Monorepo) comprised of the following packages:
