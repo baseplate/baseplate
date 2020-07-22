@@ -10,7 +10,7 @@ import fieldTypes, {FieldHandler} from './fieldTypes'
 import GenericModel from './model/base'
 import isPlainObject from './utils/isPlainObject'
 import logger from './logger'
-import modelStore from './modelStore/'
+import modelStore from './modelStore'
 import type QueryFilter from './queryFilter'
 
 export type FieldHandlers = Record<string, FieldHandler | NestedObjectMarker>

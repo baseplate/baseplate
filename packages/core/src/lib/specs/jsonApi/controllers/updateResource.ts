@@ -10,7 +10,7 @@ import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import JsonApiModel from '../model'
-import modelStore from '../../../modelStore/'
+import modelStore from '../../../modelStore'
 
 export default async function (
   req: HttpRequest,

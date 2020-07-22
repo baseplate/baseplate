@@ -10,7 +10,7 @@ import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
-import modelStore from '../../../modelStore/'
+import modelStore from '../../../modelStore'
 import {RelationshipData} from '../relationship'
 
 export default async function (

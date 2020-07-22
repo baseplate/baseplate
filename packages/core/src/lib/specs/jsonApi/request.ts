@@ -8,7 +8,7 @@ import GenericModel from '../../model/base'
 import HttpRequest from '../../http/request'
 import JsonApiModel from './model'
 import JsonApiURL from './url'
-import ModelStore from '../../modelStore/base'
+import type {ModelStore} from '../../modelStore'
 import QueryFilter from '../../queryFilter'
 import {
   IncludedRelationship,

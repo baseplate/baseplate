@@ -1,47 +1,48 @@
-import * as path from 'path'
+import logger from './logger'
 
-import requireDirectory from '../lib/utils/requireDirectory'
-
-const ENDPOINTS_PATH = path.join(process.cwd(), 'endpoints')
-
-interface Endpoint {
+export interface Endpoint {
   route: string
   handler: Record<string, Function>
 }
 
-interface EndpointFile {
-  name: string
-  source: any
-}
+export type EndpointDefinition = Record<string, string | Function>
 
-class EndpointStore {
+export class EndpointStore {
   endpoints: Array<Endpoint>
 
-  constructor(directory: string) {
-    this.endpoints = EndpointStore.buildFromDirectory(directory)
+  constructor() {
+    this.endpoints = []
   }
 
-  static buildFromDirectory(directory: string): Array<Endpoint> {
-    const files = requireDirectory(directory)
-    const routes = files.reduce(
-      (routes: Array<Endpoint>, {name, source}: EndpointFile) => {
-        const route =
-          typeof source.route === 'string'
-            ? this.normalizeRoute(source.route)
-            : `/${name}`
+  private loadEndpoint(source: EndpointDefinition) {
+    if (!source.route || typeof source.route !== 'string') {
+      return
+    }
 
-        return [
-          ...routes,
-          {
-            route,
-            handler: source,
-          },
-        ]
+    logger.debug('Loading endpoint: %s', source.route)
+
+    const methods: Record<string, Function> = Object.keys(source).reduce(
+      (methods, key) => {
+        if (typeof source[key] === 'function') {
+          return {
+            ...methods,
+            [key]: source[key],
+          }
+        }
+
+        return methods
       },
-      []
+      {}
     )
 
-    return routes
+    this.endpoints.push({
+      route: source.route,
+      handler: methods,
+    })
+  }
+
+  load(sources: EndpointDefinition[]) {
+    sources.forEach((source) => this.loadEndpoint(source))
   }
 
   static normalizeRoute(route: string): string {
@@ -49,4 +50,4 @@ class EndpointStore {
   }
 }
 
-export const instance = new EndpointStore(ENDPOINTS_PATH)
+export default new EndpointStore()

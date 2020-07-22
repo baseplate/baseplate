@@ -1,5 +1,5 @@
-import {instance as endpointStore} from '../lib/endpointStore'
 import Context from '../lib/context'
+import endpointStore from '../lib/endpointStore'
 import type EntryPoint from '../lib/entryPoint'
 import getUserFromToken from '../lib/acl/getUserFromToken'
 import HttpRequest, {ParamsMap as HttpParams} from '../lib/http/request'
