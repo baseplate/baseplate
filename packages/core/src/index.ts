@@ -9,7 +9,7 @@ import type {Index} from './lib/schema'
 import HttpRequest from './lib/http/request'
 import HttpResponse from './lib/http/response'
 import {ModelDefinition} from './lib/model/definition'
-import modelStore from './lib/modelStore/'
+import modelStore from './lib/modelStore'
 import QueryFilter, {
   Branch as QueryFilterBranch,
   Field as QueryFilterField,

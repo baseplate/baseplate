@@ -1,14 +1,14 @@
 import {classify, pluralize, titleize} from 'inflected'
 
-import AccessModel from '../models/access'
-import BaseModel from '../model/base'
-import {DataConnector} from '../dataConnector/interface'
-import {isModelDefinitionClass, ModelDefinition} from '../model/definition'
-import logger from '../logger'
-import ModelsModel from '../models/model'
-import RefreshTokenModel from '../models/refreshToken'
-import Schema from '../schema'
-import UserModel from '../models/user'
+import AccessModel from './models/access'
+import BaseModel from './model/base'
+import {DataConnector} from './dataConnector/interface'
+import {isModelDefinitionClass, ModelDefinition} from './model/definition'
+import logger from './logger'
+import ModelsModel from './models/model'
+import RefreshTokenModel from './models/refreshToken'
+import Schema from './schema'
+import UserModel from './models/user'
 
 const INTERNAL_MODELS = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
 const INTERFACES = [
@@ -26,7 +26,7 @@ const INTERFACES = [
   'jsonApiUpdateResource',
 ]
 
-export default class ModelStore {
+export class ModelStore {
   dataConnector: DataConnector
   models: Map<string, typeof BaseModel>
 
@@ -191,3 +191,5 @@ export default class ModelStore {
     this.load(INTERNAL_MODELS)
   }
 }
+
+export default new ModelStore()

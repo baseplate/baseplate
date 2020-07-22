@@ -1,4 +1,4 @@
-import modelStore from '../modelStore/'
+import modelStore from '../modelStore'
 import TokenData from './tokenData'
 
 const getUserFromToken = (tokenData: TokenData) => {

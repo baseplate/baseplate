@@ -1,7 +1,7 @@
 import {DataConnector} from '../dataConnector/interface'
 
 import type {GraphQLModelCache} from '../specs/graphql/modelCache'
-import type ModelStore from '../modelStore/base'
+import type {ModelStore} from '../modelStore'
 import type Schema from '../schema'
 
 export default abstract class ConnectedModel {
