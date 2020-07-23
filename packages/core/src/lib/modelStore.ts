@@ -1,14 +1,14 @@
 import {classify, pluralize, titleize} from 'inflected'
 
-import AccessModel from './models/access'
+import AccessModel from './internalModels/access'
 import BaseModel from './model/base'
 import {DataConnector} from './dataConnector/interface'
 import {isModelDefinitionClass, ModelDefinition} from './model/definition'
 import logger from './logger'
-import ModelsModel from './models/model'
-import RefreshTokenModel from './models/refreshToken'
+import ModelsModel from './internalModels/model'
+import RefreshTokenModel from './internalModels/refreshToken'
 import Schema from './schema'
-import UserModel from './models/user'
+import UserModel from './internalModels/user'
 
 const INTERNAL_MODELS = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
 const INTERFACES = [

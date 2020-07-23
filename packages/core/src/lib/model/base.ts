@@ -4,7 +4,7 @@ import {
   Validator,
 } from '@baseplate/validator'
 
-import AccessModel, {AccessType} from '../models/access'
+import AccessModel, {AccessType} from '../internalModels/access'
 import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
 import {Virtual as VirtualSchema} from '../schema'
 import ConnectedModel from './connected'
@@ -14,7 +14,7 @@ import logger from '../logger'
 import FieldSet from '../fieldSet'
 import QueryFilter from '../queryFilter'
 import type SortObject from '../sortObject'
-import UserModel from '../models/user'
+import UserModel from '../internalModels/user'
 
 const DEFAULT_PAGE_SIZE = 20
 const INTERNAL_FIELDS = ['_createdAt', '_id', '_updatedAt']
