@@ -18,7 +18,6 @@ function initialize({database, endpoints = [], models = []}: Options) {
   endpointStore.load(endpoints)
 
   modelStore.setDataConnector(dataConnector)
-  modelStore.reset()
   modelStore.load(models)
 }
 

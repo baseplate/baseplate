@@ -8,7 +8,7 @@ const TOKEN_EXPIRATION = 360000
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
 export default class Base$RefreshToken extends BaseModel {
-  static fields = {
+  static base$fields = {
     token: String,
   }
 

@@ -78,7 +78,7 @@ function getMutations(Model: typeof BaseModel) {
   const inputFields = getInputFields(Model)
   const mutations: Map<string, Mutation> = new Map()
 
-  if (Model.base$settings.interfaces.graphQLCreateMutation) {
+  if (Model.base$interfaces.graphQLCreateResource) {
     const mutationName = camelize(`create_${Model.base$handle}`, false)
 
     mutations.set(mutationName, {
@@ -99,7 +99,7 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$settings.interfaces.graphQLDeleteMutation) {
+  if (Model.base$interfaces.graphQLDeleteResource) {
     const mutationName = camelize(`delete_${Model.base$handle}`, false)
 
     mutations.set(mutationName, {
@@ -135,7 +135,7 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$settings.interfaces.graphQLUpdateMutation) {
+  if (Model.base$interfaces.graphQLUpdateResource) {
     const mutationName = camelize(`update_${Model.base$handle}`, false)
 
     mutations.set(mutationName, {
@@ -176,7 +176,7 @@ function getObjectType(Model: typeof BaseModel) {
   }
 
   const objectType = new GraphQLObjectType({
-    fields: getOutputFields(Model),
+    fields: () => getOutputFields(Model),
     isTypeOf: (value) => {
       return (
         value.__model &&
@@ -226,7 +226,7 @@ function getQueries(Model: typeof BaseModel) {
   if (!type) return queries
 
   // Plural field: retrieves a list of entries.
-  if (Model.base$settings.interfaces.graphQLPluralQuery) {
+  if (Model.base$interfaces.graphQLFindResources) {
     const queryName = camelize(Model.base$handlePlural)
 
     queries.set(queryName, {
@@ -270,7 +270,7 @@ function getQueries(Model: typeof BaseModel) {
   }
 
   // Singular field: retrieves a single entry.
-  if (Model.base$settings.interfaces.graphQLSingularQuery) {
+  if (Model.base$interfaces.graphQLFindResource) {
     const queryName = camelize(Model.base$handle)
 
     queries.set(queryName, {
@@ -403,4 +403,4 @@ function getTypesFromVirtuals(
   return virtualTypes
 }
 
-export {getMutations, getQueries}
+export {getMutations, getObjectType, getQueries}

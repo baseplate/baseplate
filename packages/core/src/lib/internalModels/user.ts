@@ -9,11 +9,7 @@ const TOKEN_EXPIRATION = 3600
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
 
 export default class Base$User extends BaseModel {
-  static routes = {
-    '/base$users/token': tokenRoute,
-  }
-
-  static fields = {
+  static base$fields = {
     accessLevel: {
       type: String,
       default: 'user',
@@ -36,12 +32,16 @@ export default class Base$User extends BaseModel {
     },
   }
 
-  static interfaces = {
-    jsonApiCreateResource: true,
-    jsonApiDeleteResource: true,
-    jsonApiFetchResource: true,
-    jsonApiFetchResources: true,
-    jsonApiUpdateResource: true,
+  static base$interfaces = {
+    restCreateResource: true,
+    restDeleteResource: true,
+    restFindResource: true,
+    restFindResources: true,
+    restUpdateResource: true,
+  }
+
+  static base$routes = {
+    '/base$users/token': tokenRoute,
   }
 
   static findOneById(props: FindOneByIdParameters) {

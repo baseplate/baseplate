@@ -4,6 +4,13 @@ import type EntryPoint from '../lib/entryPoint'
 import getUserFromToken from '../lib/acl/getUserFromToken'
 import HttpRequest, {ParamsMap as HttpParams} from '../lib/http/request'
 import HttpResponse from '../lib/http/response'
+import JsonApiCreateResource from '../lib/specs/jsonApi/controllers/createResource'
+import JsonApiDeleteResource from '../lib/specs/jsonApi/controllers/deleteResource'
+import JsonApiFindResource from '../lib/specs/jsonApi/controllers/findResource'
+import JsonApiFindResourceField from '../lib/specs/jsonApi/controllers/findResourceField'
+import JsonApiFindResourceFieldRelationship from '../lib/specs/jsonApi/controllers/findResourceFieldRelationship'
+import JsonApiFindResources from '../lib/specs/jsonApi/controllers/findResources'
+import JsonApiUpdateResource from '../lib/specs/jsonApi/controllers/updateResource'
 import parseAuthorizationHeader from '../lib/acl/parseAuthorizationHeader'
 import modelStore from '../lib/modelStore'
 import Router from '../lib/router'
@@ -49,18 +56,17 @@ const restEntryPoint: EntryPoint = {
       if (
         Model &&
         method === 'get' &&
-        Model.base$settings.interfaces.jsonApiFetchResources
+        Model.base$interfaces.restFindResources
       ) {
-        return require('../lib/specs/jsonApi/controllers/findResources').default
+        return JsonApiFindResources
       }
 
       if (
         Model &&
         method === 'post' &&
-        Model.base$settings.interfaces.jsonApiCreateResource
+        Model.base$interfaces.restCreateResource
       ) {
-        return require('../lib/specs/jsonApi/controllers/createResource')
-          .default
+        return JsonApiCreateResource
       }
     })
 
@@ -72,28 +78,25 @@ const restEntryPoint: EntryPoint = {
         if (
           Model &&
           method === 'delete' &&
-          Model.base$settings.interfaces.jsonApiDeleteResource
+          Model.base$interfaces.restDeleteResource
         ) {
-          return require('../lib/specs/jsonApi/controllers/deleteResource')
-            .default
+          return JsonApiDeleteResource
         }
 
         if (
           Model &&
           method === 'get' &&
-          Model.base$settings.interfaces.jsonApiFetchResource
+          Model.base$interfaces.restFindResource
         ) {
-          return require('../lib/specs/jsonApi/controllers/findResource')
-            .default
+          return JsonApiFindResource
         }
 
         if (
           Model &&
           method === 'patch' &&
-          Model.base$settings.interfaces.jsonApiUpdateResource
+          Model.base$interfaces.restUpdateResource
         ) {
-          return require('../lib/specs/jsonApi/controllers/updateResource')
-            .default
+          return JsonApiUpdateResource
         }
       }
     )
@@ -106,10 +109,9 @@ const restEntryPoint: EntryPoint = {
         if (
           Model &&
           method === 'get' &&
-          Model.base$settings.interfaces.jsonApiFetchResourceField
+          Model.base$interfaces.restFindResourceField
         ) {
-          return require('../lib/specs/jsonApi/controllers/findResourceField')
-            .default
+          return JsonApiFindResourceField
         }
       }
     )
@@ -121,10 +123,9 @@ const restEntryPoint: EntryPoint = {
 
         if (
           method === 'get' &&
-          Model.base$settings.interfaces.jsonApiFetchResourceFieldRelationship
+          Model.base$interfaces.restFindResourceFieldRelationship
         ) {
-          return require('../lib/specs/jsonApi/controllers/findResourceFieldRelationship')
-            .default
+          return JsonApiFindResourceFieldRelationship
         }
       }
     )

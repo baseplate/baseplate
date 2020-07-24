@@ -5,14 +5,20 @@ import {
 } from '@baseplate/validator'
 
 import AccessModel, {AccessType} from '../internalModels/access'
+import type {AccessValue} from '../accessValue'
 import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
 import {Virtual as VirtualSchema} from '../schema'
-import ConnectedModel from './connected'
 import Context from '../context'
+import type {DataConnector} from '../dataConnector/interface'
+import type {FieldDefinition} from '../fieldDefinition'
 import type {FindReturnValue, Result} from '../dataConnector/interface'
-import logger from '../logger'
+import type {GraphQLModelCache} from '../specs/graphql/modelCache'
+import type {InterfacesBlock} from './definition'
 import FieldSet from '../fieldSet'
+import logger from '../logger'
+import type {ModelStore} from '../modelStore'
 import QueryFilter from '../queryFilter'
+import type Schema from '../schema'
 import type SortObject from '../sortObject'
 import UserModel from '../internalModels/user'
 
@@ -112,7 +118,7 @@ export interface ToObjectParameters {
   includeVirtuals?: boolean
 }
 
-export default class BaseModel extends ConnectedModel {
+export default class BaseModel {
   _createdAt: Date
   _dirtyFields: Set<string>
   _fields: Fields
@@ -124,8 +130,6 @@ export default class BaseModel extends ConnectedModel {
   id: string
 
   constructor(fields: Fields, {fromDb}: {fromDb?: boolean} = {}) {
-    super()
-
     this._createdAt = undefined
     this._dirtyFields = new Set(fromDb ? [] : Object.keys(fields))
     this._lastSync = undefined
@@ -133,6 +137,24 @@ export default class BaseModel extends ConnectedModel {
 
     this.base$hydrate(fields, {fromDb})
   }
+
+  static base$db?: DataConnector
+  static base$fields?: Record<string, FieldDefinition>
+  static base$graphQL?: GraphQLModelCache
+  static base$handle?: string
+  static base$handlePlural?: string
+  static base$interfaces?: InterfacesBlock
+  static base$label?: string
+  static base$modelStore?: ModelStore
+  static base$routes?: Record<string, Record<string, Function>>
+  static base$schema?: Schema
+  static base$settings?: {[key: string]: any}
+
+  static base$afterAuthenticate?(options: {
+    access: AccessValue
+    context: Context
+    user: UserModel
+  }): AccessValue
 
   static async base$authenticate({
     accessType,
@@ -161,10 +183,14 @@ export default class BaseModel extends ConnectedModel {
       access.filter = filter.intersectWith(access.filter)
     }
 
+    if (typeof this.base$afterAuthenticate === 'function') {
+      return this.base$afterAuthenticate({access, context, user})
+    }
+
     return access
   }
 
-  static base$isInternal() {
+  static base$isInternal?() {
     return this.base$handle.startsWith('base$')
   }
 

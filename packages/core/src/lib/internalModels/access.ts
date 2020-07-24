@@ -31,18 +31,7 @@ const accessValueProps = {
 }
 
 export default class Base$Access extends BaseModel {
-  static routes = {
-    '/base$models/:modelName/access': {
-      get: findModelAccessEntries,
-      post: createModelAccessEntry,
-    },
-    '/base$models/:modelName/access/:id': {
-      get: findModelAccessEntry,
-      patch: updateModelAccessEntry,
-    },
-  }
-
-  static fields = {
+  static base$fields = {
     user: {
       type: 'base$user',
       required: true,
@@ -62,6 +51,17 @@ export default class Base$Access extends BaseModel {
     },
     delete: {
       ...accessValueProps,
+    },
+  }
+
+  static base$routes = {
+    '/base$models/:modelName/access': {
+      get: findModelAccessEntries,
+      post: createModelAccessEntry,
+    },
+    '/base$models/:modelName/access/:id': {
+      get: findModelAccessEntry,
+      patch: updateModelAccessEntry,
     },
   }
 

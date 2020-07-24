@@ -1,28 +1,36 @@
+import type BaseModel from './base'
 import {FieldDefinition} from '../fieldDefinition'
 
-export abstract class ClassModelDefinition {
-  static fields: Record<string, FieldDefinition>
-  static namePlural?: string
-  static interfaces?: Record<string, boolean>
-  static label?: string
-  static routes: Record<string, Record<string, Function>>
+export type InterfacesBlock = {[key in Interfaces]?: boolean}
+
+export enum Interfaces {
+  graphQLCreateResource = 'graphQLCreateResource',
+  graphQLDeleteResource = 'graphQLDeleteResource',
+  graphQLFindResource = 'graphQLFindResource',
+  graphQLFindResources = 'graphQLFindResources',
+  graphQLUpdateResource = 'graphQLUpdateResource',
+  restCreateResource = 'restCreateResource',
+  restDeleteResource = 'restDeleteResource',
+  restFindResource = 'restFindResource',
+  restFindResourceField = 'restFindResourceField',
+  restFindResourceFieldRelationship = 'restFindResourceFieldRelationship',
+  restFindResources = 'restFindResources',
+  restUpdateResource = 'restUpdateResource',
 }
 
 export interface ObjectModelDefinition {
   fields: Record<string, FieldDefinition>
   name: string
-  namePlural?: string
-  interfaces?: Record<string, boolean>
+  interfaces?: InterfacesBlock
   label?: string
+  plural?: string
   routes?: Record<string, Record<string, Function>>
 }
 
-export function isModelDefinitionClass(
+export function isClass(
   modelDefinition: ModelDefinition
-): modelDefinition is typeof ClassModelDefinition {
+): modelDefinition is typeof BaseModel {
   return typeof modelDefinition === 'function'
 }
 
-export type ModelDefinition =
-  | typeof ClassModelDefinition
-  | ObjectModelDefinition
+export type ModelDefinition = typeof BaseModel | ObjectModelDefinition
