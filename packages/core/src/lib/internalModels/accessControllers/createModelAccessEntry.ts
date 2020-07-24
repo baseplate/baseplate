@@ -20,10 +20,13 @@ async function createModelAccessEntry(
       throw new ModelNotFoundError({name: req.params.modelName})
     }
 
-    const modelAccess = await this.create({
-      ...jsonApiReq.bodyFields,
-      model: req.params.modelName,
-    })
+    const modelAccess = await this.create(
+      {
+        ...jsonApiReq.bodyFields,
+        model: req.params.modelName,
+      },
+      {context, user: context.get('base$user')}
+    )
 
     modelAccess.id = this.encodeModelAccessKey(modelAccess.get('user'))
 

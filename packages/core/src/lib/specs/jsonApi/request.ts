@@ -1,7 +1,7 @@
 import {CustomError} from '@baseplate/validator'
 
 import {InvalidQueryParameterError} from '../../errors'
-import AccessModel from '../../models/access'
+import AccessModel from '../../internalModels/access'
 import Context from '../../context'
 import FieldSet from '../../fieldSet'
 import GenericModel from '../../model/base'
@@ -16,7 +16,7 @@ import {
   RelationshipData,
 } from './relationship'
 import SortObject from '../../sortObject'
-import UserModel from '../../models/user'
+import UserModel from '../../internalModels/user'
 
 interface JsonApiRequestBody {
   data: {

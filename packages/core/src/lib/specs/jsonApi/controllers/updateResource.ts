@@ -1,9 +1,4 @@
-import {
-  ForbiddenError,
-  ModelNotFoundError,
-  UnauthorizedError,
-} from '../../../errors'
-import AccessModel from '../../../models/access'
+import {ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'

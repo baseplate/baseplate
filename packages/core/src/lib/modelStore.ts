@@ -1,30 +1,21 @@
 import {classify, pluralize, titleize} from 'inflected'
 
-import AccessModel from './models/access'
+import AccessModel from './internalModels/access'
 import BaseModel from './model/base'
 import {DataConnector} from './dataConnector/interface'
-import {isModelDefinitionClass, ModelDefinition} from './model/definition'
+import {
+  Interfaces,
+  InterfacesBlock,
+  isClass as isModelClass,
+  ModelDefinition,
+} from './model/definition'
 import logger from './logger'
-import ModelsModel from './models/model'
-import RefreshTokenModel from './models/refreshToken'
+import ModelsModel from './internalModels/model'
+import RefreshTokenModel from './internalModels/refreshToken'
 import Schema from './schema'
-import UserModel from './models/user'
+import UserModel from './internalModels/user'
 
-const INTERNAL_MODELS = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
-const INTERFACES = [
-  'graphQLCreateMutation',
-  'graphQLDeleteMutation',
-  'graphQLPluralQuery',
-  'graphQLSingularQuery',
-  'graphQLUpdateMutation',
-  'jsonApiCreateResource',
-  'jsonApiDeleteResource',
-  'jsonApiFetchResource',
-  'jsonApiFetchResourceField',
-  'jsonApiFetchResourceFieldRelationship',
-  'jsonApiFetchResources',
-  'jsonApiUpdateResource',
-]
+const internalModels = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
 
 export class ModelStore {
   dataConnector: DataConnector
@@ -34,15 +25,29 @@ export class ModelStore {
     this.models = new Map()
   }
 
+  buildInterfacesBlock(source: ModelDefinition, handle: string) {
+    const sourceInterfaces: InterfacesBlock =
+      (isModelClass(source) ? source.base$interfaces : source.interfaces) || {}
+    const modelInterfaces: InterfacesBlock = {}
+
+    for (const name of Object.keys(Interfaces) as Interfaces[]) {
+      modelInterfaces[name] =
+        sourceInterfaces[name] !== undefined
+          ? sourceInterfaces[name]
+          : !handle.startsWith('base$')
+    }
+
+    return modelInterfaces
+  }
+
   private buildModel(
     name: string,
     source: ModelDefinition,
     database: DataConnector
   ): typeof BaseModel {
     const handle = this.normalizeHandle(name)
-    const isInternalModel = name.startsWith('base$')
     const schema = new Schema({
-      fields: source.fields,
+      fields: isModelClass(source) ? source.base$fields : source.fields,
       name: handle,
     })
     const modelProperties = {
@@ -53,60 +58,42 @@ export class ModelStore {
         value: handle,
       },
       base$handlePlural: {
-        value: source.namePlural || pluralize(handle),
+        value:
+          (isModelClass(source) ? source.base$handlePlural : source.plural) ||
+          pluralize(handle),
+      },
+      base$interfaces: {
+        value: this.buildInterfacesBlock(source, handle),
       },
       base$graphQL: {
         value: {},
       },
       base$label: {
-        value: source.label || pluralize(titleize(name)),
+        value:
+          (isModelClass(source) ? source.base$label : source.label) ||
+          pluralize(titleize(name)),
       },
       base$modelStore: {
         value: this,
       },
       base$routes: {
-        value: source.routes || {},
+        value:
+          (isModelClass(source) ? source.base$routes : source.routes) || {},
       },
       base$schema: {
         value: schema,
       },
-      base$settings: {
-        value: this.buildSettingsBlock(source, isInternalModel),
-      },
       name: {
-        value:
-          (isModelDefinitionClass(source) && source.name) || classify(name),
+        value: (isModelClass(source) && source.name) || classify(name),
       },
     }
-    const NewModel = isModelDefinitionClass(source)
+    const NewModel = isModelClass(source)
       ? class extends source {}
       : class extends BaseModel {}
 
     logger.debug('Loading model: %s', handle)
 
     return Object.defineProperties(NewModel, modelProperties)
-  }
-
-  private buildSettingsBlock(
-    source: ModelDefinition,
-    isInternalModel: boolean
-  ) {
-    const interfaces = INTERFACES.reduce((interfaces, interfaceName) => {
-      const modelInterfaces = (source && source.interfaces) || {}
-      const value =
-        modelInterfaces[interfaceName] !== undefined
-          ? modelInterfaces[interfaceName]
-          : !isInternalModel
-
-      return {
-        ...interfaces,
-        [interfaceName]: value,
-      }
-    }, {})
-
-    return {
-      interfaces,
-    }
   }
 
   private normalizeHandle(handle: string) {
@@ -173,7 +160,7 @@ export class ModelStore {
 
   reset() {
     this.models = new Map()
-    this.load(INTERNAL_MODELS)
+    this.load(internalModels)
   }
 
   resolveSourceModule(input: any): ModelDefinition {
@@ -188,7 +175,7 @@ export class ModelStore {
 
     this.dataConnector = dataConnector
 
-    this.load(INTERNAL_MODELS)
+    this.load(internalModels)
   }
 }
 

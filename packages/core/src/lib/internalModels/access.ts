@@ -4,6 +4,7 @@ import Context from '../context'
 import createModelAccessEntry from './accessControllers/createModelAccessEntry'
 import findModelAccessEntries from './accessControllers/findModelAccessEntries'
 import findModelAccessEntry from './accessControllers/findModelAccessEntry'
+import JsonApiEntry from '../specs/jsonApi/entry'
 import QueryFilter from '../queryFilter'
 import updateModelAccessEntry from './accessControllers/updateModelAccessEntry'
 import User from './user'
@@ -30,18 +31,7 @@ const accessValueProps = {
 }
 
 export default class Base$Access extends BaseModel {
-  static routes = {
-    '/base$models/:modelName/access': {
-      get: findModelAccessEntries,
-      post: createModelAccessEntry,
-    },
-    '/base$models/:modelName/access/:id': {
-      get: findModelAccessEntry,
-      patch: updateModelAccessEntry,
-    },
-  }
-
-  static fields = {
+  static base$fields = {
     user: {
       type: 'base$user',
       required: true,
@@ -49,7 +39,6 @@ export default class Base$Access extends BaseModel {
     model: {
       type: String,
       required: true,
-      get: () => {},
     },
     create: {
       ...accessValueProps,
@@ -62,6 +51,17 @@ export default class Base$Access extends BaseModel {
     },
     delete: {
       ...accessValueProps,
+    },
+  }
+
+  static base$routes = {
+    '/base$models/:modelName/access': {
+      get: findModelAccessEntries,
+      post: createModelAccessEntry,
+    },
+    '/base$models/:modelName/access/:id': {
+      get: findModelAccessEntry,
+      patch: updateModelAccessEntry,
     },
   }
 
@@ -202,5 +202,15 @@ export default class Base$Access extends BaseModel {
 
       return new this({...result, _id: id})
     })
+  }
+
+  base$jsonApiPostFormat(
+    formattedEntry: JsonApiEntry,
+    originalEntry: BaseModel
+  ) {
+    formattedEntry.attributes.model = undefined
+    formattedEntry.relationships.user.links = undefined
+
+    return formattedEntry
   }
 }

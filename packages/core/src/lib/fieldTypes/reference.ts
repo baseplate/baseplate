@@ -2,7 +2,7 @@ import {camelize} from 'inflected'
 import {FieldReference} from '@baseplate/validator'
 import type GraphQL from 'graphql'
 
-import AccessModel from '../models/access'
+import AccessModel from '../internalModels/access'
 import type BaseModel from '../model/base'
 import Context from '../context'
 import modelStore from '../modelStore'

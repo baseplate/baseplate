@@ -1,7 +1,7 @@
-import {BaseModel} from '../../packages/core'
+import {BaseModel} from '../../packages/core/src'
 
 export default class Author extends BaseModel {
-  static fields = {
+  static base$fields = {
     // Some constraints, like `required`, work with any field, whereas others
     // vary with the type of the field. For example, String fields have things
     // like `minLength` and `maxLength`.
@@ -15,6 +15,7 @@ export default class Author extends BaseModel {
 
     // Same as {type: String}.
     lastName: String,
+
     gender: {
       type: String,
       enum: ['Male', 'Female', 'Other'],
@@ -39,8 +40,11 @@ export default class Author extends BaseModel {
         // And configure the error message that is shown when it fails.
         errorMessage: 'Postcode must begin with "XYZ"',
       },
+
       city: String,
+
       state: String,
+
       country: String,
     },
   }

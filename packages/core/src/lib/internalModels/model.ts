@@ -5,16 +5,16 @@ import Context from '../context'
 import JsonApiEntry from '../specs/jsonApi/entry'
 
 export default class Base$Model extends BaseModel {
-  static fields = {
+  static base$fields = {
     label: String,
     fields: 'Mixed',
     handle: String,
     handlePlural: String,
   }
 
-  static interfaces = {
-    jsonApiFetchResource: true,
-    jsonApiFetchResources: true,
+  static base$interfaces = {
+    restFindResource: true,
+    restFindResources: true,
   }
 
   static async find({context}: {context: Context}) {
