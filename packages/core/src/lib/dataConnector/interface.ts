@@ -115,6 +115,13 @@ export abstract class DataConnector {
     context?: Context
   ): Promise<Result>
 
+  abstract updateOneById(
+    id: string,
+    update: Result,
+    Model: typeof BaseModel,
+    context?: Context
+  ): Promise<Result>
+
   wipe?(Model: typeof BaseModel): Promise<void>
 }
 

@@ -206,7 +206,7 @@ export class MongoDB extends DataConnector.DataConnector {
   async deleteOneById(id: string, Model: typeof BaseModel) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const encodedId = ObjectID.createFromHexString(id)
+    const encodedId = this.encodeObjectId(id)
     const {result} = await connection
       .db(this.dbName)
       .collection(collectionName)
@@ -262,7 +262,7 @@ export class MongoDB extends DataConnector.DataConnector {
 
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const encodedIds = ids.map(ObjectID.createFromHexString)
+    const encodedIds = ids.map(this.encodeObjectId)
     const options = {
       projection: this.getProjectionFromFieldSet(fieldSet),
     }
@@ -304,7 +304,7 @@ export class MongoDB extends DataConnector.DataConnector {
 
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const encodedId = ObjectID.createFromHexString(id)
+    const encodedId = this.encodeObjectId(id)
     const options = {
       projection: this.getProjectionFromFieldSet(fieldSet),
     }
@@ -413,31 +413,51 @@ export class MongoDB extends DataConnector.DataConnector {
   ) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
+    const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
 
-    await connection
-      .db(this.dbName)
-      .collection(collectionName)
-      .updateMany(filter.toObject('$'), {$set: update})
+    try {
+      const {value: result} = await connection
+        .db(this.dbName)
+        .collection(collectionName)
+        .findOneAndUpdate(query, {$set: update}, {returnOriginal: false})
 
-    return this.find({filter}, Model)
+      return this.encodeAndDecodeObjectIdsInEntry(result, Model, 'decode')
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new errors.UniqueConstraintViolatedError()
+      }
+
+      throw error
+    }
   }
 
   async updateOneById(
     id: string,
     update: Record<string, any>,
-    Model: typeof BaseModel,
-    context: Context
+    Model: typeof BaseModel
   ) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const encodedId = ObjectID.createFromHexString(id)
 
-    await connection
-      .db(this.dbName)
-      .collection(collectionName)
-      .updateOne({_id: encodedId}, {$set: update})
+    try {
+      const encodedId = this.encodeObjectId(id)
+      const {value} = await connection
+        .db(this.dbName)
+        .collection(collectionName)
+        .findOneAndUpdate(
+          {_id: encodedId},
+          {$set: update},
+          {returnOriginal: false}
+        )
 
-    return this.findOneById({id}, Model, context)
+      return this.encodeAndDecodeObjectIdsInEntry(value, Model, 'decode')
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new errors.UniqueConstraintViolatedError()
+      }
+
+      throw error
+    }
   }
 
   async wipe(Model: typeof BaseModel) {

@@ -198,6 +198,18 @@ export default class BaseModel {
     return this.base$db.sync(this)
   }
 
+  static base$validate(
+    fields: object,
+    {enforceRequiredFields}: {enforceRequiredFields?: boolean} = {}
+  ) {
+    return Validator.validateObject({
+      enforceRequiredFields,
+      ignoreFields: INTERNAL_FIELDS,
+      object: fields,
+      schema: this.base$schema.fields,
+    })
+  }
+
   static async create(
     fields: Fields,
     {authenticate = true, context, user}: CreateParameters = {}
@@ -397,7 +409,15 @@ export default class BaseModel {
       filter = access.filter
     }
 
-    const {results} = await this.base$db.update(filter, update, this, context)
+    const validatedUpdate = await this.base$validate(update, {
+      enforceRequiredFields: false,
+    })
+    const {results} = await this.base$db.update(
+      filter,
+      validatedUpdate,
+      this,
+      context
+    )
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
     )
@@ -420,10 +440,21 @@ export default class BaseModel {
       })
     }
 
-    const filter = QueryFilter.parse({_id: id})
-    const {results} = await this.base$db.update(filter, update, this, context)
+    const validatedUpdate = await this.base$validate(update, {
+      enforceRequiredFields: false,
+    })
+    const result = await this.base$db.updateOneById(
+      id,
+      validatedUpdate,
+      this,
+      context
+    )
 
-    return new this(results[0], {fromDb: true})
+    if (!result) {
+      throw new EntryNotFoundError({id})
+    }
+
+    return new this(result, {fromDb: true})
   }
 
   /**
@@ -460,7 +491,13 @@ export default class BaseModel {
   }
 
   async base$create() {
-    const fields = await this.validate({enforceRequiredFields: true})
+    const fields = await (<typeof BaseModel>this.constructor).base$validate(
+      {
+        ...this._fields,
+        ...this._unknownFields,
+      },
+      {enforceRequiredFields: true}
+    )
     const fieldsAfterSetters = await this.base$runFieldSetters(fields)
     const fieldsAfterVirtuals = await this.base$runVirtualSetters(
       fieldsAfterSetters
@@ -516,7 +553,7 @@ export default class BaseModel {
     return fieldsWithDefaults
   }
 
-  base$hydrate(fields: Fields, {fromDb}: {fromDb: boolean}) {
+  base$hydrate(fields: Fields = {}, {fromDb}: {fromDb: boolean}) {
     const {base$schema: schema} = <typeof BaseModel>this.constructor
 
     this._fields = {}
@@ -598,7 +635,13 @@ export default class BaseModel {
   }
 
   async base$update() {
-    const fields = await this.validate({enforceRequiredFields: false})
+    const fields = await (<typeof BaseModel>this.constructor).base$validate(
+      {
+        ...this._fields,
+        ...this._unknownFields,
+      },
+      {enforceRequiredFields: false}
+    )
     const update = Object.entries(fields).reduce(
       (update, [fieldName, value]) => {
         if (this._dirtyFields.has(fieldName)) {
@@ -705,17 +748,5 @@ export default class BaseModel {
       ...virtuals,
       _id: this.id,
     }
-  }
-
-  validate({enforceRequiredFields}: {enforceRequiredFields?: boolean} = {}) {
-    return Validator.validateObject({
-      enforceRequiredFields,
-      ignoreFields: INTERNAL_FIELDS,
-      object: {
-        ...this._fields,
-        ...this._unknownFields,
-      },
-      schema: (<typeof BaseModel>this.constructor).base$schema.fields,
-    })
   }
 }

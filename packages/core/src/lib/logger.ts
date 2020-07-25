@@ -30,10 +30,8 @@ if (process.env.NODE_ENV !== 'production') {
 
 class Base$Logger {
   winstonLogger: Logger
-  __id: number
 
   constructor(winstonLogger: Logger) {
-    this.__id = Math.random()
     this.winstonLogger = winstonLogger
   }
 
