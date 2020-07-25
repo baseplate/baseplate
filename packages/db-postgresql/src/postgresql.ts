@@ -373,6 +373,7 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     if (batch) {
       return PostgreSQL.batchFindOneById(
         {fieldSet, filter, id},
+        Model,
         context,
         (ids: string[]) =>
           this.findManyById({fieldSet, filter, ids}, Model, context)

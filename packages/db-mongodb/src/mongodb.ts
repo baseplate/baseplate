@@ -283,6 +283,7 @@ export class MongoDB extends DataConnector.DataConnector {
     if (batch) {
       return MongoDB.batchFindOneById(
         {fieldSet, filter, id},
+        Model,
         context,
         (ids: string[]) =>
           this.findManyById({fieldSet, filter, ids}, Model, context)
