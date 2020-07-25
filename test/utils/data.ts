@@ -6,11 +6,16 @@ export async function createEntries(
   items: any[]
 ) {
   const Model = app.modelStore.get(modelHandle)
-  const entries = await Promise.all(
-    items.map((item) => Model.create(item, {authenticate: false}))
-  )
 
-  return entries
+  try {
+    const entries = await Promise.all(
+      items.map((item) => Model.create(item, {authenticate: false}))
+    )
+
+    return entries
+  } catch (error) {
+    console.log(error)
+  }
 }
 
 export async function wipeModels(modelHandles: string[], app: App) {

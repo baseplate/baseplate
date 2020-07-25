@@ -1,5 +1,6 @@
 import {
   App,
+  createEntries,
   createUser,
   forEachDataConnector,
   getAccessToken,
@@ -13,7 +14,7 @@ import Book from '../../../../test/models/Book'
 import Genre from '../../../../test/models/Genre'
 
 forEachDataConnector((app: App, loadModels: Function) => {
-  describe('JSON:API – Creating resource', () => {
+  describe('JSON:API – Updating resource', () => {
     beforeAll(async () => {
       await createUser({
         accessLevel: 'admin',
@@ -25,7 +26,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       loadModels([Author, Book, Genre])
     })
 
-    test('Returns an error when trying to create resources on a model that does not exist', async () => {
+    test('Returns an error when trying to update resources on a model that does not exist', async () => {
       const accessToken = await getAccessToken({
         app,
         username: 'baseplate-admin',
@@ -41,8 +42,8 @@ forEachDataConnector((app: App, loadModels: Function) => {
             },
           },
         },
-        method: 'post',
-        url: '/unicorns',
+        method: 'patch',
+        url: '/unicorns/12345',
       })
       const res = new Response()
 
@@ -52,7 +53,45 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res.$body).toBeUndefined()
     })
 
-    test('Returns an error when the requesting client does not have create access to the model', async () => {
+    test('Returns an error when trying to update a resource that does not exist', async () => {
+      const accessToken = await getAccessToken({
+        app,
+        username: 'baseplate-admin',
+        password: 'baseplate',
+      })
+      const req = new Request({
+        accessToken,
+        body: {
+          type: 'author',
+          data: {
+            attributes: {
+              lastName: 'Doe',
+            },
+          },
+        },
+        method: 'patch',
+        url: '/authors/12345',
+      })
+      const res = new Response()
+
+      await app.routesRest.handler(req, res)
+
+      expect(res.statusCode).toBe(404)
+      expect(res.$body.errors.length).toBe(1)
+      expect(res.$body.errors[0].status).toBe(404)
+      expect(res.$body.errors[0].title).toBe('Entry not found')
+    })
+
+    test('Returns an error when the requesting client does not have update access to the model', async () => {
+      const author1 = {
+        firstName: 'Leo',
+        lastName: 'Tolstoy',
+      }
+      const author2 = {
+        firstName: 'José',
+        lastName: 'Saramago',
+      }
+
       await createUser({
         accessLevel: 'user',
         app,
@@ -61,10 +100,13 @@ forEachDataConnector((app: App, loadModels: Function) => {
         permissions: {
           author: {
             read: true,
+            create: true,
+            delete: true,
           },
         },
       })
 
+      const authors = await createEntries('author', app, [author1, author2])
       const accessToken = await getAccessToken({
         app,
         username: 'baseplate-user1',
@@ -81,8 +123,8 @@ forEachDataConnector((app: App, loadModels: Function) => {
             },
           },
         },
-        method: 'post',
-        url: '/authors',
+        method: 'patch',
+        url: `/authors/${authors[0].id}`,
       })
       const res = new Response()
 
@@ -90,9 +132,20 @@ forEachDataConnector((app: App, loadModels: Function) => {
 
       expect(res.statusCode).toBe(403)
       expect(res.$body.errors).toBeInstanceOf(Array)
+
+      await wipeModels(['author'], app)
     })
 
-    test('Creates a resource', async () => {
+    test('Updates a resource', async () => {
+      const originalAuthor = {
+        firstName: 'Mark',
+        lastName: 'Twain',
+      }
+      const updatedAuthor = {
+        firstName: 'Samuel',
+        lastName: 'Clemens',
+      }
+
       await createUser({
         accessLevel: 'user',
         app,
@@ -102,145 +155,106 @@ forEachDataConnector((app: App, loadModels: Function) => {
           author: {
             read: true,
             create: true,
+            update: true,
           },
         },
       })
 
-      const author = {
-        firstName: 'Leo',
-        lastName: 'Tolstoy',
-      }
+      const authors = await createEntries('author', app, [originalAuthor])
       const accessToken = await getAccessToken({
         app,
         username: 'baseplate-user2',
         password: 'baseplate',
       })
-
-      // Verifying that the author doesn't exist yet.
       const req1 = new Request({
         accessToken,
-        method: 'get',
-        url: '/authors',
+        body: {
+          type: 'author',
+          data: {
+            attributes: updatedAuthor,
+          },
+        },
+        method: 'patch',
+        url: `/authors/${authors[0].id}`,
       })
       const res1 = new Response()
 
       await app.routesRest.handler(req1, res1)
 
-      expect(res1.$body.data.length).toBe(0)
+      expect(res1.statusCode).toBe(200)
+      expect(res1.$body.data.type).toBe('author')
+      expect(res1.$body.data.id).toBe(authors[0].id)
+      expect(res1.$body.data.attributes).toEqual(updatedAuthor)
 
-      // Creating the author.
       const req2 = new Request({
         accessToken,
-        body: {
-          type: 'author',
-          data: {
-            attributes: author,
-          },
-        },
-        method: 'post',
-        url: '/authors',
+        method: 'get',
+        url: `/authors/${authors[0].id}`,
       })
       const res2 = new Response()
 
       await app.routesRest.handler(req2, res2)
 
-      expect(res2.$body.data.length).toBe(1)
-      expect(typeof res2.$body.data[0].id).toBe('string')
-      expect(res2.$body.data[0].type).toBe('author')
-      expect(res2.$body.data[0].attributes).toEqual(author)
-
-      // Verifying that the author now exists.
-      const req3 = new Request({
-        accessToken: accessToken,
-        method: 'get',
-        url: '/authors',
-      })
-      const res3 = new Response()
-
-      await app.routesRest.handler(req3, res3)
-
-      expect(res2.$body.data.length).toBe(1)
-      expect(res2.$body.data[0].id).toBe(res2.$body.data[0].id)
-      expect(res2.$body.data[0].type).toBe('author')
-      expect(res2.$body.data[0].attributes).toEqual(author)
+      expect(res2.statusCode).toBe(200)
+      expect(res2.$body.data.type).toBe('author')
+      expect(res2.$body.data.id).toBe(authors[0].id)
+      expect(res2.$body.data.attributes).toEqual(updatedAuthor)
 
       await wipeModels(['author'], app)
     })
 
-    test('Returns an error when trying to create a resource with a unique field that has the same value as another resource', async () => {
+    test('Returns an error when trying to update a resource with a unique field to have the same value as another resource', async () => {
       const book1 = {
         title: 'Writing APIs is fun (Vol. 1)',
-        isbn: 12345,
+        isbn: 1111,
       }
       const book2 = {
         title: 'Writing APIs is fun (Vol. 2)',
-        isbn: 12345,
+        isbn: 2222,
       }
+      const books = await createEntries('book', app, [book1, book2])
       const accessToken = await getAccessToken({
         app,
         username: 'baseplate-admin',
         password: 'baseplate',
       })
-
       const req1 = new Request({
         accessToken,
         body: {
           type: 'book',
           data: {
-            attributes: book1,
+            attributes: {
+              isbn: 2222,
+            },
           },
         },
-        method: 'post',
-        url: '/books',
+        method: 'patch',
+        url: `/books/${books[0].id}`,
       })
       const res1 = new Response()
 
       await app.routesRest.handler(req1, res1)
 
-      expect(res1.statusCode).toBe(201)
-      expect(res1.$body.data.length).toBe(1)
-      expect(typeof res1.$body.data[0].id).toBe('string')
-      expect(res1.$body.data[0].type).toBe('book')
-      expect(res1.$body.data[0].attributes).toEqual(book1)
+      expect(res1.statusCode).toBe(400)
+      expect(res1.$body.errors.length).toBe(1)
+      expect(res1.$body.errors[0].status).toBe(400)
+      expect(res1.$body.errors[0].title).toBe('Unique constraint violation')
 
       const req2 = new Request({
         accessToken,
-        body: {
-          type: 'book',
-          data: {
-            attributes: book2,
-          },
-        },
-        method: 'post',
-        url: '/books',
+        method: 'get',
+        url: `/books/${books[0].id}`,
       })
       const res2 = new Response()
 
       await app.routesRest.handler(req2, res2)
 
-      expect(res2.statusCode).toBe(400)
-      expect(res2.$body.errors.length).toBe(1)
-      expect(res2.$body.errors[0].status).toBe(400)
-      expect(res2.$body.errors[0].title).toBe('Unique constraint violation')
-
-      const req3 = new Request({
-        accessToken: accessToken,
-        method: 'get',
-        url: '/books',
-      })
-      const res3 = new Response()
-
-      await app.routesRest.handler(req3, res3)
-
-      expect(res3.$body.data.length).toBe(1)
-      expect(res3.$body.data[0].id).toBe(res3.$body.data[0].id)
-      expect(res3.$body.data[0].type).toBe('book')
-      expect(res3.$body.data[0].attributes).toEqual(book1)
-
-      await wipeModels(['book'], app)
+      expect(res2.$body.data.id).toBe(books[0].id)
+      expect(res2.$body.data.type).toBe('book')
+      expect(res2.$body.data.attributes).toEqual(book1)
     })
 
-    test('Returns an error if the model validation fails', async () => {
+    test('Returns an error if the update object fails the model validation', async () => {
       const errorMessage = 'You cannot sell unicorns!'
       const Store = {
         fields: {
@@ -255,27 +269,28 @@ forEachDataConnector((app: App, loadModels: Function) => {
 
       app.modelStore.load([Store])
 
+      const originalStore = {
+        name: 'The Cookie Store',
+      }
+      const updatedStore = {
+        name: 'The Unicorn Store',
+      }
+      const stores = await createEntries('store', app, [originalStore])
       const accessToken = await getAccessToken({
         app,
         username: 'baseplate-admin',
         password: 'baseplate',
       })
-      const store1 = {
-        name: 'The Unicorn Store',
-      }
-      const store2 = {
-        name: 'The Cookie Store',
-      }
       const req1 = new Request({
         accessToken,
         body: {
           type: 'store',
           data: {
-            attributes: store1,
+            attributes: updatedStore,
           },
         },
-        method: 'post',
-        url: '/stores',
+        method: 'patch',
+        url: `/stores/${stores[0].id}`,
       })
       const res1 = new Response()
 
@@ -289,24 +304,17 @@ forEachDataConnector((app: App, loadModels: Function) => {
 
       const req2 = new Request({
         accessToken,
-        body: {
-          type: 'store',
-          data: {
-            attributes: store2,
-          },
-        },
-        method: 'post',
-        url: '/stores',
+        method: 'get',
+        url: `/stores/${stores[0].id}`,
       })
       const res2 = new Response()
 
       await app.routesRest.handler(req2, res2)
 
-      expect(res2.statusCode).toBe(201)
-      expect(res2.$body.data.length).toBe(1)
-      expect(typeof res2.$body.data[0].id).toBe('string')
-      expect(res2.$body.data[0].type).toBe('store')
-      expect(res2.$body.data[0].attributes).toEqual(store2)
+      expect(res2.statusCode).toBe(200)
+      expect(typeof res2.$body.data.id).toBe('string')
+      expect(res2.$body.data.type).toBe('store')
+      expect(res2.$body.data.attributes).toEqual(originalStore)
 
       await wipeModels(['store'], app)
     })
