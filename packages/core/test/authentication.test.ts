@@ -1,10 +1,16 @@
-import {App, forEachApp, Request, Response, seconds} from '../../../test/utils'
+import {
+  App,
+  forEachDataConnector,
+  Request,
+  Response,
+  seconds,
+} from '../../../test/utils'
 
 import Author from '../../../test/models/Author'
 import Book from '../../../test/models/Book'
 import Genre from '../../../test/models/Genre'
 
-forEachApp([Author, Book, Genre], (app: App) => {
+forEachDataConnector((app: App, loadModels: Function) => {
   describe('Authentication', () => {
     beforeAll(async () => {
       const User = app.modelStore.get('base$user')
@@ -17,6 +23,8 @@ forEachApp([Author, Book, Genre], (app: App) => {
         },
         {authenticate: false}
       )
+
+      loadModels([Author, Book, Genre])
     })
 
     test('Returns access and refresh tokens if the request contains a correct set of credentials', async () => {

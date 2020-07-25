@@ -1,6 +1,6 @@
 import {
   App,
-  forEachApp,
+  forEachDataConnector,
   getAccessToken,
   Request,
   Response,
@@ -10,7 +10,7 @@ import Author from '../../../test/models/Author'
 import Book from '../../../test/models/Book'
 import Genre from '../../../test/models/Genre'
 
-forEachApp([Author, Book, Genre], (app: App) => {
+forEachDataConnector((app: App, loadModels: Function) => {
   describe('User Management', () => {
     beforeAll(async () => {
       const User = app.modelStore.get('base$user')
@@ -32,6 +32,8 @@ forEachApp([Author, Book, Genre], (app: App) => {
         },
         {authenticate: false}
       )
+
+      loadModels([Author, Book, Genre])
     })
 
     test('Allows an administrator to create a new user', async () => {

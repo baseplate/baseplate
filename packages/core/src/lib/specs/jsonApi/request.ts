@@ -2,9 +2,9 @@ import {CustomError} from '@baseplate/validator'
 
 import {InvalidQueryParameterError} from '../../errors'
 import AccessModel from '../../internalModels/access'
+import BaseModel from '../../model/base'
 import Context from '../../context'
 import FieldSet from '../../fieldSet'
-import GenericModel from '../../model/base'
 import HttpRequest from '../../http/request'
 import JsonApiModel from './model'
 import JsonApiURL from './url'
@@ -27,7 +27,7 @@ interface JsonApiRequestBody {
 
 export type ResolveRelationshipParameters = {
   Access: typeof AccessModel
-  entry: GenericModel
+  entry: BaseModel
   fieldName: string
   includeMap: IncludeMap
   modelStore: ModelStore
@@ -38,7 +38,7 @@ export type ResolveRelationshipParameters = {
 export type ResolveRelationshipsParameters = {
   entries: Array<JsonApiModel>
   includeMap?: IncludeMap
-  Model: typeof GenericModel
+  Model: typeof BaseModel
   user: UserModel
 }
 
@@ -164,7 +164,7 @@ export default class JsonApiRequest {
 
     if (
       !fieldValue ||
-      !(<typeof GenericModel>entry.constructor).base$schema.isReferenceField(
+      !(<typeof BaseModel>entry.constructor).base$schema.isReferenceField(
         fieldName
       )
     ) {

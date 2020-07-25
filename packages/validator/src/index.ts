@@ -5,7 +5,6 @@ import * as FieldNumber from './types/number'
 import * as FieldObject from './types/object'
 import * as FieldReference from './types/reference'
 import * as FieldString from './types/string'
-import {string} from './types'
 
 export const primitives = {
   boolean: FieldBoolean.FieldHandler,

@@ -2,7 +2,7 @@ import {
   App,
   createEntries,
   createUser,
-  forEachApp,
+  forEachDataConnector,
   getAccessToken,
   Request,
   Response,
@@ -13,8 +13,8 @@ import Author from '../../../../test/models/Author'
 import Book from '../../../../test/models/Book'
 import Genre from '../../../../test/models/Genre'
 
-forEachApp([Author, Book, Genre], (app: App) => {
-  describe('JSON:API – Listing resources', () => {
+forEachDataConnector((app: App, loadModels: Function) => {
+  describe('JSON:API – Finding resources', () => {
     beforeAll(async () => {
       await createUser({
         accessLevel: 'admin',
@@ -22,6 +22,8 @@ forEachApp([Author, Book, Genre], (app: App) => {
         username: 'baseplate-admin',
         password: 'baseplate',
       })
+
+      loadModels([Author, Book, Genre])
     })
 
     test('Returns an error when trying to list resources of a model that does not exist', async () => {
@@ -353,6 +355,80 @@ forEachApp([Author, Book, Genre], (app: App) => {
       })
 
       expect(includedAuthors.size).toBe(authors.length)
+
+      await wipeModels(['author', 'book'], app)
+    })
+
+    test('Does not include referenced resources for which the requesting client does not have sufficient permissions for', async () => {
+      await createUser({
+        accessLevel: 'user',
+        app,
+        username: 'baseplate-user3',
+        password: 'baseplate',
+        permissions: {
+          author: {
+            read: {
+              filter: {
+                lastName: {
+                  $ne: 'Saramago',
+                },
+              },
+            },
+          },
+          book: {
+            read: true,
+          },
+        },
+      })
+
+      const accessToken = await getAccessToken({
+        app,
+        username: 'baseplate-user3',
+        password: 'baseplate',
+      })
+      const author1 = {
+        firstName: 'Leo',
+        lastName: 'Tolstoy',
+      }
+      const author2 = {
+        firstName: 'José',
+        lastName: 'Saramago',
+      }
+      const authors = await createEntries('author', app, [author1, author2])
+      const book1 = {
+        title: 'War and Peace',
+        isbn: 123,
+        author: {type: 'author', id: authors[0].id},
+      }
+      const book2 = {
+        title: 'Blindness',
+        isbn: 234,
+        author: {type: 'author', id: authors[1].id},
+      }
+      const books = await createEntries('book', app, [book1, book2])
+      const req = new Request({
+        accessToken,
+        method: 'get',
+        url: '/books?include=author',
+      })
+      const res = new Response()
+
+      await app.routesRest.handler(req, res)
+
+      expect(res.$body.data.length).toBe(2)
+
+      expect(res.$body.data[0].id).toBe(books[0].id)
+      expect(res.$body.data[0].attributes.title).toBe(book1.title)
+      expect(res.$body.data[0].attributes.isbn).toBe(book1.isbn)
+
+      expect(res.$body.data[1].id).toBe(books[1].id)
+      expect(res.$body.data[1].attributes.title).toBe(book2.title)
+      expect(res.$body.data[1].attributes.isbn).toBe(book2.isbn)
+
+      expect(res.$body.included.length).toBe(1)
+      expect(res.$body.included[0].type).toBe('author')
+      expect(res.$body.included[0].id).toBe(authors[0].id)
+      expect(res.$body.included[0].attributes).toEqual(author1)
 
       await wipeModels(['author', 'book'], app)
     })

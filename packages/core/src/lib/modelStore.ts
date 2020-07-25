@@ -155,7 +155,7 @@ export class ModelStore {
       Model.base$schema.loadFieldHandlers()
     })
 
-    return this
+    return loadedModels
   }
 
   reset() {

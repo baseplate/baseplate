@@ -1,4 +1,4 @@
-export {App, forEachApp} from './apps'
+export {App, forEachDataConnector} from './apps'
 export {createEntries, wipeModels} from './data'
 export {createUser, getAccessToken} from './access'
 export {Request, Response} from './requestResponse'
