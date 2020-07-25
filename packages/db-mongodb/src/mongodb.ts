@@ -6,6 +6,7 @@ import {
   Context,
   createLogger,
   DataConnector,
+  errors,
   FieldSet,
   QueryFilter,
   QueryFilterField,
@@ -168,17 +169,26 @@ export class MongoDB extends DataConnector.DataConnector {
       Model,
       'encode'
     )
-    const {ops} = await connection
-      .db(this.dbName)
-      .collection(collectionName)
-      .insertOne(encodedEntry)
-    const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
-      ops[0],
-      Model,
-      'decode'
-    )
 
-    return decodedResult
+    try {
+      const {ops} = await connection
+        .db(this.dbName)
+        .collection(collectionName)
+        .insertOne(encodedEntry)
+      const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
+        ops[0],
+        Model,
+        'decode'
+      )
+
+      return decodedResult
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new errors.UniqueConstraintViolatedError()
+      }
+
+      throw error
+    }
   }
 
   async delete(filter: QueryFilter, Model: typeof BaseModel) {
