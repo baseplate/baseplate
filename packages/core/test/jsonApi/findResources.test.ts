@@ -23,7 +23,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         password: 'baseplate',
       })
 
-      loadModels([Author, Book, Genre])
+      await loadModels([Author, Book, Genre])
     })
 
     test('Returns an error when trying to list resources of a model that does not exist', async () => {

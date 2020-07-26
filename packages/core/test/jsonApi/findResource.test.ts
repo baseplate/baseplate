@@ -43,7 +43,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         password: 'baseplate',
       })
 
-      loadModels([Author, Book, Genre])
+      await loadModels([Author, Book, Genre])
 
       authors = await createEntries('author', app, [author1, author2])
       books = await createEntries('book', app, [

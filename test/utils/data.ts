@@ -1,4 +1,4 @@
-import type {App} from './apps'
+import type {App} from './dataConnectors'
 
 export async function createEntries(
   modelHandle: string,

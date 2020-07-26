@@ -33,7 +33,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         {authenticate: false}
       )
 
-      loadModels([Author, Book, Genre])
+      await loadModels([Author, Book, Genre])
     })
 
     test('Allows an administrator to create a new user', async () => {

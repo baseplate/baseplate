@@ -24,7 +24,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         {authenticate: false}
       )
 
-      loadModels([Author, Book, Genre])
+      await loadModels([Author, Book, Genre])
     })
 
     test('Returns access and refresh tokens if the request contains a correct set of credentials', async () => {

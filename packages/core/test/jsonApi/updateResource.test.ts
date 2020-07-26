@@ -23,7 +23,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         password: 'baseplate',
       })
 
-      loadModels([Author, Book, Genre])
+      await loadModels([Author, Book, Genre])
     })
 
     test('Returns an error when trying to update resources on a model that does not exist', async () => {
@@ -267,7 +267,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         name: 'store',
       }
 
-      app.modelStore.load([Store])
+      await loadModels([Store])
 
       const originalStore = {
         name: 'The Cookie Store',

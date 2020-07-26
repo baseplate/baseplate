@@ -5,11 +5,11 @@ import {
 } from '@baseplate/core'
 import {Options as DataConnectorOptions, MongoDB} from './mongodb'
 
-interface Options extends InitializationParameters {
+export interface Options extends InitializationParameters {
   database?: DataConnectorOptions
 }
 
-function initialize({database, endpoints = [], models = []}: Options) {
+export function initialize({database, endpoints = [], models = []}: Options) {
   const dataConnector = new MongoDB({
     name: database.name || process.env.MONGODB_DATABASE,
     uri: database.uri || process.env.MONGODB_URI,
@@ -22,4 +22,3 @@ function initialize({database, endpoints = [], models = []}: Options) {
 }
 
 export * from '@baseplate/core'
-export {initialize}
