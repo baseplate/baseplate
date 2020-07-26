@@ -4,12 +4,14 @@ import {
   modelStore,
 } from '@baseplate/core'
 
-import PostgreSQL from './postgresql'
+import {Options as DataConnectorOptions, PostgreSQL} from './postgresql'
 
-interface Options extends InitializationParameters {}
+interface Options extends InitializationParameters {
+  database?: DataConnectorOptions
+}
 
-function initialize({endpoints = [], models = []}: Options) {
-  const dataConnector = new PostgreSQL()
+function initialize({database, endpoints = [], models = []}: Options) {
+  const dataConnector = new PostgreSQL(database)
 
   endpointStore.load(endpoints)
 
@@ -18,4 +20,4 @@ function initialize({endpoints = [], models = []}: Options) {
 }
 
 export * from '@baseplate/core'
-export {initialize}
+export {initialize, PostgreSQL}

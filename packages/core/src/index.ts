@@ -4,6 +4,7 @@ import Context from './lib/context'
 import * as DataConnector from './lib/dataConnector/interface'
 import endpointStore, {EndpointDefinition} from './lib/endpointStore'
 import type EntryPoint from './lib/entryPoint'
+import * as errors from './lib/errors'
 import type {FieldDefinition} from './lib/fieldDefinition'
 import FieldSet from './lib/fieldSet'
 import type {Index} from './lib/schema'
@@ -32,6 +33,7 @@ export {
   DataConnector,
   endpointStore,
   EntryPoint,
+  errors,
   FieldDefinition,
   FieldSet,
   HttpRequest,

@@ -1,4 +1,4 @@
-import type {App} from './apps'
+import type {App} from './dataConnectors'
 import {Request, Response} from './requestResponse'
 
 interface CreateUserParameters {

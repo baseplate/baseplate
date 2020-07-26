@@ -18,12 +18,14 @@ interface DataConnectorBatchItem {
 export abstract class DataConnector {
   static batchFindOneById(
     props: FindOneByIdParameters,
+    Model: typeof BaseModel,
     context: Context,
     combiner: Function
   ) {
     return new Promise((resolve, reject) => {
       const key =
         'base$batcher/' +
+        Model.base$handle +
         JSON.stringify({
           fieldSet: props.fieldSet,
           filter: props.filter,
@@ -108,6 +110,13 @@ export abstract class DataConnector {
 
   abstract update(
     filter: QueryFilter,
+    update: Result,
+    Model: typeof BaseModel,
+    context?: Context
+  ): Promise<Result>
+
+  abstract updateOneById(
+    id: string,
     update: Result,
     Model: typeof BaseModel,
     context?: Context

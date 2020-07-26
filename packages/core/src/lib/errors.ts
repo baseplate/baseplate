@@ -151,3 +151,16 @@ export class UnauthorizedError extends CustomError {
     this.statusCode = 401
   }
 }
+
+export class UniqueConstraintViolatedError extends CustomError {
+  detail: string
+  statusCode: number
+
+  constructor() {
+    super('Unique constraint violation')
+
+    this.detail =
+      'The request violates a unique constraint, which enforces that no two entries have the same value for an attribute or combination of attributes'
+    this.statusCode = 400
+  }
+}

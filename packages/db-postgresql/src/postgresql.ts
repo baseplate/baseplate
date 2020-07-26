@@ -1,4 +1,4 @@
-import {Pool} from 'pg'
+import {Client, Pool} from 'pg'
 
 import {
   BaseModel,
@@ -14,12 +14,45 @@ import {
 } from '@baseplate/core'
 
 const logger = createLogger('postgres')
-const pool = new Pool()
+
+let pool: Pool
 
 type Fields = Record<string, any>
 type SQLParameter = Array<any>
 
-export default class PostgreSQL extends DataConnector.DataConnector {
+export interface Options {
+  database?: string
+  host?: string
+  password?: string
+  port?: number
+  user?: string
+}
+
+export class PostgreSQL extends DataConnector.DataConnector {
+  options: Options
+
+  constructor({
+    database = process.env.USER,
+    host = 'localhost',
+    password = null,
+    port = 5432,
+    user = process.env.USER,
+  }: Options = {}) {
+    super()
+
+    const databaseOptions: Options = {
+      database,
+      host,
+      password,
+      port,
+      user,
+    }
+
+    this.options = databaseOptions
+
+    pool = pool || new Pool(databaseOptions)
+  }
+
   private buildSQLWhere(
     node: QueryFilterBranch | QueryFilterField | QueryFilterFork
   ): [string?, SQLParameter?] {
@@ -225,17 +258,17 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     }
   }
 
-  async bootstrap(Model: typeof BaseModel) {
-    const tableName = this.getTableName(Model)
-    const columns = this.getTableSchema()
-    const columnString = Object.entries(columns)
-      .map(([name, description]) => `"${name}" ${description}`)
-      .join(', ')
-    const query = `CREATE TABLE IF NOT EXISTS ${tableName} (${columnString});`
+  async createDatabase() {
+    const client1 = new Client({
+      ...this.options,
+      database: 'postgres',
+    })
 
-    await pool.query(query)
+    await client1.connect()
+    await client1.query(`CREATE DATABASE "${this.options.database}";`)
+    await client1.end()
 
-    return
+    await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
   }
 
   async createOne(
@@ -265,9 +298,35 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     const [filterQuery, filterParameters] = this.buildSQLWhere(filter.root)
     const tableName = this.getTableName(Model)
     const query = `DELETE FROM ${tableName} WHERE ${filterQuery}`
-    const {rowCount: deleteCount} = await pool.query(query, filterParameters)
 
-    return {deleteCount}
+    try {
+      const {rowCount: deleteCount} = await pool.query(query, filterParameters)
+
+      return {deleteCount}
+    } catch (error) {
+      if (error.routine === 'string_to_uuid') {
+        return {deleteCount: 0}
+      }
+
+      throw error
+    }
+  }
+
+  async deleteDatabase() {
+    const client = new Client({
+      ...this.options,
+      database: 'postgres',
+    })
+
+    await pool.end()
+
+    await client.connect()
+    await client.query(
+      `SELECT pg_terminate_backend(pid) FROM pg_stat_activity
+          WHERE pid <> pg_backend_pid() AND datname='${this.options.database}';`
+    )
+    await client.query(`DROP DATABASE "${this.options.database}";`)
+    await client.end()
   }
 
   async deleteOneById(id: string, Model: typeof BaseModel) {
@@ -373,6 +432,7 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     if (batch) {
       return PostgreSQL.batchFindOneById(
         {fieldSet, filter, id},
+        Model,
         context,
         (ids: string[]) =>
           this.findManyById({fieldSet, filter, ids}, Model, context)
@@ -427,20 +487,29 @@ export default class PostgreSQL extends DataConnector.DataConnector {
 
     const assignmentsQuery = assignments.join(', ')
     const query = `UPDATE ${tableName} SET ${assignmentsQuery} WHERE ${filterQuery} RETURNING *`
-    const {rows} = await pool.query(query, [
-      ...filterParameters,
-      ...assignmentParameters,
-    ])
-    const results = rows.map((row) => {
-      const {data, ...internals} = row
 
-      return {
-        ...internals,
-        ...data,
+    try {
+      const {rows} = await pool.query(query, [
+        ...filterParameters,
+        ...assignmentParameters,
+      ])
+      const results = rows.map((row) => {
+        const {data, ...internals} = row
+
+        return {
+          ...internals,
+          ...data,
+        }
+      })
+
+      return {results}
+    } catch (error) {
+      if (error.routine === 'string_to_uuid') {
+        return {results: []}
       }
-    })
 
-    return {results}
+      throw error
+    }
   }
 
   async updateOneById(id: string, update: Fields, Model: typeof BaseModel) {
@@ -448,5 +517,12 @@ export default class PostgreSQL extends DataConnector.DataConnector {
     const {results} = await this.update(filter, update, Model)
 
     return results[0] || null
+  }
+
+  async wipe(Model: typeof BaseModel) {
+    const tableName = this.getTableName(Model)
+    const query = `TRUNCATE ${tableName}; DELETE FROM ${tableName};`
+
+    await pool.query(query)
   }
 }
