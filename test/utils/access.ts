@@ -44,6 +44,8 @@ export async function createUser({
 
     await Promise.all(ops)
   }
+
+  return user
 }
 
 export async function getAccessToken({

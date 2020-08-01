@@ -2,8 +2,12 @@ import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 import * as tokenRoute from './userControllers/token'
+import {AccessValue} from '../accessValue'
 import {ForbiddenError} from '../errors'
-import BaseModel, {FindOneByIdParameters} from '../model/base'
+import BaseModel, {
+  AfterAuthenticateParameters,
+  FindOneByIdParameters,
+} from '../model/base'
 
 const TOKEN_EXPIRATION = 3600
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
@@ -42,6 +46,22 @@ export default class Base$User extends BaseModel {
 
   static base$routes = {
     '/base$users/token': tokenRoute,
+  }
+
+  static base$afterAuthenticate({
+    access,
+    accessType,
+    user,
+  }: AfterAuthenticateParameters) {
+    if (accessType === 'read' && !user.isAdmin()) {
+      return new AccessValue({
+        filter: {
+          _id: user.id,
+        },
+      })
+    }
+
+    return access
   }
 
   static findOneById(props: FindOneByIdParameters) {

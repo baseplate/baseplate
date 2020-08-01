@@ -45,6 +45,10 @@ async function updateModelAccessEntry(
       user,
     })
 
+    if (!modelAccess) {
+      throw new EntryNotFoundError({id: req.params.id})
+    }
+
     modelAccess.id = this.encodeModelAccessKey(modelAccess.get('user'))
 
     const references = await jsonApiReq.resolveRelationships({

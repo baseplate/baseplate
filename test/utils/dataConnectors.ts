@@ -10,7 +10,7 @@ export type App = {
 
 const apps: Array<[string, App]> = [
   ['@baseplate/mongodb', mongoDB],
-  ['@baseplate/postgres', postgreSQL],
+  //['@baseplate/postgres', postgreSQL],
 ]
 
 export function forEachDataConnector(callback: Function) {

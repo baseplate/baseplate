@@ -23,10 +23,10 @@ const accessValueProps = {
   type: 'Mixed',
   default: false,
   get: (value: any) => {
-    return AccessValue.parse(value, '_').toObject('$')
+    return new AccessValue(value, '_').toObject('$')
   },
   set: (value: any) => {
-    return AccessValue.parse(value, '$').toObject('_')
+    return new AccessValue(value, '$').toObject('_')
   },
 }
 
@@ -102,7 +102,7 @@ export default class Base$Access extends BaseModel {
     user: User
   }) {
     if (user && user.isAdmin()) {
-      return AccessValue.parse(true)
+      return new AccessValue(true)
     }
 
     const entries = await this.getAccessEntries({
@@ -113,14 +113,14 @@ export default class Base$Access extends BaseModel {
     })
 
     if (entries.length === 0) {
-      return AccessValue.parse(false)
+      return new AccessValue(false)
     }
 
     const value = entries.reduce((value: AccessValue, entry: Base$Access) => {
-      const valueForType = AccessValue.parse(entry.get(accessType))
+      const valueForType = new AccessValue(entry.get(accessType))
 
       return AccessValue.unite(value, valueForType)
-    }, AccessValue.parse(false))
+    }, new AccessValue(false))
 
     return value
   }

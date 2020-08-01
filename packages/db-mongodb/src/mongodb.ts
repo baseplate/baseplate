@@ -409,19 +409,31 @@ export class MongoDB extends DataConnector.DataConnector {
   async update(
     filter: QueryFilter,
     update: Record<string, any>,
-    Model: typeof BaseModel
+    Model: typeof BaseModel,
+    context: Context
   ) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
     const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
 
     try {
-      const {value: result} = await connection
+      const cursor = await connection
         .db(this.dbName)
         .collection(collectionName)
-        .findOneAndUpdate(query, {$set: update}, {returnOriginal: false})
+        .find(query, {projection: {_id: 1}})
+      const results = await cursor.toArray()
+      const ids = results.map((result) => this.decodeObjectId(result._id))
 
-      return this.encodeAndDecodeObjectIdsInEntry(result, Model, 'decode')
+      await connection
+        .db(this.dbName)
+        .collection(collectionName)
+        .updateMany(query, {$set: update})
+
+      const updatedResults = await this.findManyById({ids}, Model, context)
+
+      return {
+        results: updatedResults,
+      }
     } catch (error) {
       if (error.code === 11000) {
         throw new errors.UniqueConstraintViolatedError()

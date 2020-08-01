@@ -126,7 +126,7 @@ export abstract class DataConnector {
 }
 
 export interface FindManyByIdParameters {
-  fieldSet: FieldSet
+  fieldSet?: FieldSet
   filter?: QueryFilter
   ids: Array<string>
 }

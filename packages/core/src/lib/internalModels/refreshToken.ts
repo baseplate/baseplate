@@ -55,14 +55,14 @@ export default class Base$RefreshToken extends BaseModel {
 
   static async generateAndReplace(user: User, oldToken: string) {
     const {token, ttl} = this.generate(user)
-    const updatedEntries = await this.update({
+    const results = await this.update({
       authenticate: false,
       filter: QueryFilter.parse({token: oldToken}),
       update: {token},
     })
 
     return {
-      didReplace: updatedEntries.length > 0,
+      didReplace: results.length > 0,
       token,
       ttl,
     }

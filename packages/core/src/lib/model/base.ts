@@ -33,6 +33,13 @@ export interface AuthenticateParameters {
   user: UserModel
 }
 
+export interface AfterAuthenticateParameters {
+  access: AccessValue
+  accessType: AccessType
+  context: Context
+  user: UserModel
+}
+
 export interface CreateParameters {
   authenticate?: boolean
   context?: Context
@@ -119,21 +126,21 @@ export interface ToObjectParameters {
 }
 
 export default class BaseModel {
-  _createdAt: Date
-  _dirtyFields: Set<string>
-  _fields: Fields
-  _lastSync: Date
-  _unknownFields: Fields
-  _updatedAt: Date
-  _virtuals: Fields
+  base$createdAt: Date
+  base$dirtyFields: Set<string>
+  base$fields: Fields
+  base$lastSync: Date
+  base$unknownFields: Fields
+  base$updatedAt: Date
+  base$virtuals: Fields
 
   id: string
 
   constructor(fields: Fields, {fromDb}: {fromDb?: boolean} = {}) {
-    this._createdAt = undefined
-    this._dirtyFields = new Set(fromDb ? [] : Object.keys(fields))
-    this._lastSync = undefined
-    this._updatedAt = undefined
+    this.base$createdAt = undefined
+    this.base$dirtyFields = new Set(fromDb ? [] : Object.keys(fields))
+    this.base$lastSync = undefined
+    this.base$updatedAt = undefined
 
     this.base$hydrate(fields, {fromDb})
   }
@@ -150,11 +157,9 @@ export default class BaseModel {
   static base$schema?: Schema
   static base$settings?: {[key: string]: any}
 
-  static base$afterAuthenticate?(options: {
-    access: AccessValue
-    context: Context
-    user: UserModel
-  }): AccessValue
+  static base$afterAuthenticate?(
+    options: AfterAuthenticateParameters
+  ): AccessValue
 
   static async base$authenticate({
     accessType,
@@ -164,16 +169,13 @@ export default class BaseModel {
     user,
   }: AuthenticateParameters) {
     const Access = <typeof AccessModel>this.base$modelStore.get('base$access')
-    const access = await Access.getAccess({
+
+    let access = await Access.getAccess({
       accessType,
       context,
       modelName: this.base$handle,
       user,
     })
-
-    if (access.toObject() === false) {
-      throw user ? new ForbiddenError() : new UnauthorizedError()
-    }
 
     if (fieldSet) {
       access.fields = FieldSet.intersect(fieldSet, access.fields)
@@ -184,7 +186,11 @@ export default class BaseModel {
     }
 
     if (typeof this.base$afterAuthenticate === 'function') {
-      return this.base$afterAuthenticate({access, context, user})
+      access = this.base$afterAuthenticate({access, accessType, context, user})
+    }
+
+    if (access.toObject() === false) {
+      throw user ? new ForbiddenError() : new UnauthorizedError()
     }
 
     return access
@@ -493,8 +499,8 @@ export default class BaseModel {
   async base$create() {
     const fields = await (<typeof BaseModel>this.constructor).base$validate(
       {
-        ...this._fields,
-        ...this._unknownFields,
+        ...this.base$fields,
+        ...this.base$unknownFields,
       },
       {enforceRequiredFields: true}
     )
@@ -509,9 +515,11 @@ export default class BaseModel {
       _createdAt: new Date(),
     }
 
-    Object.keys({...this._fields, ...this._virtuals}).forEach((fieldName) => {
-      this._dirtyFields.delete(fieldName)
-    })
+    Object.keys({...this.base$fields, ...this.base$virtuals}).forEach(
+      (fieldName) => {
+        this.base$dirtyFields.delete(fieldName)
+      }
+    )
 
     const result = await (<typeof BaseModel>this.constructor).base$db.createOne(
       entry,
@@ -556,29 +564,29 @@ export default class BaseModel {
   base$hydrate(fields: Fields = {}, {fromDb}: {fromDb: boolean}) {
     const {base$schema: schema} = <typeof BaseModel>this.constructor
 
-    this._fields = {}
-    this._virtuals = {}
-    this._unknownFields = {}
+    this.base$fields = {}
+    this.base$virtuals = {}
+    this.base$unknownFields = {}
 
     Object.entries(fields).forEach(([name, value]) => {
       if (name === '_id') {
         this.id = value.toString()
       } else if (name === '_createdAt') {
-        this._createdAt = value
+        this.base$createdAt = value
       } else if (name === '_updatedAt') {
-        this._updatedAt = value
+        this.base$updatedAt = value
       } else if (schema.fields[name] !== undefined) {
-        this._fields[name] = value
+        this.base$fields[name] = value
       } else if (schema.virtuals[name] !== undefined) {
-        this._virtuals[name] = value
+        this.base$virtuals[name] = value
       } else {
-        this._unknownFields[name] = value
+        this.base$unknownFields[name] = value
       }
     })
 
     if (fromDb) {
-      this._dirtyFields = new Set()
-      this._lastSync = new Date()
+      this.base$dirtyFields = new Set()
+      this.base$lastSync = new Date()
     }
   }
 
@@ -615,7 +623,7 @@ export default class BaseModel {
   }
 
   base$runVirtualSetters(fields: Fields) {
-    const fieldsAfterSetters = Object.keys(this._virtuals).reduce(
+    const fieldsAfterSetters = Object.keys(this.base$virtuals).reduce(
       async (fieldsAfterSetters, name) => {
         const virtualSchema = (<typeof BaseModel>this.constructor).base$schema
           .virtuals[name]
@@ -637,14 +645,14 @@ export default class BaseModel {
   async base$update() {
     const fields = await (<typeof BaseModel>this.constructor).base$validate(
       {
-        ...this._fields,
-        ...this._unknownFields,
+        ...this.base$fields,
+        ...this.base$unknownFields,
       },
       {enforceRequiredFields: false}
     )
     const update = Object.entries(fields).reduce(
       (update, [fieldName, value]) => {
-        if (this._dirtyFields.has(fieldName)) {
+        if (this.base$dirtyFields.has(fieldName)) {
           return {
             ...update,
             [fieldName]: value,
@@ -657,7 +665,7 @@ export default class BaseModel {
     )
 
     Object.keys(update).forEach((fieldName) => {
-      this._dirtyFields.add(fieldName)
+      this.base$dirtyFields.add(fieldName)
     })
 
     const updatedResult = await (<typeof BaseModel>(
@@ -686,8 +694,8 @@ export default class BaseModel {
 
     if (field) {
       return typeof (field.options && field.options.get) === 'function'
-        ? field.options.get(this._fields[fieldName])
-        : this._fields[fieldName]
+        ? field.options.get(this.base$fields[fieldName])
+        : this.base$fields[fieldName]
     }
   }
 
@@ -696,8 +704,8 @@ export default class BaseModel {
   }
 
   set(fieldName: string, value: any) {
-    this._dirtyFields.add(fieldName)
-    this._fields[fieldName] = value
+    this.base$dirtyFields.add(fieldName)
+    this.base$fields[fieldName] = value
   }
 
   async toObject({
@@ -706,13 +714,13 @@ export default class BaseModel {
     includeVirtuals = true,
   }: ToObjectParameters = {}): Promise<Fields> {
     const fields: Fields = {
-      _createdAt: this._createdAt,
-      _updatedAt: this._updatedAt,
+      _createdAt: this.base$createdAt,
+      _updatedAt: this.base$updatedAt,
     }
     const virtuals: Fields = {}
 
     await Promise.all(
-      Object.keys(this._fields).map(async (name) => {
+      Object.keys(this.base$fields).map(async (name) => {
         if (fieldSet && name[0] !== '_' && !fieldSet.has(name)) {
           return
         }

@@ -1,9 +1,12 @@
 import {
   App,
+  createEntries,
+  createUser,
   forEachDataConnector,
   getAccessToken,
   Request,
   Response,
+  wipeModels,
 } from '../../../test/utils'
 
 import Author from '../../../test/models/Author'
@@ -233,7 +236,402 @@ forEachDataConnector((app: App, loadModels: Function) => {
         expect(createdUser.attributes.password).not.toBeDefined()
       })
 
-      test.todo('Shows just the requesting client if they are not an admin')
+      test('Shows just the requesting client if they are not an admin', async () => {
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user',
+          password: 'baseplate',
+        })
+        const req = new Request({
+          accessToken,
+          method: 'get',
+          url: '/base$users',
+        })
+        const res = new Response()
+
+        await app.routesRest.handler(req, res)
+
+        expect(res.statusCode).toBe(200)
+        expect(res.$body.data.length).toBe(1)
+        expect(res.$body.data[0].attributes.username).toBe('baseplate-user')
+      })
+    })
+
+    describe('Granting access to resources', () => {
+      test('Allows an admin user to grant a user access to a resource', async () => {
+        const author = {
+          firstName: 'José',
+          lastName: 'Saramago',
+        }
+        const authors = await createEntries('author', app, [author])
+        const user = await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user2',
+          password: 'baseplate',
+        })
+        const accessToken1 = await getAccessToken({
+          app,
+          username: 'baseplate-admin',
+          password: 'baseplate',
+        })
+        const accessToken2 = await getAccessToken({
+          app,
+          username: 'baseplate-user2',
+          password: 'baseplate',
+        })
+        const req1 = new Request({
+          accessToken: accessToken2,
+          method: 'get',
+          url: '/authors',
+        })
+        const res1 = new Response()
+
+        await app.routesRest.handler(req1, res1)
+
+        expect(res1.statusCode).toBe(403)
+
+        const req2 = new Request({
+          accessToken: accessToken1,
+          body: {
+            data: {
+              type: 'base$access',
+              attributes: {
+                read: true,
+              },
+              relationships: {
+                user: {
+                  data: {
+                    type: 'base$user',
+                    id: user.id,
+                  },
+                },
+              },
+            },
+          },
+          method: 'post',
+          url: '/base$models/author/access',
+        })
+        const res2 = new Response()
+
+        await app.routesRest.handler(req2, res2)
+
+        expect(res2.statusCode).toBe(201)
+        expect(res2.$body.data.length).toBe(1)
+        expect(res2.$body.data[0].type).toBe('base$access')
+        expect(typeof res2.$body.data[0].id).toBe('string')
+        expect(res2.$body.data[0].attributes.read).toBe(true)
+        expect(res2.$body.data[0].attributes.create).toBe(false)
+        expect(res2.$body.data[0].attributes.update).toBe(false)
+        expect(res2.$body.data[0].attributes.delete).toBe(false)
+        expect(res2.$body.data[0].relationships.user.data.type).toBe(
+          'base$user'
+        )
+        expect(res2.$body.data[0].relationships.user.data.id).toBe(user.id)
+        expect(res2.$body.data[0].links.self).toBe(
+          `/base$models/author/access/base$user_${user.id}`
+        )
+
+        const req3 = new Request({
+          accessToken: accessToken2,
+          method: 'get',
+          url: '/authors',
+        })
+        const res3 = new Response()
+
+        await app.routesRest.handler(req3, res3)
+
+        expect(res3.statusCode).toBe(200)
+        expect(res3.$body.data.length).toBe(1)
+        expect(res3.$body.data[0].type).toBe('author')
+        expect(res3.$body.data[0].id).toBe(authors[0].id)
+        expect(res3.$body.data[0].attributes).toEqual(author)
+
+        await wipeModels(['author'], app)
+      })
+
+      test('Returns an error if a non-admin user tries to grant another user access to a resource, if they have access to it themselves', async () => {
+        const author = {
+          firstName: 'José',
+          lastName: 'Saramago',
+        }
+
+        await createEntries('author', app, [author])
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user3',
+          password: 'baseplate',
+          permissions: {
+            author: {
+              read: true,
+              create: true,
+              update: true,
+              delete: true,
+            },
+          },
+        })
+
+        const grantee = await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user4',
+          password: 'baseplate',
+        })
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user3',
+          password: 'baseplate',
+        })
+        const req1 = new Request({
+          accessToken,
+          body: {
+            data: {
+              type: 'base$access',
+              attributes: {
+                read: true,
+              },
+              relationships: {
+                user: {
+                  data: {
+                    type: 'base$user',
+                    id: grantee.id,
+                  },
+                },
+              },
+            },
+          },
+          method: 'post',
+          url: '/base$models/book/access',
+        })
+        const res1 = new Response()
+
+        await app.routesRest.handler(req1, res1)
+
+        expect(res1.statusCode).toBe(403)
+
+        const req2 = new Request({
+          accessToken,
+          body: {
+            data: {
+              type: 'base$access',
+              attributes: {
+                read: true,
+              },
+              relationships: {
+                user: {
+                  data: {
+                    type: 'base$user',
+                    id: grantee.id,
+                  },
+                },
+              },
+            },
+          },
+          method: 'post',
+          url: '/base$models/author/access',
+        })
+        const res2 = new Response()
+
+        await app.routesRest.handler(req2, res2)
+
+        expect(res2.statusCode).toBe(403)
+      })
+    })
+
+    describe('Updating user access to resources', () => {
+      test("Allows an admin user to update a user's access to a resource", async () => {
+        const author = {
+          firstName: 'José',
+          lastName: 'Saramago',
+        }
+        const authors = await createEntries('author', app, [author])
+        const user = await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user5',
+          password: 'baseplate',
+          permissions: {
+            read: true,
+          },
+        })
+        const accessToken1 = await getAccessToken({
+          app,
+          username: 'baseplate-admin',
+          password: 'baseplate',
+        })
+        const accessToken2 = await getAccessToken({
+          app,
+          username: 'baseplate-user5',
+          password: 'baseplate',
+        })
+        const req1 = new Request({
+          accessToken: accessToken2,
+          body: {
+            data: {
+              type: 'author',
+              attributes: author,
+            },
+          },
+          method: 'post',
+          url: '/authors',
+        })
+        const res1 = new Response()
+
+        await app.routesRest.handler(req1, res1)
+
+        console.log('-> 1', JSON.stringify(res1))
+
+        //expect(res1.statusCode).toBe(201)
+
+        const req2 = new Request({
+          accessToken: accessToken1,
+          body: {
+            data: {
+              type: 'base$access',
+              attributes: {
+                create: true,
+              },
+            },
+          },
+          method: 'patch',
+          url: `/base$models/author/access/base$user_${authors[0].id}`,
+        })
+        const res2 = new Response()
+
+        await app.routesRest.handler(req2, res2)
+
+        console.log('-> 2', JSON.stringify(res2))
+
+        // expect(res2.statusCode).toBe(201)
+        // expect(res2.$body.data.length).toBe(1)
+        // expect(res2.$body.data[0].type).toBe('base$access')
+        // expect(typeof res2.$body.data[0].id).toBe('string')
+        // expect(res2.$body.data[0].attributes.read).toBe(true)
+        // expect(res2.$body.data[0].attributes.create).toBe(false)
+        // expect(res2.$body.data[0].attributes.update).toBe(false)
+        // expect(res2.$body.data[0].attributes.delete).toBe(false)
+        // expect(res2.$body.data[0].relationships.user.data.type).toBe(
+        //   'base$user'
+        // )
+        // expect(res2.$body.data[0].relationships.user.data.id).toBe(user.id)
+        // expect(res2.$body.data[0].links.self).toBe(
+        //   `/base$models/author/access/base$user_${user.id}`
+        // )
+
+        const req3 = new Request({
+          accessToken: accessToken1,
+          body: {
+            data: {
+              type: 'author',
+              attributes: author,
+            },
+          },
+          method: 'get',
+          url: '/base$models/author/access',
+        })
+        const res3 = new Response()
+
+        await app.routesRest.handler(req3, res3)
+
+        console.log('-> 3', JSON.stringify(res3))
+
+        // expect(res3.statusCode).toBe(200)
+        // expect(res3.$body.data.length).toBe(1)
+        // expect(res3.$body.data[0].type).toBe('author')
+        // expect(res3.$body.data[0].id).toBe(authors[0].id)
+        // expect(res3.$body.data[0].attributes).toEqual(author)
+
+        await wipeModels(['author'], app)
+      })
+
+      test.skip('Returns an error if a non-admin user tries to grant another user access to a resource, if they have access to it themselves', async () => {
+        const author = {
+          firstName: 'José',
+          lastName: 'Saramago',
+        }
+
+        await createEntries('author', app, [author])
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user6',
+          password: 'baseplate',
+          permissions: {
+            author: {
+              read: true,
+              create: true,
+              update: true,
+              delete: true,
+            },
+          },
+        })
+
+        const grantee = await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user6',
+          password: 'baseplate',
+        })
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user6',
+          password: 'baseplate',
+        })
+        const req1 = new Request({
+          accessToken,
+          body: {
+            data: {
+              type: 'base$access',
+              attributes: {
+                read: true,
+              },
+              relationships: {
+                user: {
+                  data: {
+                    type: 'base$user',
+                    id: grantee.id,
+                  },
+                },
+              },
+            },
+          },
+          method: 'post',
+          url: '/base$models/book/access',
+        })
+        const res1 = new Response()
+
+        await app.routesRest.handler(req1, res1)
+
+        expect(res1.statusCode).toBe(403)
+
+        const req2 = new Request({
+          accessToken,
+          body: {
+            data: {
+              type: 'base$access',
+              attributes: {
+                read: true,
+              },
+              relationships: {
+                user: {
+                  data: {
+                    type: 'base$user',
+                    id: grantee.id,
+                  },
+                },
+              },
+            },
+          },
+          method: 'post',
+          url: '/base$models/author/access',
+        })
+        const res2 = new Response()
+
+        await app.routesRest.handler(req2, res2)
+
+        expect(res2.statusCode).toBe(403)
+      })
     })
   })
 })
