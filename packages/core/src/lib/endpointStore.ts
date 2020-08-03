@@ -1,4 +1,5 @@
 import logger from './logger'
+import normalizeRoute from './utils/normalizeRoute'
 
 export interface Endpoint {
   route: string
@@ -36,17 +37,13 @@ export class EndpointStore {
     )
 
     this.endpoints.push({
-      route: source.route,
+      route: normalizeRoute(source.route),
       handler: methods,
     })
   }
 
   load(sources: EndpointDefinition[]) {
     sources.forEach((source) => this.loadEndpoint(source))
-  }
-
-  static normalizeRoute(route: string): string {
-    return route.startsWith('/') ? route : `/${route}`
   }
 }
 

@@ -1,5 +1,5 @@
 import {AccessValue} from '../accessValue'
-import BaseModel from '../model/base'
+import BaseModel, {AfterAuthenticateParameters} from '../model/base'
 import Context from '../context'
 import createModelAccessEntry from './accessControllers/createModelAccessEntry'
 import findModelAccessEntries from './accessControllers/findModelAccessEntries'
@@ -40,18 +40,10 @@ export default class Base$Access extends BaseModel {
       type: String,
       required: true,
     },
-    create: {
-      ...accessValueProps,
-    },
-    read: {
-      ...accessValueProps,
-    },
-    update: {
-      ...accessValueProps,
-    },
-    delete: {
-      ...accessValueProps,
-    },
+    create: accessValueProps,
+    read: accessValueProps,
+    update: accessValueProps,
+    delete: accessValueProps,
   }
 
   static base$routes = {
@@ -172,10 +164,12 @@ export default class Base$Access extends BaseModel {
   }
 
   static async updateAccessEntry({
+    context,
     modelName,
     update,
     user,
   }: {
+    context: Context
     modelName: string
     update: object
     user: User
@@ -195,7 +189,12 @@ export default class Base$Access extends BaseModel {
       filter.intersectWith(publicUserQuery)
     }
 
-    const {results} = await this.base$db.update(filter, update, this)
+    const results = await this.update({
+      context,
+      filter,
+      update,
+      user: context.get('base$user'),
+    })
 
     return results.map((result: DatabaseAccess) => {
       const id = this.encodeModelAccessKey(result.user)

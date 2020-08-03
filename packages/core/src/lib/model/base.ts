@@ -406,7 +406,7 @@ export default class BaseModel {
   }: UpdateParameters) {
     if (authenticate) {
       const access = await this.base$authenticate({
-        accessType: 'delete',
+        accessType: 'update',
         context,
         filter,
         user,
