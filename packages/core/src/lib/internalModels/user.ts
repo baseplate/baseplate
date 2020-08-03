@@ -53,7 +53,7 @@ export default class Base$User extends BaseModel {
     accessType,
     user,
   }: AfterAuthenticateParameters) {
-    if (accessType === 'read' && !user.isAdmin()) {
+    if (user && accessType === 'read' && !user.isAdmin()) {
       return new AccessValue({
         filter: {
           _id: user.id,

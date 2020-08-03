@@ -4,11 +4,12 @@ import {
   Request,
   Response,
   seconds,
-} from '../../../test/utils'
+  wipeModels,
+} from '../../../../test/utils'
 
-import Author from '../../../test/models/Author'
-import Book from '../../../test/models/Book'
-import Genre from '../../../test/models/Genre'
+import Author from '../../../../test/models/Author'
+import Book from '../../../../test/models/Book'
+import Genre from '../../../../test/models/Genre'
 
 forEachDataConnector((app: App, loadModels: Function) => {
   describe('Authentication', () => {
@@ -25,6 +26,10 @@ forEachDataConnector((app: App, loadModels: Function) => {
       )
 
       await loadModels([Author, Book, Genre])
+    })
+
+    afterAll(async () => {
+      await wipeModels(['base$user'], app)
     })
 
     test('Returns access and refresh tokens if the request contains a correct set of credentials', async () => {

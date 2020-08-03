@@ -6,7 +6,7 @@ import JsonApiRequest from '../../specs/jsonApi/request'
 import JsonApiResponse from '../../specs/jsonApi/response'
 import User from '../user'
 
-export default async function findModelAccessEntry(
+export default async function deleteModelAccessEntry(
   req: HttpRequest,
   res: HttpResponse,
   context: Context
@@ -38,28 +38,18 @@ export default async function findModelAccessEntry(
       user = <User>new UserModel({_id: userData.id})
     }
 
-    const entries = await this.getAccessEntries({
+    const {deleteCount} = await this.deleteAccessEntry({
+      context,
       modelName: req.params.modelName,
+      update: jsonApiReq.bodyFields,
       user,
     })
 
-    if (entries.length === 0) {
+    if (deleteCount === 0) {
       throw new EntryNotFoundError({id: req.params.id})
     }
 
-    const references = await jsonApiReq.resolveRelationships({
-      entries,
-      Model,
-      user: context.get('base$user'),
-    })
-    const jsonApiRes = new JsonApiResponse({
-      entries: entries[0],
-      includedReferences: Object.values(references),
-      res,
-      url: jsonApiReq.url,
-    })
-
-    return jsonApiRes.end()
+    return res.status(204).end()
   } catch (errors) {
     const jsonApiRes = new JsonApiResponse({
       errors,

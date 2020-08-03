@@ -52,6 +52,10 @@ forEachDataConnector((app: App, loadModels: Function) => {
       ])
     })
 
+    afterAll(async () => {
+      await wipeModels(['author', 'book', 'base$access', 'base$user'], app)
+    })
+
     test('Returns an error when trying to find a resource of a model that does not exist', async () => {
       const accessToken = await getAccessToken({
         app,
@@ -290,7 +294,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res.$body.links.self).toBe(url)
     })
 
-    test('Does not included referenced resources for which the requesting client does not have sufficient permissions for', async () => {
+    test('Does not include referenced resources to which the requesting client does not have access', async () => {
       await createUser({
         accessLevel: 'user',
         app,
@@ -351,6 +355,109 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res2.$body.data.relationships.author.data.type).toBe('author')
       expect(res2.$body.data.relationships.author.data.id).toBe(authors[1].id)
       expect(res2.$body.included).toBeUndefined()
+    })
+
+    describe('Retrieving linked resources', () => {
+      test('Returns the resource linked by a relationship field', async () => {
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user7',
+          password: 'baseplate',
+          permissions: {
+            author: {
+              read: true,
+            },
+            book: {
+              read: true,
+            },
+          },
+        })
+
+        const url = `/books/${books[0].id}/author`
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user7',
+          password: 'baseplate',
+        })
+        const req = new Request({
+          accessToken,
+          method: 'get',
+          url,
+        })
+        const res = new Response()
+
+        await app.routesRest.handler(req, res)
+
+        expect(res.statusCode).toBe(200)
+        expect(res.$body.data.id).toBe(authors[0].id)
+        expect(res.$body.data.attributes).toEqual(author1)
+        expect(res.$body.links.self).toBe(url)
+      })
+
+      test('Returns an error if the requesting client does not have access to the parent resource', async () => {
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user8',
+          password: 'baseplate',
+          permissions: {
+            author: {
+              read: true,
+            },
+          },
+        })
+
+        const url = `/books/${books[0].id}/author`
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user8',
+          password: 'baseplate',
+        })
+        const req = new Request({
+          accessToken,
+          method: 'get',
+          url,
+        })
+        const res = new Response()
+
+        await app.routesRest.handler(req, res)
+
+        expect(res.statusCode).toBe(403)
+        expect(res.$body.errors).toBeInstanceOf(Array)
+      })
+
+      test('Returns an error if the requesting client does not have access to the linked resource', async () => {
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user9',
+          password: 'baseplate',
+          permissions: {
+            book: {
+              read: true,
+            },
+          },
+        })
+
+        const url = `/books/${books[0].id}/author`
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user9',
+          password: 'baseplate',
+        })
+        const req = new Request({
+          accessToken,
+          method: 'get',
+          url,
+        })
+        const res = new Response()
+
+        await app.routesRest.handler(req, res)
+
+        expect(res.statusCode).toBe(403)
+        expect(res.$body.errors).toBeInstanceOf(Array)
+      })
     })
   })
 })

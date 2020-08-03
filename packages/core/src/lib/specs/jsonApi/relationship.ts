@@ -1,3 +1,4 @@
+import {CustomError} from '@baseplate/validator'
 import FieldSet from '../../fieldSet'
 import {LinksBlock} from './entry'
 import JsonApiModel from './model'
@@ -5,7 +6,8 @@ import JsonApiModel from './model'
 export type IncludeMap = Record<string, any>
 
 export interface IncludedRelationship {
-  entry: JsonApiModel
+  entry?: JsonApiModel
+  error?: CustomError
   fieldSet?: FieldSet
 }
 

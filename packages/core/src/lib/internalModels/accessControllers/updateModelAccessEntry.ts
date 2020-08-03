@@ -6,7 +6,7 @@ import JsonApiRequest from '../../specs/jsonApi/request'
 import JsonApiResponse from '../../specs/jsonApi/response'
 import User from '../user'
 
-async function updateModelAccessEntry(
+export default async function updateModelAccessEntry(
   req: HttpRequest,
   res: HttpResponse,
   context: Context
@@ -74,5 +74,3 @@ async function updateModelAccessEntry(
     return jsonApiRes.end()
   }
 }
-
-export default updateModelAccessEntry

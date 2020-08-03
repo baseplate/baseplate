@@ -1,6 +1,10 @@
 import {CustomError} from '@baseplate/validator'
 
-import {InvalidQueryParameterError} from '../../errors'
+import {
+  ForbiddenError,
+  InvalidQueryParameterError,
+  ModelNotFoundError,
+} from '../../errors'
 import AccessModel from '../../internalModels/access'
 import BaseModel from '../../model/base'
 import Context from '../../context'
@@ -177,7 +181,11 @@ export default class JsonApiRequest {
     const queue = relationshipValue.filter(Boolean).map(async ({id, type}) => {
       const ReferencedModel = modelStore.get(type)
 
-      if (!ReferencedModel) return null
+      if (!ReferencedModel) {
+        return {
+          error: new ModelNotFoundError({name: type}),
+        }
+      }
 
       const access = await Access.getAccess({
         accessType: 'read',
@@ -187,7 +195,9 @@ export default class JsonApiRequest {
       })
 
       if (access.toObject() === false) {
-        return null
+        return {
+          error: new ForbiddenError(),
+        }
       }
 
       const fieldSet = FieldSet.intersect(access.fields, this.fields[type])
@@ -276,6 +286,22 @@ export default class JsonApiRequest {
             modelStore: Model.base$modelStore,
             referencesHash,
             user,
+          }).then((relationship) => {
+            const normalizedRelationship = Array.isArray(relationship)
+              ? relationship
+              : [relationship]
+            const relationshipErrors = normalizedRelationship.reduce(
+              (errors, relationship) =>
+                relationship.error ? errors.concat(relationship.error) : errors,
+              []
+            )
+
+            if (relationshipErrors.length > 0) {
+              errors[fieldName] = <CustomError>new Error()
+              errors[fieldName].childErrors = relationshipErrors
+            }
+
+            return relationship
           })
         )
       })

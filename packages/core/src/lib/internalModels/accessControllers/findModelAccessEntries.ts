@@ -6,7 +6,7 @@ import JsonApiModel from '../../specs/jsonApi/model'
 import JsonApiRequest from '../../specs/jsonApi/request'
 import JsonApiResponse from '../../specs/jsonApi/response'
 
-async function findModelAccessEntries(
+export default async function findModelAccessEntries(
   req: HttpRequest,
   res: HttpResponse,
   context: Context
@@ -46,5 +46,3 @@ async function findModelAccessEntries(
     return jsonApiRes.end()
   }
 }
-
-export default findModelAccessEntries

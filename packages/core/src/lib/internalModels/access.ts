@@ -2,6 +2,7 @@ import {AccessValue} from '../accessValue'
 import BaseModel, {AfterAuthenticateParameters} from '../model/base'
 import Context from '../context'
 import createModelAccessEntry from './accessControllers/createModelAccessEntry'
+import deleteModelAccessEntry from './accessControllers/deleteModelAccessEntry'
 import findModelAccessEntries from './accessControllers/findModelAccessEntries'
 import findModelAccessEntry from './accessControllers/findModelAccessEntry'
 import JsonApiEntry from '../specs/jsonApi/entry'
@@ -52,6 +53,7 @@ export default class Base$Access extends BaseModel {
       post: createModelAccessEntry,
     },
     '/base$models/:modelName/access/:id': {
+      delete: deleteModelAccessEntry,
       get: findModelAccessEntry,
       patch: updateModelAccessEntry,
     },
@@ -70,6 +72,28 @@ export default class Base$Access extends BaseModel {
         modelName: key.slice(0, separatorIndex),
       }
     }
+  }
+
+  static async deleteAccessEntry({
+    context,
+    modelName,
+    user,
+  }: {
+    context: Context
+    modelName: string
+    user: User
+  }) {
+    const filter = QueryFilter.parse({
+      model: modelName,
+      'user.id': user.id,
+      'user.type': (<typeof User>user.constructor).base$handle,
+    })
+
+    return this.delete({
+      context,
+      filter,
+      user: context.get('base$user'),
+    })
   }
 
   static encodeModelAccessKey(user: Record<string, any>) {
@@ -196,10 +220,10 @@ export default class Base$Access extends BaseModel {
       user: context.get('base$user'),
     })
 
-    return results.map((result: DatabaseAccess) => {
-      const id = this.encodeModelAccessKey(result.user)
+    return results.map((result: BaseModel) => {
+      result.id = this.encodeModelAccessKey(result.get('user'))
 
-      return new this({...result, _id: id})
+      return result
     })
   }
 
