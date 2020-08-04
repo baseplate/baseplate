@@ -253,12 +253,6 @@ function getQueries(Model: typeof BaseModel) {
             user: context.get('base$user'),
           })
 
-          const a = await Promise.all(
-            entries.map((entry: BaseModel) =>
-              entry.toObject({includeModelInstance: true})
-            )
-          )
-
           return entries.map((entry: BaseModel) =>
             entry.toObject({includeModelInstance: true})
           )
@@ -292,19 +286,11 @@ function getQueries(Model: typeof BaseModel) {
                 : null
             )
             .filter(Boolean)
-          const access = await AccessModel.getAccess({
-            accessType: 'read',
-            modelName: Model.base$handle,
-            user: context.get('base$user'),
-          })
           const entry = await Model.findOneById({
             context,
-            fieldSet: FieldSet.intersect(
-              new FieldSet(requestedFields),
-              access.fields
-            ),
-            filter: access.filter,
+            fieldSet: new FieldSet(requestedFields),
             id,
+            user: context.get('base$user'),
           })
 
           return entry && entry.toObject({includeModelInstance: true})

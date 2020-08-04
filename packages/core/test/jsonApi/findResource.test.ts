@@ -119,7 +119,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res2.$body.errors).toBeInstanceOf(Array)
     })
 
-    test('Returns an error when the requesting client is forbidden access to the resource because of a permissions filter', async () => {
+    test('Returns an error when the requesting client does not have access to the resource because of a permissions filter', async () => {
       await createUser({
         accessLevel: 'user',
         app,

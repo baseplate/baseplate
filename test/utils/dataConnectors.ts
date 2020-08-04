@@ -1,10 +1,15 @@
-import type {modelStore, routesRest} from '../../packages/core/src'
+import type {
+  modelStore,
+  routesGraphQL,
+  routesRest,
+} from '../../packages/core/src'
 import * as mongoDB from '../../packages/db-mongodb/src'
 import * as postgreSQL from '../../packages/db-postgresql/src'
 
 export type App = {
   initialize: Function
   modelStore: typeof modelStore
+  routesGraphQL: typeof routesGraphQL
   routesRest: typeof routesRest
 }
 

@@ -57,7 +57,7 @@ export default class CoreFieldReference extends FieldReference.FieldHandler {
 
         const Access = <typeof AccessModel>modelStore.get('base$access')
         const access = await Access.getAccess({
-          accessType: 'create',
+          accessType: 'read',
           context,
           modelName: ReferencedModel.base$handle,
           user: context.get('base$user'),
