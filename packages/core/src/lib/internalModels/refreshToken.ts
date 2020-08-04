@@ -18,7 +18,7 @@ export default class Base$RefreshToken extends BaseModel {
 
   static async deleteToken(token: string) {
     const filter = QueryFilter.parse({token})
-    const {deleteCount} = await super.delete({filter})
+    const {deleteCount} = await super.delete({authenticate: false, filter})
 
     return deleteCount > 0
   }
