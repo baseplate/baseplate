@@ -357,7 +357,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res2.$body.included).toBeUndefined()
     })
 
-    describe('Retrieving linked resources', () => {
+    describe('Retrieving resources linked by a relationship field', () => {
       test('Returns the resource linked by a relationship field', async () => {
         await createUser({
           accessLevel: 'user',
@@ -457,6 +457,111 @@ forEachDataConnector((app: App, loadModels: Function) => {
 
         expect(res.statusCode).toBe(403)
         expect(res.$body.errors).toBeInstanceOf(Array)
+      })
+    })
+
+    describe('Retrieving relationships', () => {
+      test('Returns a relationship', async () => {
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user10',
+          password: 'baseplate',
+          permissions: {
+            author: {
+              read: true,
+            },
+            book: {
+              read: true,
+            },
+          },
+        })
+
+        const url = `/books/${books[0].id}/relationships/author`
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user10',
+          password: 'baseplate',
+        })
+        const req = new Request({
+          accessToken,
+          method: 'get',
+          url,
+        })
+        const res = new Response()
+
+        await app.routesRest.handler(req, res)
+
+        expect(res.statusCode).toBe(200)
+        expect(res.$body.data.type).toEqual('author')
+        expect(res.$body.data.id).toBe(authors[0].id)
+        expect(res.$body.links.self).toBe(url)
+      })
+
+      test('Returns an error if the requesting client does not have access to the parent resource', async () => {
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user11',
+          password: 'baseplate',
+          permissions: {
+            author: {
+              read: true,
+            },
+          },
+        })
+
+        const url = `/books/${books[0].id}/relationships/author`
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user8',
+          password: 'baseplate',
+        })
+        const req = new Request({
+          accessToken,
+          method: 'get',
+          url,
+        })
+        const res = new Response()
+
+        await app.routesRest.handler(req, res)
+
+        expect(res.statusCode).toBe(403)
+        expect(res.$body.errors).toBeInstanceOf(Array)
+      })
+
+      test('Returns the relationship even if the requesting client does not have access to the linked resource', async () => {
+        await createUser({
+          accessLevel: 'user',
+          app,
+          username: 'baseplate-user12',
+          password: 'baseplate',
+          permissions: {
+            book: {
+              read: true,
+            },
+          },
+        })
+
+        const url = `/books/${books[0].id}/relationships/author`
+        const accessToken = await getAccessToken({
+          app,
+          username: 'baseplate-user9',
+          password: 'baseplate',
+        })
+        const req = new Request({
+          accessToken,
+          method: 'get',
+          url,
+        })
+        const res = new Response()
+
+        await app.routesRest.handler(req, res)
+
+        expect(res.statusCode).toBe(200)
+        expect(res.$body.data.type).toEqual('author')
+        expect(res.$body.data.id).toBe(authors[0].id)
+        expect(res.$body.links.self).toBe(url)
       })
     })
   })

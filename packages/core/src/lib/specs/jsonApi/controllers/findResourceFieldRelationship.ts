@@ -52,7 +52,11 @@ export default async function (
       })
     }
 
-    const entry = await Model.findOneById({context, id})
+    const entry = await Model.findOneById({
+      context,
+      id,
+      user: context.get('base$user'),
+    })
 
     if (!entry) {
       throw new EntryNotFoundError({id})

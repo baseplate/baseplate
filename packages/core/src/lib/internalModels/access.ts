@@ -227,10 +227,7 @@ export default class Base$Access extends BaseModel {
     })
   }
 
-  base$jsonApiPostFormat(
-    formattedEntry: JsonApiEntry,
-    originalEntry: BaseModel
-  ) {
+  base$jsonApiPostFormat(formattedEntry: JsonApiEntry) {
     formattedEntry.attributes.model = undefined
     formattedEntry.relationships.user.links = undefined
 
