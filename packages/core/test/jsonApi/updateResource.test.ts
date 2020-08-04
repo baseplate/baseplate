@@ -26,6 +26,10 @@ forEachDataConnector((app: App, loadModels: Function) => {
       await loadModels([Author, Book, Genre])
     })
 
+    afterAll(async () => {
+      await wipeModels(['base$user'], app)
+    })
+
     test('Returns an error when trying to update resources on a model that does not exist', async () => {
       const accessToken = await getAccessToken({
         app,

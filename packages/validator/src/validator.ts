@@ -2,8 +2,6 @@ import {primitives as primitiveTypes, system as systemTypes} from './types'
 import {NormalizedField} from './field'
 import {CustomError, EntryValidationError, FieldValidationError} from './errors'
 
-type Schema = Record<string, NormalizedField>
-
 interface ValidateFieldParameters {
   field: NormalizedField
   path: Array<string>
@@ -15,7 +13,7 @@ interface ValidateObjectParameters {
   ignoreFields?: Array<string>
   object: any
   path?: Array<string>
-  schema: Schema
+  schema: Record<string, NormalizedField>
   validateMetaFields?: boolean
 }
 
