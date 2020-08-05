@@ -8,4 +8,5 @@ module.exports = {
   collectCoverage: true,
   collectCoverageFrom: ['**/src/**'],
   preset: '@shelf/jest-mongodb',
+  setupFiles: ['jest-date-mock'],
 }

@@ -58,16 +58,43 @@ function isHandlerNestedObject(
 }
 
 function getInputFields(Model: typeof BaseModel) {
+  if (Model.base$graphQL.inputFields) {
+    return Model.base$graphQL.inputFields
+  }
+
   const fields = getTypesFromFieldHandlers(
     Model.base$schema.fieldHandlers,
     Model,
     'input'
   )
 
-  return {
+  Model.base$graphQL.inputFields = {
     ...fields,
     ...getTypesFromVirtuals(Model),
   }
+
+  return Model.base$graphQL.inputFields
+}
+
+function getInputFieldsWithRequiredConstraints(Model: typeof BaseModel) {
+  const fields = getInputFields(Model)
+  const fieldsWithRequiredConstraints = Object.keys(fields).reduce(
+    (result, name) => {
+      const {options} = Model.base$schema.fields[name] || {}
+
+      return {
+        ...result,
+        [name]: {
+          type: options.required
+            ? GraphQLNonNull(fields[name].type)
+            : fields[name].type,
+        },
+      }
+    },
+    {}
+  )
+
+  return fieldsWithRequiredConstraints
 }
 
 function getMutations(Model: typeof BaseModel) {
@@ -75,18 +102,26 @@ function getMutations(Model: typeof BaseModel) {
     return Model.base$graphQL.mutations
   }
 
-  const inputFields = getInputFields(Model)
+  const entryType = getObjectType(Model)
   const mutations: Map<string, Mutation> = new Map()
 
   if (Model.base$interfaces.graphQLCreateResource) {
     const mutationName = camelize(`create_${Model.base$handle}`, false)
+    const createInputType = new GraphQLInputObjectType({
+      name: camelize(`create_${Model.base$handle}_input_type`),
+      fields: getInputFieldsWithRequiredConstraints(Model),
+    })
 
     mutations.set(mutationName, {
-      type: getObjectType(Model),
-      args: inputFields,
-      resolve: async (_root: any, fields: object, context: Context) => {
+      type: entryType,
+      args: {
+        data: {
+          type: GraphQLNonNull(createInputType),
+        },
+      },
+      resolve: async (_root: any, {data}: {data: object}, context: Context) => {
         try {
-          const entry = await Model.create(fields, {
+          const entry = await Model.create(data, {
             context,
             user: context.get('base$user'),
           })
@@ -104,7 +139,7 @@ function getMutations(Model: typeof BaseModel) {
 
     mutations.set(mutationName, {
       type: GraphQLDeleteResponse,
-      args: {_id: {type: GraphQLNonNull(GraphQLID)}},
+      args: {id: {type: GraphQLNonNull(GraphQLID)}},
       resolve: async (
         _root: any,
         {_id: id}: {_id: string},
@@ -137,16 +172,20 @@ function getMutations(Model: typeof BaseModel) {
 
   if (Model.base$interfaces.graphQLUpdateResource) {
     const mutationName = camelize(`update_${Model.base$handle}`, false)
+    const updateInputType = new GraphQLInputObjectType({
+      name: camelize(`update_${Model.base$handle}_update_type`),
+      fields: getInputFields(Model),
+    })
 
     mutations.set(mutationName, {
-      type: getObjectType(Model),
+      type: entryType,
       args: {
-        ...inputFields,
-        _id: {type: GraphQLNonNull(GraphQLID)},
+        id: {type: GraphQLNonNull(GraphQLID)},
+        update: {type: GraphQLNonNull(updateInputType)},
       },
       resolve: async (
         _root: any,
-        {_id: id, ...update}: Record<string, any>,
+        {id, update}: {id: string; update: Record<string, any>},
         context: Context
       ) => {
         try {
@@ -158,6 +197,52 @@ function getMutations(Model: typeof BaseModel) {
           })
 
           return entry.toObject({includeModelInstance: true})
+        } catch (error) {
+          throw new GraphQLError(error)
+        }
+      },
+    })
+  }
+
+  if (Model.base$interfaces.graphQLUpdateResources) {
+    const mutationName = camelize(`update_${Model.base$handlePlural}`, false)
+    const filterInputType = new GraphQLInputObjectType({
+      name: camelize(`update_${Model.base$handlePlural}_filter_type`),
+      fields: {
+        ...getInputFields(Model),
+        _id: {type: GraphQLID},
+      },
+    })
+    const updateInputType = new GraphQLInputObjectType({
+      name: camelize(`update_${Model.base$handlePlural}_update_type`),
+      fields: getInputFields(Model),
+    })
+
+    mutations.set(mutationName, {
+      type: new GraphQLList(entryType),
+      args: {
+        filter: {type: GraphQLNonNull(filterInputType)},
+        update: {type: GraphQLNonNull(updateInputType)},
+      },
+      resolve: async (
+        _root: any,
+        {
+          filter,
+          update,
+        }: {filter: Record<string, any>; update: Record<string, any>},
+        context: Context
+      ) => {
+        try {
+          const entries = await Model.update({
+            context,
+            filter: QueryFilter.parse(filter, '_'),
+            update,
+            user: context.get('base$user'),
+          })
+
+          return entries.map((entry: BaseModel) =>
+            entry.toObject({includeModelInstance: true})
+          )
         } catch (error) {
           throw new GraphQLError(error)
         }

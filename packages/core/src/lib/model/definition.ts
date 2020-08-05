@@ -9,6 +9,7 @@ export enum Interfaces {
   graphQLFindResource = 'graphQLFindResource',
   graphQLFindResources = 'graphQLFindResources',
   graphQLUpdateResource = 'graphQLUpdateResource',
+  graphQLUpdateResources = 'graphQLUpdateResources',
   restCreateResource = 'restCreateResource',
   restDeleteResource = 'restDeleteResource',
   restFindResource = 'restFindResource',

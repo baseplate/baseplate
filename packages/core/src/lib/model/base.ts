@@ -420,7 +420,7 @@ export default class BaseModel {
     })
     const {results} = await this.base$db.update(
       filter,
-      validatedUpdate,
+      {...validatedUpdate, _updatedAt: new Date()},
       this,
       context
     )
@@ -451,7 +451,7 @@ export default class BaseModel {
     })
     const result = await this.base$db.updateOneById(
       id,
-      validatedUpdate,
+      {...validatedUpdate, _updatedAt: new Date()},
       this,
       context
     )

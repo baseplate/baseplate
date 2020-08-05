@@ -3,12 +3,8 @@ import type GraphQL from 'graphql'
 
 export default class CoreFieldString extends FieldString.FieldHandler {
   getGraphQLInputType(graphql: typeof GraphQL, fieldName: string) {
-    const type = this.options.required
-      ? graphql.GraphQLNonNull(graphql.GraphQLString)
-      : graphql.GraphQLString
-
     return {
-      type,
+      type: graphql.GraphQLString,
     }
   }
 
