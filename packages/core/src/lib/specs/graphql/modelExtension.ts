@@ -14,8 +14,6 @@ import {
 
 import {FieldHandler} from '../../fieldTypes'
 import {FieldHandlers, NestedObjectMarker} from '../../schema'
-import {ForbiddenError, UnauthorizedError} from '../../errors'
-import AccessModel from '../../internalModels/access'
 import type BaseModel from '../../model/base'
 import Context from '../../context'
 import FieldSet from '../../fieldSet'
