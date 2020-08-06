@@ -140,25 +140,13 @@ function getMutations(Model: typeof BaseModel) {
     mutations.set(mutationName, {
       type: GraphQLDeleteResponse,
       args: {id: {type: GraphQLNonNull(GraphQLID)}},
-      resolve: async (
-        _root: any,
-        {_id: id}: {_id: string},
-        context: Context
-      ) => {
+      resolve: async (_root: any, {id}: {id: string}, context: Context) => {
         try {
-          const access = await AccessModel.getAccess({
-            accessType: 'delete',
-            modelName: Model.base$handle,
+          const {deleteCount} = await Model.deleteOneById({
+            context,
+            id,
             user: context.get('base$user'),
           })
-
-          if (access.toObject() === false) {
-            throw context.get('base$user')
-              ? new ForbiddenError()
-              : new UnauthorizedError()
-          }
-
-          const {deleteCount} = await Model.deleteOneById({id})
 
           return {
             deleteCount,
