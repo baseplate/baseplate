@@ -13,7 +13,7 @@ import HttpRequest from '../../http/request'
 import JsonApiModel from './model'
 import JsonApiURL from './url'
 import type {ModelStore} from '../../modelStore'
-import QueryFilter from '../../queryFilter'
+import QueryFilter from '../../queryFilter/'
 import {
   IncludedRelationship,
   IncludeMap,
@@ -89,7 +89,6 @@ export default class JsonApiRequest {
     )
 
     this.fields = fields
-    this.filter = url.getQueryParameter('filter')
     this.includeMap = includeMap || {}
     this.pageNumber = pageNumber
     this.pageSize = pageSize
@@ -139,6 +138,10 @@ export default class JsonApiRequest {
     return fields
   }
 
+  getQueryFilter(prefix = '$') {
+    return new QueryFilter(this.url.getQueryParameter('filter'), prefix)
+  }
+
   // Takes an entry, a name of a relationship and an include map. Fetches the
   // corresponding entries from the referenced models.
   // An include map is an object that specifies what relationships to resolve,
@@ -165,13 +168,9 @@ export default class JsonApiRequest {
     IncludedRelationship | Array<IncludedRelationship>
   > {
     const fieldValue = entry.get(fieldName)
+    const schema = (<typeof BaseModel>entry.constructor).base$schema
 
-    if (
-      !fieldValue ||
-      !(<typeof BaseModel>entry.constructor).base$schema.isReferenceField(
-        fieldName
-      )
-    ) {
+    if (!fieldValue || schema.fields[fieldName].type !== 'reference') {
       return null
     }
 
@@ -263,12 +262,10 @@ export default class JsonApiRequest {
     >> = []
 
     entries.forEach((entry) => {
+      const schema = (<typeof Model>entry.constructor).base$schema
+
       Object.keys(includeMap).forEach((fieldName) => {
-        if (
-          !(<typeof Model>entry.constructor).base$schema.isReferenceField(
-            fieldName
-          )
-        ) {
+        if (schema.fields[fieldName].type !== 'reference') {
           errors[fieldName] = new InvalidQueryParameterError({
             name: 'include',
             value: fieldName,

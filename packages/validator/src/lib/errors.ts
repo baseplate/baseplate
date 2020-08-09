@@ -1,19 +1,17 @@
-type Path = Array<string>
-
 export abstract class CustomError extends Error {
   childErrors?: Array<CustomError>
   detail?: string
-  path?: Path
+  path?: string[]
   statusCode: number
   title: string
 }
 
 export class CastError extends CustomError {
   detail: string
-  path: Path
+  path: string[]
   statusCode: number
 
-  constructor({path, type, value}: {path: Path; type: string; value: any}) {
+  constructor({path, type, value}: {path: string[]; type: string; value: any}) {
     const pathStr = path.join('.')
     const valueStr = value.toString()
 
@@ -30,7 +28,7 @@ export class CastError extends CustomError {
 
 export class EntryValidationError extends CustomError {
   childErrors: Array<CustomError>
-  path: Path
+  path: string[]
   statusCode: number
 
   constructor({
@@ -38,7 +36,7 @@ export class EntryValidationError extends CustomError {
     path,
   }: {
     fieldErrors: Array<CustomError>
-    path: Path
+    path: string[]
   }) {
     super('Entry validation error')
 
@@ -52,7 +50,7 @@ export class FieldValidationError extends CustomError {
   detail: string
   expected: string
   message: string
-  path: Path
+  path: string[]
   statusCode: number
   type: string
 
@@ -66,7 +64,7 @@ export class FieldValidationError extends CustomError {
     detail?: string
     expected?: string
     message?: string
-    path?: Path
+    path?: string[]
     type?: string
   } = {}) {
     switch (type) {
@@ -97,5 +95,11 @@ export class FieldValidationError extends CustomError {
     this.path = path
     this.statusCode = 400
     this.type = type
+  }
+}
+
+export class InvalidFieldTypeError extends CustomError {
+  constructor({typeName}: {typeName: string}) {
+    super(`${typeName} is not a valid type`)
   }
 }

@@ -1,7 +1,7 @@
 import jwt from 'jsonwebtoken'
 
 import BaseModel from '../model/base'
-import QueryFilter from '../queryFilter'
+import QueryFilter from '../queryFilter/'
 import User from './user'
 
 const TOKEN_EXPIRATION = 360000
@@ -17,7 +17,7 @@ export default class Base$RefreshToken extends BaseModel {
   }
 
   static async deleteToken(token: string) {
-    const filter = QueryFilter.parse({token})
+    const filter = new QueryFilter({token})
     const {deleteCount} = await super.delete({authenticate: false, filter})
 
     return deleteCount > 0
@@ -57,7 +57,7 @@ export default class Base$RefreshToken extends BaseModel {
     const {token, ttl} = this.generate(user)
     const results = await this.update({
       authenticate: false,
-      filter: QueryFilter.parse({token: oldToken}),
+      filter: new QueryFilter({token: oldToken}),
       update: {token},
     })
 

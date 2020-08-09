@@ -1,7 +1,7 @@
-import {FieldBoolean} from '@baseplate/validator'
+import {types} from '@baseplate/validator'
 import type GraphQL from 'graphql'
 
-export default class CoreFieldBoolean extends FieldBoolean.FieldHandler {
+export default class CoreFieldBoolean extends types.FieldBoolean {
   getGraphQLInputType(graphql: typeof GraphQL, fieldName: string) {
     const type = this.options.required
       ? graphql.GraphQLNonNull(graphql.GraphQLBoolean)

@@ -74,7 +74,9 @@ export class MongoDB extends DataConnector.DataConnector {
           encodedValue = opMethod(value)
         }
 
-        if (Model.base$schema.isReferenceField(fieldName)) {
+        const fieldSchema = Model.base$schema.fields[fieldName]
+
+        if (fieldSchema && fieldSchema.type === 'reference') {
           const references = Array.isArray(value) ? value : [value]
           const encodedReferences = references.map((reference) => {
             return reference && reference.id
@@ -121,8 +123,11 @@ export class MongoDB extends DataConnector.DataConnector {
       //
       // (!) TO DO: This should be a more comprehensive mechanism that is able
       // to detect every single place a node might need to be cast to ObjectID.
+      const fieldSchema = Model.base$schema.fields[fieldPathNodes[0]]
+
       if (
-        (Model.base$schema.isReferenceField(fieldPathNodes[0]) &&
+        (fieldSchema &&
+          fieldSchema.type === 'reference' &&
           fieldPathNodes[1] === 'id') ||
         fieldPath === '_id'
       ) {
@@ -194,7 +199,9 @@ export class MongoDB extends DataConnector.DataConnector {
   async delete(filter: QueryFilter, Model: typeof BaseModel) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
+    const query = filter
+      ? this.encodeQuery(filter, Model).toObject({prefix: '$'})
+      : {}
     const {result} = await connection
       .db(this.dbName)
       .collection(collectionName)
@@ -236,7 +243,13 @@ export class MongoDB extends DataConnector.DataConnector {
       options.skip = (pageNumber - 1) * pageSize
     }
 
-    const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
+    const query = filter
+      ? this.encodeQuery(filter, Model).toObject({
+          // fieldTransform: Model.base$schema.transformQueryFilterField.bind(
+          //   Model.base$schema
+          // ),
+        })
+      : {}
     const cursor = await connection
       .db(this.dbName)
       .collection(collectionName)
@@ -266,7 +279,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const options = {
       projection: this.getProjectionFromFieldSet(fieldSet),
     }
-    const query = QueryFilter.parse({_id: {$in: encodedIds}}, '$')
+    const query = new QueryFilter({_id: {$in: encodedIds}}, '$')
 
     if (filter) {
       query.intersectWith(filter)
@@ -275,7 +288,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const results = await connection
       .db(this.dbName)
       .collection(collectionName)
-      .find(query.toObject('$'), options)
+      .find(query.toObject({prefix: '$'}), options)
       .toArray()
     const decodedResults: DataConnector.Results = results.map(
       (result: DataConnector.Result) =>
@@ -308,7 +321,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const options = {
       projection: this.getProjectionFromFieldSet(fieldSet),
     }
-    const query = QueryFilter.parse({_id: encodedId}, '$')
+    const query = new QueryFilter({_id: encodedId}, '$')
 
     if (filter) {
       query.intersectWith(filter)
@@ -317,7 +330,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const result = await connection
       .db(this.dbName)
       .collection(collectionName)
-      .findOne(query.toObject('$'), options)
+      .findOne(query.toObject({prefix: '$'}), options)
     const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
       result,
       Model,
@@ -402,7 +415,11 @@ export class MongoDB extends DataConnector.DataConnector {
         })
       )
     } catch (error) {
-      logger.error(error)
+      if (error.codeName === 'NamespaceExists') {
+        logger.debug(error)
+      } else {
+        logger.error(error)
+      }
     }
   }
 
@@ -414,7 +431,9 @@ export class MongoDB extends DataConnector.DataConnector {
   ) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const query = filter ? this.encodeQuery(filter, Model).toObject('$') : {}
+    const query = filter
+      ? this.encodeQuery(filter, Model).toObject({prefix: '$'})
+      : {}
 
     try {
       const cursor = await connection

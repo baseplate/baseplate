@@ -43,7 +43,7 @@ export default async function (
     const {fieldName, id} = jsonApiReq.params
 
     if (
-      !Model.base$schema.fields[fieldName] ||
+      !Model.base$schema.handlers[fieldName] ||
       (access.fields && !access.fields.has(fieldName))
     ) {
       throw new EntryFieldNotFoundError({

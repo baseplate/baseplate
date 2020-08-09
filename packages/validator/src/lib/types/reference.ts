@@ -1,33 +1,30 @@
 import {CastError, FieldValidationError} from '../errors'
-import {CastParameters, ValidateParameters} from '../field'
-import {FieldConstructorParameters, FieldOptions} from '../index'
+import {
+  BaseConstructorParameters,
+  BaseHandler,
+  BaseOptions,
+  CastParameters,
+  ValidateParameters,
+} from '../field'
 
-export interface ConstructorParameters extends FieldConstructorParameters {
-  models?: Array<any>
-  options: FieldOptions
-}
+type ReferenceValue = SingleReferenceValue | Array<SingleReferenceValue>
 
-export type ReferenceValue = SingleReferenceValue | Array<SingleReferenceValue>
-
-export interface SingleReferenceValue {
+interface SingleReferenceValue {
   id: string
   type: string
 }
 
-export class FieldHandler {
-  options: FieldOptions
+export default class FieldReference extends BaseHandler {
   modelNames: Array<string>
-  models: Array<any>
-  subType: string
-  type: 'reference'
 
-  constructor({models, subType, options}: ConstructorParameters) {
-    this.models = models
-    this.options = options
+  operators = {}
 
-    this.modelNames = models
-      ? models.map((model) => model.base$handle)
-      : [subType]
+  constructor(props: BaseConstructorParameters) {
+    super(props)
+
+    this.modelNames = this.children
+      .map(({type}: {type: string}) => type && type.toString().toLowerCase())
+      .filter(Boolean)
   }
 
   cast({path, value}: CastParameters<ReferenceValue>) {

@@ -1,30 +1,18 @@
 import {CastError, FieldValidationError} from '../errors'
-import {FieldConstructorParameters, FieldOptions} from '../index'
-import {Validator} from '../validator'
+import {BaseHandler, BaseOptions} from '../field'
+import {validateField} from '../validator'
 
-export interface ConstructorParameters extends FieldConstructorParameters {
-  children?: Array<any>
-  options: Options
-  validator?: typeof Validator
-}
-
-export interface Options extends FieldOptions {
-  children?: Array<any>
+export interface Options extends BaseOptions {
   maxLength?: number
   minLength?: number
 }
 
-export class FieldHandler {
+export default class FieldArray extends BaseHandler {
   children: Array<any>
   options: Options
   type: 'array'
-  validator: typeof Validator
 
-  constructor({children, options, validator}: ConstructorParameters) {
-    this.children = children
-    this.options = options
-    this.validator = validator
-  }
+  operators = {}
 
   cast({path, value}: {path: Array<string>; value: any}) {
     if (Array.isArray(value)) {
@@ -58,7 +46,7 @@ export class FieldHandler {
     value.forEach((childValue: any) => {
       const isValid = this.children.some((childType) => {
         try {
-          this.validator.validateField({
+          validateField({
             field: childType,
             path,
             value: childValue,

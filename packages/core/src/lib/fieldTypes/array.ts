@@ -1,17 +1,13 @@
-import {FieldArray} from '@baseplate/validator'
+import {FieldConstructorParameters, types} from '@baseplate/validator'
 import type GraphQL from 'graphql'
 
-interface ConstructorParameters extends FieldArray.ConstructorParameters {
-  memberType: any
-}
-
-export default class CoreFieldArray extends FieldArray.FieldHandler {
+export default class CoreFieldArray extends types.FieldArray {
   memberType: any
 
-  constructor({memberType, ...options}: ConstructorParameters) {
-    super(options)
+  constructor(props: FieldConstructorParameters) {
+    super(props)
 
-    this.memberType = memberType
+    this.memberType = props.children
   }
 
   getGraphQLInputType(graphql: typeof GraphQL, fieldName: string) {

@@ -1,16 +1,7 @@
 import {CastError, FieldValidationError} from '../errors'
-import {FieldHandlerInterface} from '../field'
-import {
-  FieldConstructorParameters,
-  FieldOperators,
-  FieldOptions,
-} from '../index'
+import {BaseConstructorParameters, BaseHandler, BaseOptions} from '../field'
 
-export interface ConstructorParameters extends FieldConstructorParameters {
-  options?: object
-}
-
-export interface Options extends FieldOptions {
+export interface Options extends BaseOptions {
   lowerCase?: boolean
   enum?: Array<string>
   match?: RegExp
@@ -20,22 +11,32 @@ export interface Options extends FieldOptions {
   upperCase?: boolean
 }
 
-export class FieldHandler implements FieldHandlerInterface {
+export default class FieldString extends BaseHandler {
   options: Options
   subType: 'string'
   type: 'primitive'
 
-  constructor({options}: ConstructorParameters) {
-    this.options = options || {}
-  }
-
-  operators = {
+  static operators = {
     eq: {
       label: 'is',
     },
     ne: {
       label: 'is not',
     },
+  }
+
+  static options = {
+    lowerCase: Boolean,
+    enum: [String],
+    match: {
+      type: 'Mixed',
+      validate: (input: any) => input instanceof RegExp,
+      errorMessage: 'Must be a regular expression',
+    },
+    maxLength: Number,
+    minLength: Number,
+    trim: Boolean,
+    upperCase: Boolean,
   }
 
   cast({path, value}: {path: Array<string>; value: any}) {

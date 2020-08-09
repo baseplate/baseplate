@@ -330,7 +330,7 @@ export class PostgreSQL extends DataConnector.DataConnector {
   }
 
   async deleteOneById(id: string, Model: typeof BaseModel) {
-    const filter = QueryFilter.parse({_id: id})
+    const filter = new QueryFilter({_id: id})
 
     return this.delete(filter, Model)
   }
@@ -410,7 +410,7 @@ export class PostgreSQL extends DataConnector.DataConnector {
       model: Model.base$handle,
     })
 
-    const filterWithIds = QueryFilter.parse({
+    const filterWithIds = new QueryFilter({
       _id: {$in: ids},
     }).intersectWith(filter)
     const {results} = await this.find(
@@ -441,7 +441,7 @@ export class PostgreSQL extends DataConnector.DataConnector {
 
     logger.debug('findOneById: %s', id, {model: Model.base$handle})
 
-    const filterWithIds = QueryFilter.parse({_id: id}).intersectWith(filter)
+    const filterWithIds = new QueryFilter({_id: id}).intersectWith(filter)
     const {results} = await this.find(
       {
         fieldSet,
@@ -513,7 +513,7 @@ export class PostgreSQL extends DataConnector.DataConnector {
   }
 
   async updateOneById(id: string, update: Fields, Model: typeof BaseModel) {
-    const filter = QueryFilter.parse({_id: id})
+    const filter = new QueryFilter({_id: id})
     const {results} = await this.update(filter, update, Model)
 
     return results[0] || null

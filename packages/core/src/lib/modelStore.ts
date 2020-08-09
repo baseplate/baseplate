@@ -1,4 +1,5 @@
 import {classify, pluralize, titleize} from 'inflected'
+import {Schema} from '@baseplate/validator'
 
 import AccessModel from './internalModels/access'
 import BaseModel from './model/base'
@@ -12,8 +13,9 @@ import {
 import logger from './logger'
 import ModelsModel from './internalModels/model'
 import RefreshTokenModel from './internalModels/refreshToken'
-import Schema from './schema'
+//import Schema from './schema'
 import UserModel from './internalModels/user'
+import * as fieldHandlers from './fieldTypes/'
 
 const internalModels = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
 
@@ -48,7 +50,7 @@ export class ModelStore {
     const handle = this.normalizeHandle(name)
     const schema = new Schema({
       fields: isModelClass(source) ? source.base$fields : source.fields,
-      name: handle,
+      handlers: fieldHandlers,
     })
     const modelProperties = {
       base$db: {
@@ -153,6 +155,9 @@ export class ModelStore {
 
     loadedModels.forEach((Model) => {
       Model.base$schema.loadFieldHandlers()
+
+      // (!) TO DO: Handle model validation.
+      // const errors = Model.base$schema.validateOptions()
     })
 
     return loadedModels

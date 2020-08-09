@@ -35,7 +35,7 @@ export default class Base$Model extends BaseModel {
         return
       }
 
-      const fields = Object.keys(Model.base$schema.fields).reduce(
+      const fields = Object.keys(Model.base$schema.handlers).reduce(
         (allowedFields, fieldName) => {
           if (access.fields && !access.fields.has(fieldName)) {
             return allowedFields
@@ -43,7 +43,7 @@ export default class Base$Model extends BaseModel {
 
           return {
             ...allowedFields,
-            [fieldName]: Model.base$schema.fields[fieldName],
+            [fieldName]: Model.base$schema.handlers[fieldName],
           }
         },
         {}
@@ -74,7 +74,10 @@ export default class Base$Model extends BaseModel {
       throw new EntryNotFoundError({id})
     }
 
-    return new this({_id: Model.base$handle, fields: Model.base$schema.fields})
+    return new this({
+      _id: Model.base$handle,
+      fields: Model.base$schema.handlers,
+    })
   }
 
   base$jsonApiPostFormat(

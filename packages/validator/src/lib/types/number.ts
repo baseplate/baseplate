@@ -1,25 +1,13 @@
+import {BaseConstructorParameters, BaseHandler, BaseOptions} from '../field'
 import {CastError, FieldValidationError} from '../errors'
-import {FieldConstructorParameters, FieldOptions} from '../index'
 
-export interface ConstructorParameters extends FieldConstructorParameters {
-  options?: Options
-}
-
-export interface Options extends FieldOptions {
+export interface Options extends BaseOptions {
   enum?: Array<number>
   max?: number
   min?: number
 }
 
-export class FieldHandler {
-  options: Options
-  subType: 'number'
-  type: 'primitive'
-
-  constructor({options}: ConstructorParameters) {
-    this.options = options || {}
-  }
-
+export default class FieldNumber extends BaseHandler {
   cast({path, value}: {path: Array<string>; value: any}) {
     if (typeof value === 'number') {
       return value

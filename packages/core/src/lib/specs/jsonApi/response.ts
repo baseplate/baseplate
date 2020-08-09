@@ -121,6 +121,9 @@ export default class JsonApiResponse {
           ? formattedEntries
           : formattedEntries[0]
       } catch (error) {
+        this.errors = this.errors || []
+        this.errors.push(error)
+
         return (<typeof JsonApiResponse>this.constructor).buildErrorResponse([
           error,
         ])
@@ -209,11 +212,9 @@ export default class JsonApiResponse {
         return
       }
 
-      if (
-        (<typeof JsonApiModel>entry.constructor).base$schema.isReferenceField(
-          name
-        )
-      ) {
+      const schema = (<typeof JsonApiModel>entry.constructor).base$schema
+
+      if (schema.fields[name].type === 'reference') {
         const links = this.getRelationshipLinksBlock(entry, name)
         const data = Array.isArray(value)
           ? value.map(this.formatRelationshipObject)

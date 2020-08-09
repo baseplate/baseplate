@@ -7,16 +7,14 @@ import type EntryPoint from './lib/entryPoint'
 import * as errors from './lib/errors'
 import type {FieldDefinition} from './lib/fieldDefinition'
 import FieldSet from './lib/fieldSet'
-import type {Index} from './lib/schema'
 import HttpRequest from './lib/http/request'
 import HttpResponse from './lib/http/response'
 import {ModelDefinition} from './lib/model/definition'
 import modelStore from './lib/modelStore'
-import QueryFilter, {
-  Branch as QueryFilterBranch,
-  Field as QueryFilterField,
-  Fork as QueryFilterFork,
-} from './lib/queryFilter'
+import QueryFilter from './lib/queryFilter/'
+import QueryFilterBranch from './lib/queryFilter/branch'
+import QueryFilterField from './lib/queryFilter/field'
+import QueryFilterFork from './lib/queryFilter/fork'
 import routesGraphQL from './routes/graphql'
 import routesRest from './routes/rest'
 import SortObject from './lib/sortObject'
@@ -38,7 +36,6 @@ export {
   FieldSet,
   HttpRequest,
   HttpResponse,
-  Index,
   InitializationParameters,
   ModelDefinition,
   modelStore,

@@ -1,7 +1,7 @@
 import type BaseModel from '../model/base'
 import type Context from '../context'
 import type FieldSet from '../fieldSet'
-import type QueryFilter from '../queryFilter'
+import type QueryFilter from '../queryFilter/'
 import type SortObject from '../sortObject'
 
 export type Result = Record<string, any>

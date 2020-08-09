@@ -6,7 +6,7 @@ import JsonApiModel from '../model'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore'
-import QueryFilter from '../../../queryFilter'
+import QueryFilter from '../../../queryFilter/'
 
 export default async function (
   req: HttpRequest,
@@ -23,12 +23,11 @@ export default async function (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const query = QueryFilter.parse(jsonApiReq.filter, '$')
     const fieldSet = jsonApiReq.fields[Model.base$handle]
     const {entries, pageSize, totalEntries, totalPages} = await Model.find({
       context,
       fieldSet,
-      filter: query,
+      filter: jsonApiReq.getQueryFilter(),
       pageNumber: jsonApiReq.pageNumber,
       pageSize: jsonApiReq.pageSize,
       sort: jsonApiReq.sort,

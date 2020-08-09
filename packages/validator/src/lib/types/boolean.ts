@@ -1,10 +1,8 @@
 import {CastError} from '../errors'
-import {FieldOptions} from '../index'
+import {BaseHandler} from '../field'
 
-export class FieldHandler {
-  options: FieldOptions
-  subType: 'boolean'
-  type: 'primitive'
+export default class FieldBoolean extends BaseHandler {
+  operators = {}
 
   cast({path, value}: {path: Array<string>; value: any}) {
     if (value === undefined || value === null) {

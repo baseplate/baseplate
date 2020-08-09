@@ -67,12 +67,6 @@ export class InvalidFieldSetError extends CustomError {
   }
 }
 
-export class InvalidFieldTypeError extends CustomError {
-  constructor({typeName}: {typeName: string}) {
-    super(`${typeName} is not a valid type`)
-  }
-}
-
 export class InvalidQueryFilterError extends CustomError {
   childErrors: Array<CustomError>
   statusCode: number
@@ -81,6 +75,21 @@ export class InvalidQueryFilterError extends CustomError {
     super('Invalid query')
 
     this.childErrors = fieldErrors
+    this.statusCode = 400
+  }
+}
+
+export class InvalidQueryFilterOperatorError extends CustomError {
+  path: Array<string>
+  statusCode: number
+
+  constructor({operator, path = []}: {operator: string; path?: Array<string>}) {
+    super('Invalid operator in query')
+
+    this.detail = `\`${operator}\` is not a valid operator for attribute \`${path.join(
+      '.'
+    )}\``
+    this.path = path
     this.statusCode = 400
   }
 }

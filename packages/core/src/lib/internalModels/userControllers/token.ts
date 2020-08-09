@@ -1,4 +1,4 @@
-import {Validator} from '@baseplate/validator'
+import {validateObject} from '@baseplate/validator'
 
 import {UnauthorizedError} from '../../errors'
 import Context from '../../context'
@@ -8,27 +8,23 @@ import HttpResponse from '../../http/response'
 import JsonApiRequest from '../../specs/jsonApi/request'
 import JsonApiResponse from '../../specs/jsonApi/response'
 import logger from '../../logger'
-import QueryFilter from '../../queryFilter'
-import Schema from '../../schema'
+import QueryFilter from '../../queryFilter/'
 
-const tokenEndpointSchema = new Schema({
-  fields: {
-    grant_type: {
-      type: String,
-      required: true,
-      enum: ['password', 'refresh_token'],
-    },
-    username: {
-      type: String,
-      required: (entry: any) => entry.grant_type === 'password',
-    },
-    password: {
-      type: String,
-      required: (entry: any) => entry.grant_type === 'password',
-    },
+const tokenEndpointSchema = {
+  grant_type: {
+    type: String,
+    required: true,
+    enum: ['password', 'refresh_token'],
   },
-  name: 'tokenEndpoint',
-})
+  username: {
+    type: String,
+    required: (entry: any) => entry.grant_type === 'password',
+  },
+  password: {
+    type: String,
+    required: (entry: any) => entry.grant_type === 'password',
+  },
+}
 
 async function deleteFn(
   req: HttpRequest,
@@ -64,10 +60,10 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
   try {
     const data = req.body
 
-    Validator.validateObject({
+    validateObject({
       enforceRequiredFields: true,
       object: data,
-      schema: tokenEndpointSchema.fields,
+      schema: tokenEndpointSchema,
     })
 
     const RefreshTokenModel = this.base$modelStore.get('base$refreshtoken')
@@ -77,7 +73,7 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
       const user = await this.findOne({
         authenticate: false,
         context,
-        filter: QueryFilter.parse({username}),
+        filter: new QueryFilter({username}),
       })
 
       if (!user) {

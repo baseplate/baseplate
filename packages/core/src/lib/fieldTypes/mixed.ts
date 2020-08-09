@@ -1,25 +1,22 @@
 import {camelize} from 'inflected'
-import {FieldMixed} from '@baseplate/validator'
+import {FieldConstructorParameters, types} from '@baseplate/validator'
 import type GraphQL from 'graphql'
 
-export default class CoreFieldMixed extends FieldMixed.FieldHandler {
+export default class CoreFieldMixed extends types.FieldMixed {
   typeName: string
 
-  constructor({options, path}: FieldMixed.ConstructorParameters) {
-    super({options, path})
+  constructor(props: FieldConstructorParameters) {
+    super(props)
 
-    this.options = options
-    this.typeName = camelize(`Mixed_${path.join('_')}`)
+    this.typeName = camelize(`Mixed_${props.path.join('_')}`)
   }
 
   getGraphQLInputType(graphql: typeof GraphQL, fieldName: string) {
-    const type = new graphql.GraphQLScalarType({
-      name: this.typeName + 'Input',
-      serialize: null,
-    })
-
     return {
-      type: this.options.required ? graphql.GraphQLNonNull(type) : type,
+      type: new graphql.GraphQLScalarType({
+        name: this.typeName + 'Input',
+        serialize: null,
+      }),
     }
   }
 

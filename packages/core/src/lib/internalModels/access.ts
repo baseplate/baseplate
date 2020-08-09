@@ -1,12 +1,12 @@
 import {AccessValue} from '../accessValue'
-import BaseModel, {AfterAuthenticateParameters} from '../model/base'
+import BaseModel from '../model/base'
 import Context from '../context'
 import createModelAccessEntry from './accessControllers/createModelAccessEntry'
 import deleteModelAccessEntry from './accessControllers/deleteModelAccessEntry'
 import findModelAccessEntries from './accessControllers/findModelAccessEntries'
 import findModelAccessEntry from './accessControllers/findModelAccessEntry'
 import JsonApiEntry from '../specs/jsonApi/entry'
-import QueryFilter from '../queryFilter'
+import QueryFilter from '../queryFilter/'
 import updateModelAccessEntry from './accessControllers/updateModelAccessEntry'
 import User from './user'
 
@@ -83,7 +83,7 @@ export default class Base$Access extends BaseModel {
     modelName: string
     user: User
   }) {
-    const filter = QueryFilter.parse({
+    const filter = new QueryFilter({
       model: modelName,
       'user.id': user.id,
       'user.type': (<typeof User>user.constructor).base$handle,
@@ -155,7 +155,7 @@ export default class Base$Access extends BaseModel {
     let filter
 
     if (user) {
-      const userFilter = QueryFilter.parse({
+      const userFilter = new QueryFilter({
         'user.id': user.id,
         'user.type': (<typeof User>user.constructor).base$handle,
       })
@@ -164,7 +164,7 @@ export default class Base$Access extends BaseModel {
     }
 
     if (includePublicUser) {
-      const publicUserFilter = QueryFilter.parse({user: null})
+      const publicUserFilter = new QueryFilter({user: null})
 
       filter = filter ? filter.uniteWith(publicUserFilter) : publicUserFilter
     }
@@ -198,7 +198,7 @@ export default class Base$Access extends BaseModel {
     update: object
     user: User
   }) {
-    const filter = QueryFilter.parse({model: modelName})
+    const filter = new QueryFilter({model: modelName})
 
     if (user) {
       const userQuery = {
@@ -206,9 +206,9 @@ export default class Base$Access extends BaseModel {
         'user.type': (<typeof User>user.constructor).base$handle,
       }
 
-      filter.intersectWith(QueryFilter.parse(userQuery))
+      filter.intersectWith(new QueryFilter(userQuery))
     } else {
-      const publicUserQuery = QueryFilter.parse({user: null})
+      const publicUserQuery = new QueryFilter({user: null})
 
       filter.intersectWith(publicUserQuery)
     }

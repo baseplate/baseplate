@@ -1,6 +1,6 @@
 import {InvalidAccessValueError} from './errors'
 import FieldSet from './fieldSet'
-import QueryFilter from './queryFilter'
+import QueryFilter from './queryFilter/'
 
 type AccessValueObject =
   | boolean
@@ -125,7 +125,7 @@ export class AccessValue {
       fields = new FieldSet(value.fields).validate()
     }
 
-    const filter = value.filter && QueryFilter.parse(value.filter, filterPrefix)
+    const filter = value.filter && new QueryFilter(value.filter, filterPrefix)
 
     return {fields, filter}
   }
@@ -138,7 +138,7 @@ export class AccessValue {
     const object: AccessValueObject = {}
 
     if (this.filter) {
-      object.filter = this.filter.toObject(filterPrefix)
+      object.filter = this.filter.toObject({prefix: filterPrefix})
     }
 
     if (this.fields) {

@@ -1,13 +1,14 @@
 import {
   CustomError,
   FieldValidationError,
-  Validator,
+  Schema,
+  validateObject,
+  Virtual,
 } from '@baseplate/validator'
 
 import AccessModel, {AccessType} from '../internalModels/access'
 import type {AccessValue} from '../accessValue'
 import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
-import {Virtual as VirtualSchema} from '../schema'
 import Context from '../context'
 import type {DataConnector} from '../dataConnector/interface'
 import type {FieldDefinition} from '../fieldDefinition'
@@ -17,8 +18,7 @@ import type {InterfacesBlock} from './definition'
 import FieldSet from '../fieldSet'
 import logger from '../logger'
 import type {ModelStore} from '../modelStore'
-import QueryFilter from '../queryFilter'
-import type Schema from '../schema'
+import QueryFilter from '../queryFilter/'
 import type SortObject from '../sortObject'
 import UserModel from '../internalModels/user'
 
@@ -59,6 +59,8 @@ export interface DeleteOneByIdParameters {
   id: string
   user?: UserModel
 }
+
+export type Fields = Record<string, any>
 
 export interface FindManyByIdParameters {
   authenticate?: boolean
@@ -116,8 +118,6 @@ export interface UpdateOneByIdParameters {
   update: Record<string, any>
   user?: UserModel
 }
-
-type Fields = Record<string, any>
 
 export interface ToObjectParameters {
   fieldSet?: FieldSet
@@ -208,11 +208,11 @@ export default class BaseModel {
     fields: object,
     {enforceRequiredFields}: {enforceRequiredFields?: boolean} = {}
   ) {
-    return Validator.validateObject({
+    return validateObject({
       enforceRequiredFields,
       ignoreFields: INTERNAL_FIELDS,
       object: fields,
-      schema: this.base$schema.fields,
+      schema: this.base$schema,
     })
   }
 
@@ -533,10 +533,10 @@ export default class BaseModel {
 
   base$getFieldDefaults(fields: Fields) {
     const fieldsWithDefaults = Object.keys(
-      (<typeof BaseModel>this.constructor).base$schema.fields
+      (<typeof BaseModel>this.constructor).base$schema.handlers
     ).reduce((result, fieldName) => {
       const fieldSchema = (<typeof BaseModel>this.constructor).base$schema
-        .fields[fieldName]
+        .handlers[fieldName]
 
       if (
         fields[fieldName] === undefined &&
@@ -575,9 +575,9 @@ export default class BaseModel {
         this.base$createdAt = value
       } else if (name === '_updatedAt') {
         this.base$updatedAt = value
-      } else if (schema.fields[name] !== undefined) {
+      } else if (schema.handlers[name] !== undefined) {
         this.base$fields[name] = value
-      } else if (schema.virtuals[name] !== undefined) {
+      } else if (schema.virtuals && schema.virtuals[name] !== undefined) {
         this.base$virtuals[name] = value
       } else {
         this.base$unknownFields[name] = value
@@ -596,7 +596,7 @@ export default class BaseModel {
     await Promise.all(
       Object.keys(fields).map(async (fieldName) => {
         const fieldSchema = (<typeof BaseModel>this.constructor).base$schema
-          .fields[fieldName]
+          .handlers[fieldName]
 
         let value = fields[fieldName]
 
@@ -623,10 +623,11 @@ export default class BaseModel {
   }
 
   base$runVirtualSetters(fields: Fields) {
+    const schemaVirtuals =
+      (<typeof BaseModel>this.constructor).base$schema.virtuals || {}
     const fieldsAfterSetters = Object.keys(this.base$virtuals).reduce(
       async (fieldsAfterSetters, name) => {
-        const virtualSchema = (<typeof BaseModel>this.constructor).base$schema
-          .virtuals[name]
+        const virtualSchema = schemaVirtuals[name]
 
         if (!virtualSchema || typeof virtualSchema.set !== 'function') {
           return fieldsAfterSetters
@@ -688,7 +689,7 @@ export default class BaseModel {
   }
 
   get(fieldName: string) {
-    const field = (<typeof BaseModel>this.constructor).base$schema.fields[
+    const field = (<typeof BaseModel>this.constructor).base$schema.handlers[
       fieldName
     ]
 
@@ -732,21 +733,24 @@ export default class BaseModel {
     )
 
     if (includeVirtuals) {
+      const schemaVirtuals =
+        (<typeof BaseModel>this.constructor).base$schema.virtuals || {}
+
       await Promise.all(
-        Object.entries(
-          (<typeof BaseModel>this.constructor).base$schema.virtuals
-        ).map(async ([name, virtual]: [string, VirtualSchema]) => {
-          if (
-            (fieldSet && !fieldSet.has(name)) ||
-            typeof virtual.get !== 'function'
-          ) {
-            return
+        Object.entries(schemaVirtuals).map(
+          async ([name, virtual]: [string, Virtual]) => {
+            if (
+              (fieldSet && !fieldSet.has(name)) ||
+              typeof virtual.get !== 'function'
+            ) {
+              return
+            }
+
+            const value = await virtual.get(fields)
+
+            virtuals[name] = value
           }
-
-          const value = await virtual.get(fields)
-
-          virtuals[name] = value
-        })
+        )
       )
     }
 

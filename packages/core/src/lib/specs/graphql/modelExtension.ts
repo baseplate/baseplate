@@ -11,16 +11,16 @@ import {
   GraphQLString,
   FieldNode,
 } from 'graphql'
+import {FieldHandler} from '@baseplate/validator'
 
-import {FieldHandler} from '../../fieldTypes'
-import {FieldHandlers, NestedObjectMarker} from '../../schema'
+import {GraphQLFieldHandler} from './fieldType'
 import type BaseModel from '../../model/base'
 import Context from '../../context'
 import FieldSet from '../../fieldSet'
 import GraphQLDeleteResponse from './deleteResponse'
 import GraphQLError from './error'
 import GraphQLQueryFilterType from './queryFilter'
-import QueryFilter from '../../queryFilter'
+import QueryFilter from '../../queryFilter/'
 
 export interface Mutation {
   type: any
@@ -49,19 +49,13 @@ function dateResolver(
   return date.toISOString()
 }
 
-function isHandlerNestedObject(
-  input: FieldHandler | NestedObjectMarker
-): input is NestedObjectMarker {
-  return Boolean(input && (input as NestedObjectMarker).__nestedObjectId)
-}
-
 function getInputFields(Model: typeof BaseModel) {
   if (Model.base$graphQL.inputFields) {
     return Model.base$graphQL.inputFields
   }
 
   const fields = getTypesFromFieldHandlers(
-    Model.base$schema.fieldHandlers,
+    Model.base$schema.handlers,
     Model,
     'input'
   )
@@ -78,7 +72,7 @@ function getInputFieldsWithRequiredConstraints(Model: typeof BaseModel) {
   const fields = getInputFields(Model)
   const fieldsWithRequiredConstraints = Object.keys(fields).reduce(
     (result, name) => {
-      const {options} = Model.base$schema.fields[name] || {}
+      const {options = {}} = Model.base$schema.handlers[name] || {}
 
       return {
         ...result,
@@ -221,7 +215,7 @@ function getMutations(Model: typeof BaseModel) {
         try {
           const entries = await Model.update({
             context,
-            filter: QueryFilter.parse(filter, '_'),
+            filter: new QueryFilter(filter, '_'),
             update,
             user: context.get('base$user'),
           })
@@ -275,11 +269,7 @@ function getOutputFields(Model: typeof BaseModel) {
       type: GraphQLString,
       resolve: dateResolver,
     },
-    ...getTypesFromFieldHandlers(
-      Model.base$schema.fieldHandlers,
-      Model,
-      'output'
-    ),
+    ...getTypesFromFieldHandlers(Model.base$schema.handlers, Model, 'output'),
     ...getTypesFromVirtuals(Model),
   }
 
@@ -320,7 +310,7 @@ function getQueries(Model: typeof BaseModel) {
           const {entries} = await Model.find({
             context,
             fieldSet: new FieldSet(requestedFields),
-            filter: QueryFilter.parse(args, '_'),
+            filter: new QueryFilter(args, '_'),
             user: context.get('base$user'),
           })
 
@@ -378,7 +368,7 @@ function getQueries(Model: typeof BaseModel) {
 }
 
 function getQueryFilters(Model: typeof BaseModel) {
-  const queryFilters = Object.keys(Model.base$schema.fields).reduce(
+  const queryFilters = Object.keys(Model.base$schema.handlers).reduce(
     (queryFilters, fieldName) => {
       return {
         ...queryFilters,
@@ -392,43 +382,19 @@ function getQueryFilters(Model: typeof BaseModel) {
 }
 
 function getTypesFromFieldHandlers(
-  handlers: FieldHandlers,
+  handlers: Record<string, FieldHandler>,
   Model: typeof BaseModel,
   type: 'input' | 'output'
 ): Record<string, {type: any}> {
   const functionName =
     type === 'input' ? 'getGraphQLInputType' : 'getGraphQLOutputType'
-  const ObjectType =
-    type === 'input' ? GraphQLInputObjectType : GraphQLObjectType
   const fields = Object.entries(handlers).reduce((fields, [name, handler]) => {
-    if (isHandlerNestedObject(handler)) {
-      const {__nestedObjectId, ...nestedFields} = handler
-      const nestedGraphQLTypes = getTypesFromFieldHandlers(
-        <Record<string, FieldHandler>>nestedFields,
-        Model,
-        type
-      )
+    const graphQLHandler = handler as GraphQLFieldHandler
 
-      // (!) TO DO: What do we do here?
-      if (Object.keys(nestedGraphQLTypes).length === 0) {
-        return fields
-      }
-
+    if (typeof graphQLHandler[functionName] === 'function') {
       return {
         ...fields,
-        [name]: {
-          type: new ObjectType({
-            fields: nestedGraphQLTypes,
-            name: __nestedObjectId + (type === 'input' ? 'Input' : 'Output'),
-          }),
-        },
-      }
-    }
-
-    if (typeof handler[functionName] === 'function') {
-      return {
-        ...fields,
-        [name]: handler[functionName](graphql, name, Model),
+        [name]: graphQLHandler[functionName](graphql, name, Model),
       }
     }
 

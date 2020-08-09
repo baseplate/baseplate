@@ -1,5 +1,5 @@
 import {camelize} from 'inflected'
-import {FieldReference} from '@baseplate/validator'
+import {FieldConstructorParameters, types} from '@baseplate/validator'
 import type GraphQL from 'graphql'
 
 import AccessModel from '../internalModels/access'
@@ -7,7 +7,17 @@ import type BaseModel from '../model/base'
 import Context from '../context'
 import modelStore from '../modelStore'
 
-export default class CoreFieldReference extends FieldReference.FieldHandler {
+export default class CoreFieldReference extends types.FieldReference {
+  models: Array<typeof BaseModel>
+
+  constructor(props: FieldConstructorParameters) {
+    super(props)
+
+    this.models = props.children.map(({type}: {type: string}) =>
+      modelStore.get(type)
+    )
+  }
+
   // (!) TO DO
   getGraphQLInputType(graphql: typeof GraphQL, fieldName: string) {
     return {
