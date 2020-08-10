@@ -17,7 +17,10 @@ import {
   UnauthorizedError,
 } from '../errors'
 import Context from '../context'
-import type {DataConnector} from '../dataConnector/interface'
+import {
+  DataConnector,
+  FindParameters as DataConnectorFindParameters,
+} from '../dataConnector/interface'
 import type {FieldDefinition} from '../fieldDefinition'
 import type {FindReturnValue, Result} from '../dataConnector/interface'
 import type {GraphQLModelCache} from '../specs/graphql/modelCache'
@@ -33,14 +36,6 @@ const DEFAULT_PAGE_SIZE = 20
 const INTERNAL_FIELDS = ['_createdAt', '_id', '_updatedAt']
 
 export interface AuthenticateParameters {
-  accessType: AccessType
-  context: Context
-  fieldSet?: FieldSet
-  filter?: QueryFilter
-  user: UserModel
-}
-
-export interface AfterAuthenticateParameters {
   access: AccessValue
   accessType: AccessType
   context: Context
@@ -110,6 +105,14 @@ export interface FindParameters {
   user?: UserModel
 }
 
+export interface GetAccessParameters {
+  accessType: AccessType
+  context: Context
+  fieldSet?: FieldSet
+  filter?: QueryFilter
+  user: UserModel
+}
+
 export interface UpdateParameters {
   authenticate?: boolean
   context?: Context
@@ -164,17 +167,19 @@ export default class BaseModel {
   static base$schema?: Schema
   static base$settings?: {[key: string]: any}
 
-  static base$afterAuthenticate?(
-    options: AfterAuthenticateParameters
-  ): AccessValue
+  static base$authenticate?(options: AuthenticateParameters): AccessValue
 
-  static async base$authenticate({
+  static base$beforeFind?(
+    options: DataConnectorFindParameters
+  ): Partial<DataConnectorFindParameters>
+
+  static async base$getAccess({
     accessType,
     context,
     fieldSet,
     filter,
     user,
-  }: AuthenticateParameters) {
+  }: GetAccessParameters) {
     const Access = <typeof AccessModel>this.base$modelStore.get('base$access')
 
     let access = await Access.getAccess({
@@ -192,8 +197,8 @@ export default class BaseModel {
       access.filter = filter.intersectWith(access.filter)
     }
 
-    if (typeof this.base$afterAuthenticate === 'function') {
-      access = this.base$afterAuthenticate({access, accessType, context, user})
+    if (typeof this.base$authenticate === 'function') {
+      access = this.base$authenticate({access, accessType, context, user})
     }
 
     if (access.toObject() === false) {
@@ -255,7 +260,7 @@ export default class BaseModel {
     {authenticate = true, context, user}: CreateParameters = {}
   ) {
     if (authenticate) {
-      await this.base$authenticate({
+      await this.base$getAccess({
         accessType: 'create',
         context,
         user,
@@ -274,7 +279,7 @@ export default class BaseModel {
     user,
   }: DeleteParameters) {
     if (authenticate) {
-      const access = await this.base$authenticate({
+      const access = await this.base$getAccess({
         accessType: 'delete',
         context,
         filter,
@@ -294,7 +299,7 @@ export default class BaseModel {
     user,
   }: DeleteOneByIdParameters) {
     if (authenticate) {
-      await this.base$authenticate({
+      await this.base$getAccess({
         accessType: 'delete',
         context,
         user,
@@ -318,7 +323,7 @@ export default class BaseModel {
     const pageSize = suppliedPageSize || DEFAULT_PAGE_SIZE
 
     if (authenticate) {
-      const access = await this.base$authenticate({
+      const access = await this.base$getAccess({
         accessType: 'read',
         context,
         fieldSet,
@@ -330,13 +335,18 @@ export default class BaseModel {
       filter = access.filter
     }
 
-    const opParameters = {
+    let opParameters: DataConnectorFindParameters = {
       fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
       filter,
       pageNumber,
       pageSize,
       sort,
     }
+
+    if (typeof this.base$beforeFind === 'function') {
+      Object.assign(opParameters, this.base$beforeFind(opParameters))
+    }
+
     const {count, results} = await this.getFromDatabaseOrCache<FindReturnValue>(
       () => this.base$db.find(opParameters, this, context),
       context,
@@ -360,7 +370,7 @@ export default class BaseModel {
     user,
   }: FindOneParameters) {
     if (authenticate) {
-      const access = await this.base$authenticate({
+      const access = await this.base$getAccess({
         accessType: 'read',
         context,
         fieldSet,
@@ -401,7 +411,7 @@ export default class BaseModel {
     user,
   }: FindOneByIdParameters) {
     if (authenticate) {
-      const access = await this.base$authenticate({
+      const access = await this.base$getAccess({
         accessType: 'read',
         context,
         fieldSet,
@@ -439,7 +449,7 @@ export default class BaseModel {
     user,
   }: UpdateParameters) {
     if (authenticate) {
-      const access = await this.base$authenticate({
+      const access = await this.base$getAccess({
         accessType: 'update',
         context,
         filter,
@@ -473,7 +483,7 @@ export default class BaseModel {
     user,
   }: UpdateOneByIdParameters) {
     if (authenticate) {
-      await this.base$authenticate({
+      await this.base$getAccess({
         accessType: 'update',
         context,
         user,

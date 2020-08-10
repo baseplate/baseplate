@@ -5,7 +5,7 @@ import * as tokenRoute from './userControllers/token'
 import {AccessValue} from '../accessValue'
 import {ForbiddenError} from '../errors'
 import BaseModel, {
-  AfterAuthenticateParameters,
+  AuthenticateParameters,
   FindOneByIdParameters,
 } from '../model/base'
 
@@ -48,11 +48,7 @@ export default class Base$User extends BaseModel {
     '/base$users/token': tokenRoute,
   }
 
-  static base$afterAuthenticate({
-    access,
-    accessType,
-    user,
-  }: AfterAuthenticateParameters) {
+  static base$authenticate({access, accessType, user}: AuthenticateParameters) {
     if (user && accessType === 'read' && !user.isAdmin()) {
       return new AccessValue({
         filter: {

@@ -1,5 +1,8 @@
 import type {
+  BaseModel,
+  FieldSet,
   modelStore,
+  QueryFilter,
   routesGraphQL,
   routesRest,
 } from '../../packages/core/src'
@@ -7,8 +10,11 @@ import * as mongoDB from '../../packages/db-mongodb/src'
 import * as postgreSQL from '../../packages/db-postgresql/src'
 
 export type App = {
+  BaseModel: typeof BaseModel
+  FieldSet: typeof FieldSet
   initialize: Function
   modelStore: typeof modelStore
+  QueryFilter: typeof QueryFilter
   routesGraphQL: typeof routesGraphQL
   routesRest: typeof routesRest
 }

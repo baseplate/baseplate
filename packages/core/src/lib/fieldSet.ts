@@ -1,20 +1,18 @@
 import {InvalidFieldSetError} from './errors'
 
-export default class FieldSet {
-  fields: Set<string>
-
+export default class FieldSet extends Set {
   constructor(fields: Set<string> | Array<string>) {
-    this.fields = new Set(fields)
+    super(Array.from(fields))
   }
 
   static intersect(a: FieldSet, b: FieldSet): FieldSet {
     if (!a) return b
     if (!b) return a
 
-    const fields = new Set(a.fields)
+    const fields = new Set(a)
 
-    a.fields.forEach((item) => {
-      if (b.fields.has(item)) {
+    a.forEach((item) => {
+      if (b.has(item)) {
         fields.add(item)
       }
     })
@@ -25,25 +23,21 @@ export default class FieldSet {
   static unite(a: FieldSet, b: FieldSet): FieldSet {
     if (!a || !b) return
 
-    const fields = new Set(a.fields)
+    const fields = new Set(a)
 
-    b.fields.forEach((item) => {
+    b.forEach((item) => {
       fields.add(item)
     })
 
     return new this(fields)
   }
 
-  has(fieldName: string) {
-    return this.fields.has(fieldName)
-  }
-
   toArray() {
-    return Array.from(this.fields)
+    return Array.from(this)
   }
 
   validate() {
-    const isValid = Array.from(this.fields).every(
+    const isValid = Array.from(this).every(
       (item) => item && typeof item === 'string'
     )
 

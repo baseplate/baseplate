@@ -28,7 +28,7 @@ export default async function (
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const access = await Model.base$authenticate({
+    const access = await Model.base$getAccess({
       accessType: 'read',
       context,
       user: context.get('base$user'),
