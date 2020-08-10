@@ -131,22 +131,6 @@ export default class QueryFilter {
     return this.serialize(prefix, fieldTransform)
   }
 
-  traverse(callback: Function, root = this.root) {
-    if (!root) {
-      return
-    }
-
-    if (root instanceof Branch) {
-      Object.entries(root.fields).forEach(([name, field]) => {
-        callback(name, field)
-      })
-    } else if (root instanceof Fork) {
-      root.branches.forEach((branch) => {
-        this.traverse(callback, branch)
-      })
-    }
-  }
-
   uniteWith(subject: QueryFilter) {
     const isThisOr = this.root instanceof Fork && this.root.operator === 'or'
     const isSubjectOr =

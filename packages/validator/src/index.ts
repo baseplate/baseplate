@@ -8,6 +8,7 @@ export * as types from './lib/types/'
 export {
   BaseConstructorParameters as FieldConstructorParameters,
   BaseHandler as FieldHandler,
+  CastQueryParameters as FieldCastQueryParameters,
   IndexDefinition as FieldIndexDefinition,
   IndexDefinitionWithOptions as FieldIndexDefinitionWithOptions,
   NormalizedDefinition as NormalizedFieldDefinition,

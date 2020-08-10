@@ -85,8 +85,7 @@ export default class Base$Access extends BaseModel {
   }) {
     const filter = new QueryFilter({
       model: modelName,
-      'user.id': user.id,
-      'user.type': (<typeof User>user.constructor).base$handle,
+      user,
     })
 
     return this.delete({
@@ -156,8 +155,7 @@ export default class Base$Access extends BaseModel {
 
     if (user) {
       const userFilter = new QueryFilter({
-        'user.id': user.id,
-        'user.type': (<typeof User>user.constructor).base$handle,
+        user,
       })
 
       filter = userFilter
@@ -198,21 +196,7 @@ export default class Base$Access extends BaseModel {
     update: object
     user: User
   }) {
-    const filter = new QueryFilter({model: modelName})
-
-    if (user) {
-      const userQuery = {
-        'user.id': user.id,
-        'user.type': (<typeof User>user.constructor).base$handle,
-      }
-
-      filter.intersectWith(new QueryFilter(userQuery))
-    } else {
-      const publicUserQuery = new QueryFilter({user: null})
-
-      filter.intersectWith(publicUserQuery)
-    }
-
+    const filter = new QueryFilter({model: modelName, user: user || null})
     const results = await this.update({
       context,
       filter,
@@ -227,7 +211,7 @@ export default class Base$Access extends BaseModel {
     })
   }
 
-  base$jsonApiPostFormat(formattedEntry: JsonApiEntry) {
+  base$jsonApiFormat(formattedEntry: JsonApiEntry) {
     formattedEntry.attributes.model = undefined
     formattedEntry.relationships.user.links = undefined
 

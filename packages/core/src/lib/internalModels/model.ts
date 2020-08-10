@@ -80,10 +80,7 @@ export default class Base$Model extends BaseModel {
     })
   }
 
-  base$jsonApiPostFormat(
-    formattedEntry: JsonApiEntry,
-    originalEntry: BaseModel
-  ) {
+  base$jsonApiFormat(formattedEntry: JsonApiEntry, originalEntry: BaseModel) {
     const Model = (<typeof BaseModel>(
       originalEntry.constructor
     )).base$modelStore.get(originalEntry.id)

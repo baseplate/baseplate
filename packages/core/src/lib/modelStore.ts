@@ -13,9 +13,8 @@ import {
 import logger from './logger'
 import ModelsModel from './internalModels/model'
 import RefreshTokenModel from './internalModels/refreshToken'
-//import Schema from './schema'
 import UserModel from './internalModels/user'
-import * as fieldHandlers from './fieldTypes/'
+import * as types from './types'
 
 const internalModels = [AccessModel, ModelsModel, RefreshTokenModel, UserModel]
 
@@ -50,7 +49,7 @@ export class ModelStore {
     const handle = this.normalizeHandle(name)
     const schema = new Schema({
       fields: isModelClass(source) ? source.base$fields : source.fields,
-      handlers: fieldHandlers,
+      handlers: types,
     })
     const modelProperties = {
       base$db: {

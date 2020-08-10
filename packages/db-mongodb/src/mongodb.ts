@@ -114,28 +114,32 @@ export class MongoDB extends DataConnector.DataConnector {
 
   private encodeQuery(query: QueryFilter, Model: typeof BaseModel) {
     const encodedQuery = query.clone()
-
-    encodedQuery.traverse((fieldPath: string, field: QueryFilterField) => {
-      const fieldPathNodes = fieldPath.split('.')
-
-      // We're looking for queries on reference fields, since the `id` field
-      // needs to be cast to ObjectID.
-      //
-      // (!) TO DO: This should be a more comprehensive mechanism that is able
-      // to detect every single place a node might need to be cast to ObjectID.
-      const fieldSchema = Model.base$schema.fields[fieldPathNodes[0]]
-
-      if (
-        (fieldSchema &&
-          fieldSchema.type === 'reference' &&
-          fieldPathNodes[1] === 'id') ||
-        fieldPath === '_id'
-      ) {
-        field.value = this.encodeObjectId(field.value)
+    const transformFn = ({
+      name,
+      operator,
+      value,
+    }: {
+      name: string
+      operator: string
+      value: any
+    }) => {
+      if (name === '_id') {
+        return this.encodeObjectId(value)
       }
-    })
 
-    return encodedQuery
+      if (value instanceof BaseModel) {
+        return {
+          id: this.encodeObjectId(value.id),
+          type: (<typeof BaseModel>value.constructor).base$handle,
+        }
+      }
+
+      return Model.base$transformQueryField({name, operator, value})
+    }
+
+    return encodedQuery.toObject({
+      fieldTransform: transformFn,
+    })
   }
 
   private getCollectionName(Model: typeof BaseModel) {
@@ -199,9 +203,7 @@ export class MongoDB extends DataConnector.DataConnector {
   async delete(filter: QueryFilter, Model: typeof BaseModel) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const query = filter
-      ? this.encodeQuery(filter, Model).toObject({prefix: '$'})
-      : {}
+    const query = filter ? this.encodeQuery(filter, Model) : {}
     const {result} = await connection
       .db(this.dbName)
       .collection(collectionName)
@@ -243,13 +245,7 @@ export class MongoDB extends DataConnector.DataConnector {
       options.skip = (pageNumber - 1) * pageSize
     }
 
-    const query = filter
-      ? this.encodeQuery(filter, Model).toObject({
-          // fieldTransform: Model.base$schema.transformQueryFilterField.bind(
-          //   Model.base$schema
-          // ),
-        })
-      : {}
+    const query = filter ? this.encodeQuery(filter, Model) : {}
     const cursor = await connection
       .db(this.dbName)
       .collection(collectionName)
@@ -431,9 +427,7 @@ export class MongoDB extends DataConnector.DataConnector {
   ) {
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const query = filter
-      ? this.encodeQuery(filter, Model).toObject({prefix: '$'})
-      : {}
+    const query = filter ? this.encodeQuery(filter, Model) : {}
 
     try {
       const cursor = await connection

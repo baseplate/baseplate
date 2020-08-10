@@ -1,9 +1,13 @@
 import {camelize} from 'inflected'
-import {FieldConstructorParameters, types} from '@baseplate/validator'
+import {
+  FieldCastQueryParameters,
+  FieldConstructorParameters,
+  types,
+} from '@baseplate/validator'
 import type GraphQL from 'graphql'
 
 import AccessModel from '../internalModels/access'
-import type BaseModel from '../model/base'
+import BaseModel from '../model/base'
 import Context from '../context'
 import modelStore from '../modelStore'
 
@@ -16,6 +20,17 @@ export default class CoreFieldReference extends types.FieldReference {
     this.models = props.children.map(({type}: {type: string}) =>
       modelStore.get(type)
     )
+  }
+
+  castQuery({value}: FieldCastQueryParameters) {
+    if (value instanceof BaseModel) {
+      return {
+        id: value.id,
+        type: (<typeof BaseModel>value.constructor).base$handle,
+      }
+    }
+
+    return value
   }
 
   // (!) TO DO

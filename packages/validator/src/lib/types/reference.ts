@@ -17,8 +17,6 @@ interface SingleReferenceValue {
 export default class FieldReference extends BaseHandler {
   modelNames: Array<string>
 
-  operators = {}
-
   constructor(props: BaseConstructorParameters) {
     super(props)
 

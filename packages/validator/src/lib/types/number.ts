@@ -8,6 +8,27 @@ export interface Options extends BaseOptions {
 }
 
 export default class FieldNumber extends BaseHandler {
+  static operators = {
+    eq: {
+      label: 'is',
+    },
+    gt: {
+      label: 'is greater than',
+    },
+    gte: {
+      label: 'is greater than or equal to',
+    },
+    lt: {
+      label: 'is less than',
+    },
+    lte: {
+      label: 'is less than or equal to',
+    },
+    ne: {
+      label: 'is not',
+    },
+  }
+
   cast({path, value}: {path: Array<string>; value: any}) {
     if (typeof value === 'number') {
       return value

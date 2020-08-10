@@ -12,7 +12,11 @@ export default class FieldArray extends BaseHandler {
   options: Options
   type: 'array'
 
-  operators = {}
+  static operators = {
+    contains: {
+      label: 'contains',
+    },
+  }
 
   cast({path, value}: {path: Array<string>; value: any}) {
     if (Array.isArray(value)) {

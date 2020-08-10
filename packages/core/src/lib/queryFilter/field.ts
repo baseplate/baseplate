@@ -1,18 +1,6 @@
 import isPlainObject from '../utils/isPlainObject'
 import {InvalidQueryFilterParameterError} from '../errors'
 
-const COMPARISON_OPERATORS = [
-  'eq',
-  'gt',
-  'gte',
-  'in',
-  'lt',
-  'lte',
-  'ne',
-  'nin',
-  'not',
-]
-
 export default class Field {
   isNegated: boolean
   name: string
@@ -41,23 +29,38 @@ export default class Field {
       return new this(name, input, 'eq')
     }
 
-    if (Object.keys(input).length > 1) {
+    const stats: Record<'fields' | 'operators', number> = Object.keys(
+      input
+    ).reduce(
+      (stats, key) => {
+        if (key.startsWith(prefix)) {
+          stats.operators++
+        } else {
+          stats.fields++
+        }
+
+        return stats
+      },
+      {
+        fields: 0,
+        operators: 0,
+      }
+    )
+
+    if ((stats.fields > 0 && stats.operators > 0) || stats.operators > 1) {
       throw new InvalidQueryFilterParameterError({
         path,
       })
+    }
+
+    if (stats.operators === 0) {
+      return new this(name, input, 'eq')
     }
 
     const key = Object.keys(input)[0]
     const operator =
       key.substring(0, prefix.length) === prefix &&
       key.substring(prefix.length).toLowerCase()
-
-    if (!COMPARISON_OPERATORS.includes(operator)) {
-      throw new InvalidQueryFilterParameterError({
-        path,
-      })
-    }
-
     const isNegated = operator === 'not'
 
     if (isNegated) {

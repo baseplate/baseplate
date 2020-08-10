@@ -1,5 +1,7 @@
 import {
   CustomError,
+  FieldHandler,
+  FieldOperator,
   FieldValidationError,
   Schema,
   validateObject,
@@ -8,7 +10,12 @@ import {
 
 import AccessModel, {AccessType} from '../internalModels/access'
 import type {AccessValue} from '../accessValue'
-import {EntryNotFoundError, ForbiddenError, UnauthorizedError} from '../errors'
+import {
+  EntryNotFoundError,
+  ForbiddenError,
+  InvalidQueryFilterOperatorError,
+  UnauthorizedError,
+} from '../errors'
 import Context from '../context'
 import type {DataConnector} from '../dataConnector/interface'
 import type {FieldDefinition} from '../fieldDefinition'
@@ -202,6 +209,33 @@ export default class BaseModel {
 
   static base$sync() {
     return this.base$db.sync(this)
+  }
+
+  static base$transformQueryField({
+    name,
+    operator,
+    value,
+  }: {
+    name: string
+    operator: string
+    value: any
+  }) {
+    const fieldHandler = this.base$schema.handlers[name]
+
+    // (!) TO DO: Decide what to do about unknown fields present in a query.
+    if (!fieldHandler) {
+      return value
+    }
+
+    const fieldOperators: Record<string, FieldOperator> =
+      (<typeof FieldHandler>fieldHandler.constructor).operators ||
+      (<typeof FieldHandler>fieldHandler.constructor).defaultOperators
+
+    if (!fieldOperators[operator]) {
+      throw new InvalidQueryFilterOperatorError({operator, path: [name]})
+    }
+
+    return fieldHandler.castQuery({path: [name], value})
   }
 
   static base$validate(

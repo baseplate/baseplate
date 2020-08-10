@@ -24,8 +24,14 @@ export class BaseHandler {
     eq: {
       label: 'is',
     },
+    in: {
+      label: 'is one of',
+    },
     ne: {
       label: 'is not',
+    },
+    nin: {
+      label: 'is not one of',
     },
   }
 
@@ -33,11 +39,15 @@ export class BaseHandler {
 
   static options: Record<string, any>
 
-  cast?({value}: CastParameters<any>) {
+  cast({value}: CastParameters<any>) {
     return value
   }
 
-  validate?({path, value}: ValidateParameters<any>) {}
+  castQuery({path, value}: CastQueryParameters) {
+    return value
+  }
+
+  validate({path, value}: ValidateParameters<any>) {}
 
   validateOptions() {
     const schema = {
@@ -114,6 +124,11 @@ export type BasicOrExtendedSchema =
 export type CastParameters<T> = {
   path: string[]
   value: T
+}
+
+export type CastQueryParameters = {
+  path: string[]
+  value: any
 }
 
 export type ExtendedSchema<T> = {
