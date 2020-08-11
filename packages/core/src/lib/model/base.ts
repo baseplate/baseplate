@@ -347,10 +347,10 @@ export default class BaseModel {
       Object.assign(opParameters, this.base$beforeFind(opParameters))
     }
 
-    const {count, results} = await this.getFromDatabaseOrCache<FindReturnValue>(
-      () => this.base$db.find(opParameters, this, context),
+    const {count, results} = await this.base$db.find(
+      opParameters,
+      this,
       context,
-      JSON.stringify(opParameters),
       cache
     )
     const entries = results.map(
@@ -386,10 +386,10 @@ export default class BaseModel {
       fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
       filter,
     }
-    const {results} = await this.getFromDatabaseOrCache<FindReturnValue>(
-      () => this.base$db.find(opParameters, this, context),
+    const {results} = await this.base$db.find(
+      opParameters,
+      this,
       context,
-      JSON.stringify(opParameters),
       cache
     )
 
@@ -429,10 +429,10 @@ export default class BaseModel {
       filter,
       id,
     }
-    const fields = await this.getFromDatabaseOrCache<Result>(
-      () => this.base$db.findOneById(opParameters, this, context),
+    const fields = await this.base$db.findOneById(
+      opParameters,
+      this,
       context,
-      JSON.stringify(opParameters),
       cache
     )
 
@@ -510,35 +510,6 @@ export default class BaseModel {
   /**
    * INSTANCE METHODS
    */
-
-  static async getFromDatabaseOrCache<T>(
-    method: Function,
-    context: Context,
-    key: string,
-    cache?: boolean
-  ): Promise<T> {
-    if (typeof method !== 'function') {
-      throw new Error('A function must be supplied')
-    }
-
-    if (!cache) {
-      return method()
-    }
-
-    const cacheKey = `base$cache/${key}`
-
-    if (context.has(cacheKey)) {
-      logger.debug('Retrieving from request cache: %s', cacheKey)
-
-      return context.get(cacheKey)
-    }
-
-    const dbOp = method()
-
-    context.set(cacheKey, dbOp)
-
-    return await dbOp
-  }
 
   async base$create() {
     const fields = await (<typeof BaseModel>this.constructor).base$validate(

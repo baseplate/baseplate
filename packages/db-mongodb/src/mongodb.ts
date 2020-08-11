@@ -232,8 +232,19 @@ export class MongoDB extends DataConnector.DataConnector {
 
   async find(
     {fieldSet, filter, pageNumber = 1, pageSize}: DataConnector.FindParameters,
-    Model: typeof BaseModel
+    Model: typeof BaseModel,
+    context?: Context,
+    cache = true
   ) {
+    if (cache && context) {
+      const parameters = {fieldSet, filter, pageNumber, pageSize}
+
+      return context.getFromCacheOrOrigin<DataConnector.FindReturnValue>(
+        () => this.find(parameters, Model, context, false),
+        JSON.stringify(parameters)
+      )
+    }
+
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
     const options: FindOneOptions = {
@@ -297,8 +308,22 @@ export class MongoDB extends DataConnector.DataConnector {
   async findOneById(
     {batch, fieldSet, filter, id}: DataConnector.FindOneByIdParameters,
     Model: typeof BaseModel,
-    context: Context
+    context?: Context,
+    cache = true
   ) {
+    if (cache && context) {
+      return context.getFromCacheOrOrigin<DataConnector.Result>(
+        () =>
+          this.findOneById(
+            {batch, fieldSet, filter, id},
+            Model,
+            context,
+            false
+          ),
+        JSON.stringify({fieldSet, filter, id})
+      )
+    }
+
     if (batch) {
       return MongoDB.batchFindOneById(
         {fieldSet, filter, id},

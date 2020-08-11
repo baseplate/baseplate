@@ -91,7 +91,8 @@ export abstract class DataConnector {
   abstract find(
     props: FindParameters,
     Model: typeof BaseModel,
-    context?: Context
+    context?: Context,
+    cache?: boolean
   ): Promise<FindReturnValue>
 
   abstract findManyById(
@@ -103,7 +104,8 @@ export abstract class DataConnector {
   abstract findOneById(
     props: FindOneByIdParameters,
     Model: typeof BaseModel,
-    context?: Context
+    context?: Context,
+    cache?: boolean
   ): Promise<Result>
 
   abstract sync(Model: typeof BaseModel): Promise<void>
