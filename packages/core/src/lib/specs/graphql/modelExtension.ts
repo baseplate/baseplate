@@ -134,9 +134,9 @@ function getMutations(Model: typeof BaseModel) {
       args: {id: {type: GraphQLNonNull(GraphQLID)}},
       resolve: async (_root: any, {id}: {id: string}, context: Context) => {
         try {
-          const {deleteCount} = await Model.deleteOneById({
+          const {deleteCount} = await Model.delete({
             context,
-            id,
+            filter: new QueryFilter({_id: id}),
             user: context.get('base$user'),
           })
 
@@ -347,10 +347,10 @@ function getQueries(Model: typeof BaseModel) {
                 : null
             )
             .filter(Boolean)
-          const entry = await Model.findOneById({
+          const entry = await Model.findOne({
             context,
             fieldSet: new FieldSet(requestedFields),
-            id,
+            filter: new QueryFilter({_id: id}),
             user: context.get('base$user'),
           })
 

@@ -11,6 +11,7 @@ import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore'
+import QueryFilter from '../../../queryFilter/'
 import {RelationshipData} from '../relationship'
 
 export default async function (
@@ -52,9 +53,9 @@ export default async function (
       })
     }
 
-    const entry = await Model.findOneById({
+    const entry = await Model.findOne({
       context,
-      id,
+      filter: new QueryFilter({_id: id}),
       user: context.get('base$user'),
     })
 

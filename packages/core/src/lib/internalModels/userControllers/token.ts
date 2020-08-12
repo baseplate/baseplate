@@ -117,10 +117,10 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
       // TO DO: Validate payload
 
       const UserModel = this.base$modelStore.get(payload.modelName)
-      const user = await UserModel.findOneById({
+      const user = await UserModel.findOne({
         authenticate: false,
         context,
-        id: payload.id,
+        filter: new QueryFilter({_id: payload.id}),
       })
 
       // Generating refresh token.

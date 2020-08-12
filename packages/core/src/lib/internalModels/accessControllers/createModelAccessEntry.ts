@@ -2,7 +2,6 @@ import {ModelNotFoundError} from '../../errors'
 import Context from '../../context'
 import HttpRequest from '../../http/request'
 import HttpResponse from '../../http/response'
-import JsonApiModel from '../../specs/jsonApi/model'
 import JsonApiRequest from '../../specs/jsonApi/request'
 import JsonApiResponse from '../../specs/jsonApi/response'
 
@@ -31,7 +30,7 @@ export default async function createModelAccessEntry(
     modelAccess.id = this.encodeModelAccessKey(modelAccess.get('user'))
 
     const jsonApiRes = new JsonApiResponse({
-      entries: [<JsonApiModel>modelAccess],
+      entries: [modelAccess],
       res,
       statusCode: 201,
       url: jsonApiReq.url,

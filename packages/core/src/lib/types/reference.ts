@@ -10,6 +10,7 @@ import AccessModel from '../internalModels/access'
 import BaseModel from '../model/base'
 import Context from '../context'
 import modelStore from '../modelStore'
+import QueryFilter from '../queryFilter/'
 
 export default class CoreFieldReference extends types.FieldReference {
   models: Array<typeof BaseModel>
@@ -92,11 +93,12 @@ export default class CoreFieldReference extends types.FieldReference {
           return null
         }
 
-        return ReferencedModel.findOneById({
+        const filter = new QueryFilter({_id: id}).intersectWith(access.filter)
+
+        return ReferencedModel.findOne({
           context,
           fieldSet: access.fields,
-          filter: access.filter,
-          id,
+          filter,
           user: context.get('base$user'),
         })
       })

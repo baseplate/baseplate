@@ -257,6 +257,11 @@ export class MongoDB extends DataConnector.DataConnector {
     }
 
     const query = filter ? this.encodeQuery(filter, Model) : {}
+
+    logger.debug('find: %o', query, {
+      model: Model.base$handle,
+    })
+
     const cursor = await connection
       .db(this.dbName)
       .collection(collectionName)
@@ -273,8 +278,7 @@ export class MongoDB extends DataConnector.DataConnector {
 
   async findManyById(
     {fieldSet, filter, ids}: DataConnector.FindManyByIdParameters,
-    Model: typeof BaseModel,
-    context: Context
+    Model: typeof BaseModel
   ) {
     logger.debug('findManyById: %s', ids, {
       model: Model.base$handle,
@@ -286,12 +290,9 @@ export class MongoDB extends DataConnector.DataConnector {
     const options = {
       projection: this.getProjectionFromFieldSet(fieldSet),
     }
-    const query = new QueryFilter({_id: {$in: encodedIds}}, '$')
-
-    if (filter) {
-      query.intersectWith(filter)
-    }
-
+    const query = new QueryFilter({_id: {$in: encodedIds}}, '$').intersectWith(
+      filter
+    )
     const results = await connection
       .db(this.dbName)
       .collection(collectionName)
@@ -342,12 +343,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const options = {
       projection: this.getProjectionFromFieldSet(fieldSet),
     }
-    const query = new QueryFilter({_id: encodedId}, '$')
-
-    if (filter) {
-      query.intersectWith(filter)
-    }
-
+    const query = new QueryFilter({_id: encodedId}, '$').intersectWith(filter)
     const result = await connection
       .db(this.dbName)
       .collection(collectionName)

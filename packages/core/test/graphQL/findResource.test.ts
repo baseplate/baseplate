@@ -67,7 +67,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         body: {
           query: `
             {
-              Unicorn(id: "123456") {
+              Unicorn(_id: "123456") {
                 _id
                 numberOfHorns
               }

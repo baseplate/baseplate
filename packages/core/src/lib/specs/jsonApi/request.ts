@@ -10,7 +10,6 @@ import BaseModel from '../../model/base'
 import Context from '../../context'
 import FieldSet from '../../fieldSet'
 import HttpRequest from '../../http/request'
-import JsonApiModel from './model'
 import JsonApiURL from './url'
 import type {ModelStore} from '../../modelStore'
 import QueryFilter from '../../queryFilter/'
@@ -40,7 +39,7 @@ export type ResolveRelationshipParameters = {
 }
 
 export type ResolveRelationshipsParameters = {
-  entries: Array<JsonApiModel>
+  entries: Array<BaseModel>
   includeMap?: IncludeMap
   Model: typeof BaseModel
   user: UserModel
@@ -200,11 +199,11 @@ export default class JsonApiRequest {
       }
 
       const fieldSet = FieldSet.intersect(access.fields, this.fields[type])
-      const referencedEntry = await ReferencedModel.findOneById({
+      const filter = new QueryFilter({_id: id}).intersectWith(access.filter)
+      const referencedEntry = await ReferencedModel.findOne({
         context: this.context,
         fieldSet,
-        filter: access.filter,
-        id,
+        filter,
         user,
       })
 
@@ -228,7 +227,7 @@ export default class JsonApiRequest {
 
       return {
         fieldSet,
-        entry: <JsonApiModel>referencedEntry,
+        entry: referencedEntry,
       }
     })
     const includedReferences: Array<IncludedRelationship> = await Promise.all(

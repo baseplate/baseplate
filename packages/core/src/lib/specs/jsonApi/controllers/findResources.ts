@@ -2,11 +2,9 @@ import {ModelNotFoundError} from '../../../errors'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
-import JsonApiModel from '../model'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore'
-import QueryFilter from '../../../queryFilter/'
 
 export default async function (
   req: HttpRequest,
@@ -34,12 +32,12 @@ export default async function (
       user: context.get('base$user'),
     })
     const references = await jsonApiReq.resolveRelationships({
-      entries: <JsonApiModel[]>entries,
+      entries,
       Model,
       user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
-      entries: <JsonApiModel[]>entries,
+      entries,
       fieldSet,
       includedReferences: Object.values(references),
       includeTopLevelLinks: true,

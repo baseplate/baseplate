@@ -5,6 +5,7 @@ import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore'
+import QueryFilter from '../../../queryFilter/'
 
 export default async function (
   req: HttpRequest,
@@ -22,9 +23,9 @@ export default async function (
     }
 
     const {id} = jsonApiReq.params
-    const {deleteCount} = await Model.deleteOneById({
+    const {deleteCount} = await Model.delete({
       context,
-      id,
+      filter: new QueryFilter({_id: id}),
       user: context.get('base$user'),
     })
 

@@ -91,6 +91,14 @@ export default class QueryFilter {
     return QueryFilter.fromInternals(root)
   }
 
+  getId() {
+    return (
+      this.root instanceof Branch &&
+      this.root.fields._id &&
+      this.root.fields._id.value
+    )
+  }
+
   intersectWith(subject: QueryFilter) {
     if (!subject) return this
 
@@ -104,12 +112,39 @@ export default class QueryFilter {
 
       thisRoot.branches = thisRoot.branches.concat(subjectRoot.branches)
     } else {
+      if (this.root instanceof Branch && subject.root instanceof Branch) {
+        const thisFields = Object.keys(this.root.fields)
+        const subjectFields = Object.keys(subject.root.fields)
+        const hasCommonFields = thisFields.some((fieldName) =>
+          subjectFields.includes(fieldName)
+        )
+
+        // When intercepting two branches, we can simply merge their fields
+        // together, as long as there are no common fields between the two.
+        // If there are, we'll likely end up with an impossible query, but
+        // we let the database worry about that.
+        if (!hasCommonFields) {
+          this.root.fields = {
+            ...this.root.fields,
+            ...subject.root.fields,
+          }
+
+          return this
+        }
+      }
+
       this.root = new Fork([this.root as Fork, subject.root as Fork], 'and')
     }
 
     this.cleanDeadBranches()
 
     return this
+  }
+
+  removeId() {
+    if (this.root instanceof Branch) {
+      delete this.root.fields._id
+    }
   }
 
   serialize(prefix: string, fieldTransform?: Function) {

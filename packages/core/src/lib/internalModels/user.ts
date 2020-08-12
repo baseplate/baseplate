@@ -8,6 +8,12 @@ import BaseModel, {
   AuthenticateParameters,
   FindOneByIdParameters,
 } from '../model/base'
+import Context from '../context'
+import HttpRequest from '../http/request'
+import HttpResponse from '../http/response'
+import JsonApiRequest from '../specs/jsonApi/request'
+import JsonApiResponse from '../specs/jsonApi/response'
+import QueryFilter from '../queryFilter/'
 
 const TOKEN_EXPIRATION = 3600
 const TOKEN_PRIVATE_KEY = 'PRIVATE_KEY'
@@ -46,6 +52,9 @@ export default class Base$User extends BaseModel {
 
   static base$routes = {
     '/base$users/token': tokenRoute,
+    '/base$users/me': {
+      get: Base$User.findAuthenticatedUser,
+    },
   }
 
   static base$authenticate({access, accessType, user}: AuthenticateParameters) {
@@ -60,22 +69,43 @@ export default class Base$User extends BaseModel {
     return access
   }
 
-  static findOneById(props: FindOneByIdParameters) {
-    if (props.id !== 'me') {
-      return super.findOneById(props)
+  static async findAuthenticatedUser(
+    req: HttpRequest,
+    res: HttpResponse,
+    context: Context
+  ) {
+    const jsonApiReq = new JsonApiRequest(req, context)
+
+    try {
+      const user = context.get('base$user')
+
+      if (!user || !(user instanceof Base$User)) {
+        throw new ForbiddenError()
+      }
+
+      const entry = await super.findOne({
+        authenticate: false,
+        context,
+        filter: new QueryFilter({_id: user.id}),
+      })
+
+      const jsonApiReq = new JsonApiRequest(req, context)
+      const jsonApiRes = new JsonApiResponse({
+        entries: entry,
+        res,
+        url: jsonApiReq.url,
+      })
+
+      return jsonApiRes.end()
+    } catch (errors) {
+      const jsonApiRes = new JsonApiResponse({
+        errors,
+        res,
+        url: jsonApiReq.url,
+      })
+
+      return jsonApiRes.end()
     }
-
-    const user = props.context.get('base$user')
-
-    if (!user || !(user instanceof Base$User)) {
-      throw new ForbiddenError()
-    }
-
-    return super.findOneById({
-      ...props,
-      authenticate: false,
-      id: user.id,
-    })
   }
 
   static async generateAccessToken(user: Base$User) {

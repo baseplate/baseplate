@@ -22,11 +22,9 @@ import {
   FindParameters as DataConnectorFindParameters,
 } from '../dataConnector/interface'
 import type {FieldDefinition} from '../fieldDefinition'
-import type {FindReturnValue, Result} from '../dataConnector/interface'
 import type {GraphQLModelCache} from '../specs/graphql/modelCache'
 import type {InterfacesBlock} from './definition'
 import FieldSet from '../fieldSet'
-import logger from '../logger'
 import type {ModelStore} from '../modelStore'
 import QueryFilter from '../queryFilter/'
 import type SortObject from '../sortObject'
@@ -55,23 +53,7 @@ export interface DeleteParameters {
   user?: UserModel
 }
 
-export interface DeleteOneByIdParameters {
-  authenticate?: boolean
-  context?: Context
-  id: string
-  user?: UserModel
-}
-
 export type Fields = Record<string, any>
-
-export interface FindManyByIdParameters {
-  authenticate?: boolean
-  context?: Context
-  fieldSet: FieldSet
-  filter?: QueryFilter
-  ids: Array<string>
-  user?: UserModel
-}
 
 export interface FindOneByIdParameters {
   authenticate?: boolean
@@ -79,22 +61,23 @@ export interface FindOneByIdParameters {
   cache?: boolean
   context?: Context
   fieldSet?: FieldSet
-  filter?: QueryFilter
   id: string
   user?: UserModel
 }
 
 export interface FindOneParameters {
   authenticate?: boolean
+  batch?: boolean
   cache?: boolean
   context: Context
-  fieldSet: FieldSet
+  fieldSet?: FieldSet
   filter: QueryFilter
   user?: UserModel
 }
 
 export interface FindParameters {
   authenticate?: boolean
+  batch?: boolean
   cache?: boolean
   context?: Context
   fieldSet?: FieldSet
@@ -108,8 +91,6 @@ export interface FindParameters {
 export interface GetAccessParameters {
   accessType: AccessType
   context: Context
-  fieldSet?: FieldSet
-  filter?: QueryFilter
   user: UserModel
 }
 
@@ -173,11 +154,44 @@ export default class BaseModel {
     options: DataConnectorFindParameters
   ): Partial<DataConnectorFindParameters>
 
+  static async base$find(
+    parameters: FindParameters,
+    context: Context,
+    cache?: boolean
+  ) {
+    const {filter} = parameters
+    const id = filter.getId()
+
+    if (id) {
+      filter.removeId()
+
+      const result = await this.base$db.findOneById(
+        {...parameters, id},
+        this,
+        context,
+        cache
+      )
+
+      return {
+        count: result ? 1 : 0,
+        results: result ? [result] : [],
+      }
+    }
+
+    return this.base$db.find(parameters, this, context, cache)
+  }
+
+  static async base$findOneById(
+    parameters: FindOneByIdParameters,
+    context: Context,
+    cache?: boolean
+  ) {
+    return this.base$db.findOneById(parameters, this, context, cache)
+  }
+
   static async base$getAccess({
     accessType,
     context,
-    fieldSet,
-    filter,
     user,
   }: GetAccessParameters) {
     const Access = <typeof AccessModel>this.base$modelStore.get('base$access')
@@ -188,14 +202,6 @@ export default class BaseModel {
       modelName: this.base$handle,
       user,
     })
-
-    if (fieldSet) {
-      access.fields = FieldSet.intersect(fieldSet, access.fields)
-    }
-
-    if (filter) {
-      access.filter = filter.intersectWith(access.filter)
-    }
 
     if (typeof this.base$authenticate === 'function') {
       access = this.base$authenticate({access, accessType, context, user})
@@ -282,35 +288,18 @@ export default class BaseModel {
       const access = await this.base$getAccess({
         accessType: 'delete',
         context,
-        filter,
         user,
       })
 
-      filter = access.filter
+      filter.intersectWith(access.filter)
     }
 
     return this.base$db.delete(filter, this, context)
   }
 
-  static async deleteOneById({
-    authenticate = true,
-    context,
-    id,
-    user,
-  }: DeleteOneByIdParameters) {
-    if (authenticate) {
-      await this.base$getAccess({
-        accessType: 'delete',
-        context,
-        user,
-      })
-    }
-
-    return this.base$db.deleteOneById(id, this, context)
-  }
-
   static async find({
     authenticate = true,
+    batch = true,
     cache = true,
     context = new Context(),
     fieldSet,
@@ -326,16 +315,20 @@ export default class BaseModel {
       const access = await this.base$getAccess({
         accessType: 'read',
         context,
-        fieldSet,
-        filter,
         user,
       })
 
-      fieldSet = access.fields
-      filter = access.filter
+      if (access.fields) {
+        fieldSet = access.fields.intersectWith(fieldSet)
+      }
+
+      if (filter) {
+        filter.intersectWith(access.filter)
+      }
     }
 
     let opParameters: DataConnectorFindParameters = {
+      batch,
       fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
       filter,
       pageNumber,
@@ -347,12 +340,7 @@ export default class BaseModel {
       Object.assign(opParameters, this.base$beforeFind(opParameters))
     }
 
-    const {count, results} = await this.base$db.find(
-      opParameters,
-      this,
-      context,
-      cache
-    )
+    const {count, results} = await this.base$find(opParameters, context, cache)
     const entries = results.map(
       (fields: Fields) => new this(fields, {fromDb: true})
     )
@@ -363,6 +351,7 @@ export default class BaseModel {
 
   static async findOne({
     authenticate = true,
+    batch = true,
     cache = true,
     context = new Context(),
     fieldSet,
@@ -373,25 +362,22 @@ export default class BaseModel {
       const access = await this.base$getAccess({
         accessType: 'read',
         context,
-        fieldSet,
-        filter,
         user,
       })
 
-      fieldSet = access.fields
-      filter = access.filter
+      if (access.fields) {
+        fieldSet = access.fields.intersectWith(fieldSet)
+      }
+
+      filter.intersectWith(access.filter)
     }
 
     const opParameters = {
+      batch,
       fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
       filter,
     }
-    const {results} = await this.base$db.find(
-      opParameters,
-      this,
-      context,
-      cache
-    )
+    const {results} = await this.base$find(opParameters, context, cache)
 
     if (results.length === 0) {
       return null
@@ -406,39 +392,18 @@ export default class BaseModel {
     cache = true,
     context = new Context(),
     fieldSet,
-    filter,
     id,
     user,
   }: FindOneByIdParameters) {
-    if (authenticate) {
-      const access = await this.base$getAccess({
-        accessType: 'read',
-        context,
-        fieldSet,
-        filter,
-        user,
-      })
-
-      fieldSet = access.fields
-      filter = access.filter
-    }
-
-    const opParameters = {
+    return this.findOne({
+      authenticate,
       batch,
-      fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
-      filter,
-      id,
-    }
-    const fields = await this.base$db.findOneById(
-      opParameters,
-      this,
+      cache,
       context,
-      cache
-    )
-
-    if (!fields) return null
-
-    return new this({...fields}, {fromDb: true})
+      fieldSet,
+      filter: new QueryFilter({_id: id}),
+      user,
+    })
   }
 
   static async update({
@@ -452,11 +417,10 @@ export default class BaseModel {
       const access = await this.base$getAccess({
         accessType: 'update',
         context,
-        filter,
         user,
       })
 
-      filter = access.filter
+      filter.intersectWith(access.filter)
     }
 
     const validatedUpdate = await this.base$validate(update, {
@@ -722,6 +686,10 @@ export default class BaseModel {
   set(fieldName: string, value: any) {
     this.base$dirtyFields.add(fieldName)
     this.base$fields[fieldName] = value
+  }
+
+  toJSON() {
+    return this.base$fields
   }
 
   async toObject({

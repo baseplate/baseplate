@@ -1,5 +1,6 @@
 import {CustomError} from '@baseplate/validator'
 
+import BaseModel from '../../model/base'
 import FieldSet from '../../fieldSet'
 import {
   IncludedRelationship,
@@ -25,7 +26,7 @@ interface JsonApiResponseBody {
 }
 
 interface JsonApiResponseConstructorParameters {
-  entries?: JsonApiModel | Array<JsonApiModel>
+  entries?: BaseModel | Array<BaseModel>
   errors?: Array<CustomError>
   fieldSet?: FieldSet
   includedReferences?: Array<IncludedRelationship>
@@ -40,7 +41,7 @@ interface JsonApiResponseConstructorParameters {
 }
 
 export default class JsonApiResponse {
-  entries: JsonApiModel | Array<JsonApiModel>
+  entries: BaseModel | Array<BaseModel>
   errors: Array<CustomError>
   includedReferences: Array<IncludedRelationship>
   includeTopLevelLinks: boolean
@@ -135,7 +136,7 @@ export default class JsonApiResponse {
       const formattedRelationships = relationshipsArray.map((entry) =>
         this.formatRelationshipObject({
           id: entry.id,
-          type: (<typeof JsonApiModel>entry.constructor).base$handle,
+          type: (<typeof BaseModel>entry.constructor).base$handle,
         })
       )
 
@@ -193,7 +194,7 @@ export default class JsonApiResponse {
     }
   }
 
-  async formatEntry(entry: JsonApiModel, fieldSet?: FieldSet) {
+  async formatEntry(entry: BaseModel, fieldSet?: FieldSet) {
     const fields = await entry.toObject({
       fieldSet,
     })
@@ -212,7 +213,7 @@ export default class JsonApiResponse {
         return
       }
 
-      const schema = (<typeof JsonApiModel>entry.constructor).base$schema
+      const schema = (<typeof BaseModel>entry.constructor).base$schema
 
       if (schema.fields[name].type === 'reference') {
         const links = this.getRelationshipLinksBlock(entry, name)
@@ -227,7 +228,7 @@ export default class JsonApiResponse {
     })
 
     const formattedEntry: JsonApiEntry = {
-      type: (<typeof JsonApiModel>entry.constructor).base$handle,
+      type: (<typeof BaseModel>entry.constructor).base$handle,
       id: entry.id,
       attributes,
     }
@@ -249,8 +250,10 @@ export default class JsonApiResponse {
       }
     }
 
-    if (typeof entry.base$jsonApiFormat === 'function') {
-      return entry.base$jsonApiFormat(formattedEntry, entry)
+    const jsonApiEntry = <JsonApiModel>entry
+
+    if (typeof jsonApiEntry.base$jsonApiFormat === 'function') {
+      return jsonApiEntry.base$jsonApiFormat(formattedEntry, entry)
     }
 
     return formattedEntry
@@ -340,7 +343,7 @@ export default class JsonApiResponse {
     return links
   }
 
-  getRelationshipLinksBlock(entry: JsonApiModel, name: string) {
+  getRelationshipLinksBlock(entry: BaseModel, name: string) {
     const self = this.url.format({
       overrideParameters: null,
       overridePath: [this.url.path, entry.id, 'relationships', name].join('/'),

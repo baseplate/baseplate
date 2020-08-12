@@ -4,7 +4,6 @@ import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
-import JsonApiModel from '../model'
 import modelStore from '../../../modelStore'
 
 export default async function (
@@ -23,7 +22,7 @@ export default async function (
     }
 
     const {id} = jsonApiReq.params
-    const entry = <JsonApiModel>await Model.updateOneById({
+    const entry = await Model.updateOneById({
       context,
       id,
       update: jsonApiReq.bodyFields,

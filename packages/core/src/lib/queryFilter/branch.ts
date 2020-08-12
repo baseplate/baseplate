@@ -41,11 +41,12 @@ export default class Branch {
   }
 
   serialize(prefix: string, fieldTransform?: Function): Record<string, any> {
-    return Object.entries(this.fields).reduce((result, [name, field]) => {
-      return {
+    return Object.values(this.fields).reduce(
+      (result, field) => ({
         ...result,
-        [name]: field.serialize(prefix, fieldTransform),
-      }
-    }, {})
+        ...field.serialize(prefix, fieldTransform),
+      }),
+      {}
+    )
   }
 }

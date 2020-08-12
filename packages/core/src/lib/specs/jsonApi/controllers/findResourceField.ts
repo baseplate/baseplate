@@ -8,10 +8,10 @@ import {
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
-import JsonApiModel from '../model'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
 import modelStore from '../../../modelStore'
+import QueryFilter from '../../../queryFilter/'
 
 export default async function (
   req: HttpRequest,
@@ -52,9 +52,11 @@ export default async function (
       })
     }
 
-    const entry = <JsonApiModel>(
-      await Model.findOneById({context, id, user: context.get('base$user')})
-    )
+    const entry = await Model.findOne({
+      context,
+      filter: new QueryFilter({_id: id}),
+      user: context.get('base$user'),
+    })
 
     if (!entry || !entry.get(fieldName)) {
       throw new EntryNotFoundError({id})

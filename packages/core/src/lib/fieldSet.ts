@@ -1,7 +1,7 @@
 import {InvalidFieldSetError} from './errors'
 
 export default class FieldSet extends Set {
-  constructor(fields: Set<string> | Array<string>) {
+  constructor(fields: Set<string> | Array<string> = []) {
     super(Array.from(fields))
   }
 
@@ -9,31 +9,35 @@ export default class FieldSet extends Set {
     if (!a) return b
     if (!b) return a
 
-    const fields = new Set(a)
-
-    a.forEach((item) => {
-      if (b.has(item)) {
-        fields.add(item)
-      }
-    })
-
-    return new this(fields)
+    return new this(a).intersectWith(b)
   }
 
   static unite(a: FieldSet, b: FieldSet): FieldSet {
     if (!a || !b) return
 
-    const fields = new Set(a)
+    return new this(a).uniteWith(b)
+  }
 
-    b.forEach((item) => {
-      fields.add(item)
+  intersectWith(subject: FieldSet) {
+    this.forEach((item) => {
+      if (!subject.has(item)) {
+        this.delete(item)
+      }
     })
 
-    return new this(fields)
+    return this
   }
 
   toArray() {
     return Array.from(this)
+  }
+
+  uniteWith(subject: FieldSet) {
+    subject.forEach((item) => {
+      this.add(item)
+    })
+
+    return this
   }
 
   validate() {

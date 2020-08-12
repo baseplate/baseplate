@@ -82,11 +82,12 @@ export default class Field {
       ? fieldTransform({name, operator, value})
       : value
     const valueWithOperator = {[prefix + operator]: transformedValue}
+    const valueWithOperatorAndNegation = isNegated
+      ? {[`${prefix}not`]: valueWithOperator}
+      : valueWithOperator
 
-    if (isNegated) {
-      return {[`${prefix}not`]: valueWithOperator}
+    return {
+      [name]: valueWithOperatorAndNegation,
     }
-
-    return valueWithOperator
   }
 }

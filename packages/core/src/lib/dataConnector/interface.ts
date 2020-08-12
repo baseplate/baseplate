@@ -80,12 +80,6 @@ export abstract class DataConnector {
     context?: Context
   ): Promise<{deleteCount: number}>
 
-  abstract deleteOneById(
-    id: string,
-    Model: typeof BaseModel,
-    context?: Context
-  ): Promise<{deleteCount: number}>
-
   disconnect?(): Promise<void>
 
   abstract find(
@@ -151,6 +145,7 @@ export interface FindReturnValue {
 }
 
 export interface FindParameters {
+  batch?: boolean
   fieldSet?: FieldSet
   filter?: QueryFilter
   pageNumber?: number
