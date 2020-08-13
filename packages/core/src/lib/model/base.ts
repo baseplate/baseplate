@@ -20,6 +20,7 @@ import Context from '../context'
 import {
   DataConnector,
   FindParameters as DataConnectorFindParameters,
+  UpdateParameters as DataConnectorUpdateParameters,
 } from '../dataConnector/interface'
 import type {FieldDefinition} from '../fieldDefinition'
 import type {GraphQLModelCache} from '../specs/graphql/modelCache'
@@ -69,7 +70,7 @@ export interface FindOneParameters {
   authenticate?: boolean
   batch?: boolean
   cache?: boolean
-  context: Context
+  context?: Context
   fieldSet?: FieldSet
   filter: QueryFilter
   user?: UserModel
@@ -151,8 +152,12 @@ export default class BaseModel {
   static base$authenticate?(options: AuthenticateParameters): AccessValue
 
   static base$beforeFind?(
-    options: DataConnectorFindParameters
+    parameters: DataConnectorFindParameters
   ): Partial<DataConnectorFindParameters>
+
+  static base$beforeUpdate?(
+    parameters: DataConnectorUpdateParameters
+  ): Partial<DataConnectorUpdateParameters>
 
   static async base$find(
     parameters: FindParameters,
@@ -349,65 +354,16 @@ export default class BaseModel {
     return {entries, pageSize, totalEntries: count, totalPages}
   }
 
-  static async findOne({
-    authenticate = true,
-    batch = true,
-    cache = true,
-    context = new Context(),
-    fieldSet,
-    filter,
-    user,
-  }: FindOneParameters) {
-    if (authenticate) {
-      const access = await this.base$getAccess({
-        accessType: 'read',
-        context,
-        user,
-      })
+  static async findOne(parameters: FindOneParameters) {
+    const {entries} = await this.find(parameters)
 
-      if (access.fields) {
-        fieldSet = access.fields.intersectWith(fieldSet)
-      }
-
-      filter.intersectWith(access.filter)
-    }
-
-    let opParameters = {
-      batch,
-      fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
-      filter,
-    }
-
-    if (typeof this.base$beforeFind === 'function') {
-      Object.assign(opParameters, this.base$beforeFind(opParameters))
-    }
-
-    const {results} = await this.base$find(opParameters, context, cache)
-
-    if (results.length === 0) {
-      return null
-    }
-
-    return new this(results[0], {fromDb: true})
+    return entries[0] || null
   }
 
-  static async findOneById({
-    authenticate = true,
-    batch = true,
-    cache = true,
-    context = new Context(),
-    fieldSet,
-    id,
-    user,
-  }: FindOneByIdParameters) {
+  static async findOneById({id, ...parameters}: FindOneByIdParameters) {
     return this.findOne({
-      authenticate,
-      batch,
-      cache,
-      context,
-      fieldSet,
+      ...parameters,
       filter: new QueryFilter({_id: id}),
-      user,
     })
   }
 
@@ -431,9 +387,19 @@ export default class BaseModel {
     const validatedUpdate = await this.base$validate(update, {
       enforceRequiredFields: false,
     })
-    const {results} = await this.base$db.update(
+
+    let opParameters = {
       filter,
-      {...validatedUpdate, _updatedAt: new Date()},
+      update: {...validatedUpdate, _updatedAt: new Date()},
+    }
+
+    if (typeof this.base$beforeUpdate === 'function') {
+      Object.assign(opParameters, this.base$beforeUpdate(opParameters))
+    }
+
+    const {results} = await this.base$db.update(
+      opParameters.filter,
+      opParameters.update,
       this,
       context
     )
