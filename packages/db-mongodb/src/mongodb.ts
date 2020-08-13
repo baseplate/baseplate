@@ -9,7 +9,6 @@ import {
   errors,
   FieldSet,
   QueryFilter,
-  QueryFilterField,
 } from '@baseplate/core'
 
 const MAX_INDEX_LENGTH = 120
@@ -278,7 +277,8 @@ export class MongoDB extends DataConnector.DataConnector {
 
   async findManyById(
     {fieldSet, filter, ids}: DataConnector.FindManyByIdParameters,
-    Model: typeof BaseModel
+    Model: typeof BaseModel,
+    context: Context
   ) {
     logger.debug('findManyById: %s', ids, {
       model: Model.base$handle,

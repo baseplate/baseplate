@@ -372,11 +372,16 @@ export default class BaseModel {
       filter.intersectWith(access.filter)
     }
 
-    const opParameters = {
+    let opParameters = {
       batch,
       fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
       filter,
     }
+
+    if (typeof this.base$beforeFind === 'function') {
+      Object.assign(opParameters, this.base$beforeFind(opParameters))
+    }
+
     const {results} = await this.base$find(opParameters, context, cache)
 
     if (results.length === 0) {

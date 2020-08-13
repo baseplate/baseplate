@@ -121,8 +121,6 @@ export default class QueryFilter {
 
         // When intercepting two branches, we can simply merge their fields
         // together, as long as there are no common fields between the two.
-        // If there are, we'll likely end up with an impossible query, but
-        // we let the database worry about that.
         if (!hasCommonFields) {
           this.root.fields = {
             ...this.root.fields,
