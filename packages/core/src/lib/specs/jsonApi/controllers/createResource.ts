@@ -14,8 +14,8 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const modelName = req.params.modelName
-    const Model = modelStore.getByPluralForm(modelName)
+    const {modelName} = req.params
+    const Model = modelStore.get(modelName)
 
     if (!Model) {
       throw new ModelNotFoundError({name: modelName})

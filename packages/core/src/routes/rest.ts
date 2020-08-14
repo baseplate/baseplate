@@ -2,7 +2,10 @@ import Context from '../lib/context'
 import endpointStore from '../lib/endpointStore'
 import type EntryPoint from '../lib/entryPoint'
 import getUserFromToken from '../lib/acl/getUserFromToken'
-import HttpRequest, {ParamsMap as HttpParams} from '../lib/http/request'
+import HttpRequest, {
+  Method as HttpMethod,
+  ParamsMap as HttpParams,
+} from '../lib/http/request'
 import HttpResponse from '../lib/http/response'
 import JsonApiCreateResource from '../lib/specs/jsonApi/controllers/createResource'
 import JsonApiDeleteResource from '../lib/specs/jsonApi/controllers/deleteResource'
@@ -15,7 +18,6 @@ import parseAuthorizationHeader from '../lib/acl/parseAuthorizationHeader'
 import modelStore from '../lib/modelStore'
 import Router from '../lib/router'
 
-type HttpVerb = 'delete' | 'get' | 'options' | 'patch' | 'post' | 'put'
 type RouteParameters = Record<string, string>
 
 const router = new Router()
@@ -26,132 +28,98 @@ const restEntryPoint: EntryPoint = {
     const context = new Context({
       base$user: getUserFromToken(authTokenData),
     })
-    const route = router.match(req.url.pathname)
+    const route = router.match(req.method, req.url.pathname)
 
     if (!route) {
       return res.status(404).end()
     }
 
-    const handler = (<Function>route.handler)(
-      req.method,
-      route.parameters,
-      context
-    )
+    req.params = <HttpParams>route.parameters
 
-    if (handler) {
-      req.params = <HttpParams>route.parameters
-
-      return handler(req, res, context)
-    }
-
-    return res.status(404).end()
+    return route.handler(req, res, context)
   },
 
   initialize() {
     router.reset()
 
-    router.add('/:modelName', (method: HttpVerb, params: RouteParameters) => {
-      const Model = modelStore.getByPluralForm(params.modelName)
-
-      if (
-        Model &&
-        method === 'get' &&
-        Model.base$interfaces.restFindResources
-      ) {
-        return JsonApiFindResources
-      }
-
-      if (
-        Model &&
-        method === 'post' &&
-        Model.base$interfaces.restCreateResource
-      ) {
-        return JsonApiCreateResource
-      }
-    })
-
-    router.add(
-      '/:modelName/:id',
-      (method: HttpVerb, params: RouteParameters) => {
-        const Model = modelStore.getByPluralForm(params.modelName)
-
-        if (
-          Model &&
-          method === 'delete' &&
-          Model.base$interfaces.restDeleteResource
-        ) {
-          return JsonApiDeleteResource
-        }
-
-        if (
-          Model &&
-          method === 'get' &&
-          Model.base$interfaces.restFindResource
-        ) {
-          return JsonApiFindResource
-        }
-
-        if (
-          Model &&
-          method === 'patch' &&
-          Model.base$interfaces.restUpdateResource
-        ) {
-          return JsonApiUpdateResource
-        }
-      }
-    )
-
-    router.add(
-      '/:modelName/:id/:fieldName',
-      (method: HttpVerb, params: RouteParameters) => {
-        const Model = modelStore.getByPluralForm(params.modelName)
-
-        if (
-          Model &&
-          method === 'get' &&
-          Model.base$interfaces.restFindResourceField
-        ) {
-          return JsonApiFindResourceField
-        }
-      }
-    )
-
-    router.add(
-      '/:modelName/:id/relationships/:fieldName',
-      (method: HttpVerb, params: RouteParameters) => {
-        const Model = modelStore.getByPluralForm(params.modelName)
-
-        if (
-          method === 'get' &&
-          Model.base$interfaces.restFindResourceFieldRelationship
-        ) {
-          return JsonApiFindResourceFieldRelationship
-        }
-      }
-    )
-
     endpointStore.endpoints.forEach((endpoint) => {
-      const {handler, route} = endpoint
+      for (const method in endpoint.handler) {
+        const handler = endpoint.handler[method as HttpMethod]
 
-      router.add(route, (method: HttpVerb) => {
-        if (typeof handler[method] === 'function') {
-          return handler[method]
+        if (typeof handler === 'function' && method in HttpMethod) {
+          router.add(<HttpMethod>method, endpoint.route, handler)
         }
-      })
+      }
     })
 
     modelStore.getAll().forEach((Model) => {
       const routes = Model.base$routes || {}
 
-      Object.entries(routes).forEach(([path, route]) => {
-        router.add(path, (method: string) => {
-          if (typeof route[method] !== 'function') {
-            return
-          }
+      if (Model.base$interfacePaths.restCreateResource) {
+        router.post(
+          Model.base$interfacePaths.restCreateResource,
+          JsonApiCreateResource,
+          {modelName: Model.base$handle}
+        )
+      }
 
-          return route[method].bind(Model)
-        })
-      })
+      if (Model.base$interfacePaths.restDeleteResource) {
+        router.delete(
+          Model.base$interfacePaths.restDeleteResource,
+          JsonApiDeleteResource,
+          {modelName: Model.base$handle}
+        )
+      }
+
+      if (Model.base$interfacePaths.restFindResource) {
+        router.get(
+          Model.base$interfacePaths.restFindResource,
+          JsonApiFindResource,
+          {modelName: Model.base$handle}
+        )
+      }
+
+      if (Model.base$interfacePaths.restFindResourceField) {
+        router.get(
+          Model.base$interfacePaths.restFindResourceField,
+          JsonApiFindResourceField,
+          {modelName: Model.base$handle}
+        )
+      }
+
+      if (Model.base$interfacePaths.restFindResourceFieldRelationship) {
+        router.get(
+          Model.base$interfacePaths.restFindResourceFieldRelationship,
+          JsonApiFindResourceFieldRelationship,
+          {modelName: Model.base$handle}
+        )
+      }
+
+      if (Model.base$interfacePaths.restFindResources) {
+        router.get(
+          Model.base$interfacePaths.restFindResources,
+          JsonApiFindResources,
+          {modelName: Model.base$handle}
+        )
+      }
+
+      if (Model.base$interfacePaths.restUpdateResource) {
+        router.post(
+          Model.base$interfacePaths.restUpdateResource,
+          JsonApiUpdateResource,
+          {modelName: Model.base$handle}
+        )
+      }
+
+      for (const path in routes) {
+        const route = routes[path]
+
+        for (const method in route) {
+          if (method in HttpMethod && typeof route[method] === 'function') {
+            router.add(<HttpMethod>method, path, route[method])
+          }
+        }
+      }
     })
   },
 }

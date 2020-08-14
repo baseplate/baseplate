@@ -23,7 +23,7 @@ export default async function deleteModelAccessEntry(
     const userData = this.decodeModelAccessKey(req.params.id)
 
     if (userData === undefined) {
-      throw new EntryNotFoundError({id: req.params.id})
+      throw new EntryNotFoundError()
     }
 
     let user = null
@@ -32,7 +32,7 @@ export default async function deleteModelAccessEntry(
       const UserModel = this.base$modelStore.get(userData.modelName)
 
       if (!UserModel) {
-        throw new EntryNotFoundError({id: req.params.id})
+        throw new EntryNotFoundError()
       }
 
       user = <User>new UserModel({_id: userData.id})
@@ -46,7 +46,7 @@ export default async function deleteModelAccessEntry(
     })
 
     if (deleteCount === 0) {
-      throw new EntryNotFoundError({id: req.params.id})
+      throw new EntryNotFoundError()
     }
 
     return res.status(204).end()

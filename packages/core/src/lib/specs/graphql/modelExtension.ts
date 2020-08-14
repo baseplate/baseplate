@@ -20,6 +20,7 @@ import FieldSet from '../../fieldSet'
 import GraphQLDeleteResponse from './deleteResponse'
 import GraphQLError from './error'
 import GraphQLQueryFilterType from './queryFilter'
+import logger from '../../logger'
 import QueryFilter from '../../queryFilter/'
 
 export interface Mutation {
@@ -97,11 +98,15 @@ function getMutations(Model: typeof BaseModel) {
   const entryType = getObjectType(Model)
   const mutations: Map<string, Mutation> = new Map()
 
-  if (Model.base$interfaces.graphQLCreateResource) {
-    const mutationName = camelize(`create_${Model.base$handle}`, false)
+  if (Model.base$interfacePaths.graphQLCreateResource) {
+    const mutationName = Model.base$interfacePaths.graphQLCreateResource
     const createInputType = new GraphQLInputObjectType({
-      name: camelize(`create_${Model.base$handle}_input_type`),
+      name: `${mutationName}InputType`,
       fields: getInputFieldsWithRequiredConstraints(Model),
+    })
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
     })
 
     mutations.set(mutationName, {
@@ -126,8 +131,12 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfaces.graphQLDeleteResource) {
-    const mutationName = camelize(`delete_${Model.base$handle}`, false)
+  if (Model.base$interfacePaths.graphQLDeleteResource) {
+    const mutationName = Model.base$interfacePaths.graphQLDeleteResource
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
+    })
 
     mutations.set(mutationName, {
       type: GraphQLDeleteResponse,
@@ -150,11 +159,15 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfaces.graphQLUpdateResource) {
-    const mutationName = camelize(`update_${Model.base$handle}`, false)
+  if (Model.base$interfacePaths.graphQLUpdateResource) {
+    const mutationName = Model.base$interfacePaths.graphQLUpdateResource
     const updateInputType = new GraphQLInputObjectType({
-      name: camelize(`update_${Model.base$handle}_update_type`),
+      name: `${mutationName}UpdateType`,
       fields: getInputFields(Model),
+    })
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
     })
 
     mutations.set(mutationName, {
@@ -184,18 +197,22 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfaces.graphQLUpdateResources) {
-    const mutationName = camelize(`update_${Model.base$handlePlural}`, false)
+  if (Model.base$interfacePaths.graphQLUpdateResources) {
+    const mutationName = Model.base$interfacePaths.graphQLUpdateResources
     const filterInputType = new GraphQLInputObjectType({
-      name: camelize(`update_${Model.base$handlePlural}_filter_type`),
+      name: `Update${mutationName}FilterType`,
       fields: {
         ...getInputFields(Model),
         _id: {type: GraphQLID},
       },
     })
     const updateInputType = new GraphQLInputObjectType({
-      name: camelize(`update_${Model.base$handlePlural}_update_type`),
+      name: `Update${mutationName}UpdateType`,
       fields: getInputFields(Model),
+    })
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
     })
 
     mutations.set(mutationName, {
@@ -287,8 +304,12 @@ function getQueries(Model: typeof BaseModel) {
   if (!type) return queries
 
   // Plural field: retrieves a list of entries.
-  if (Model.base$interfaces.graphQLFindResources) {
-    const queryName = camelize(Model.base$handlePlural)
+  if (Model.base$interfacePaths.graphQLFindResources) {
+    const queryName = Model.base$interfacePaths.graphQLFindResources
+
+    logger.debug('Adding GraphQL query: %s', queryName, {
+      model: Model.base$handle,
+    })
 
     queries.set(queryName, {
       type: new GraphQLList(type),
@@ -325,8 +346,12 @@ function getQueries(Model: typeof BaseModel) {
   }
 
   // Singular field: retrieves a single entry.
-  if (Model.base$interfaces.graphQLFindResource) {
-    const queryName = camelize(Model.base$handle)
+  if (Model.base$interfacePaths.graphQLFindResource) {
+    const queryName = Model.base$interfacePaths.graphQLFindResource
+
+    logger.debug('Adding GraphQL query: %s', queryName, {
+      model: Model.base$handle,
+    })
 
     queries.set(queryName, {
       type,

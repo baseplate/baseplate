@@ -24,7 +24,7 @@ import {
 } from '../dataConnector/interface'
 import type {FieldDefinition} from '../fieldDefinition'
 import type {GraphQLModelCache} from '../specs/graphql/modelCache'
-import type {InterfacesBlock} from './definition'
+import {Interfaces, InterfacesBlock} from './definition'
 import FieldSet from '../fieldSet'
 import type {ModelStore} from '../modelStore'
 import QueryFilter from '../queryFilter/'
@@ -142,6 +142,7 @@ export default class BaseModel {
   static base$graphQL?: GraphQLModelCache
   static base$handle?: string
   static base$handlePlural?: string
+  static base$interfacePaths?: {[key in Interfaces]: string}
   static base$interfaces?: InterfacesBlock
   static base$label?: string
   static base$modelStore?: ModelStore
@@ -436,7 +437,7 @@ export default class BaseModel {
     )
 
     if (!result) {
-      throw new EntryNotFoundError({id})
+      throw new EntryNotFoundError()
     }
 
     return new this(result, {fromDb: true})
@@ -630,7 +631,7 @@ export default class BaseModel {
     })
 
     if (!updatedResult) {
-      throw new EntryNotFoundError({id: this.id})
+      throw new EntryNotFoundError()
     }
 
     this.base$hydrate(updatedResult, {fromDb: true})

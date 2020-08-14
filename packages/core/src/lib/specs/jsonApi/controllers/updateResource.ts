@@ -14,17 +14,16 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const modelName = req.params.modelName
-    const Model = modelStore.getByPluralForm(modelName)
+    const {modelName, ...queryParamters} = req.params
+    const Model = modelStore.get(modelName)
 
     if (!Model) {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const {id} = jsonApiReq.params
     const entry = await Model.updateOneById({
       context,
-      id,
+      id: queryParamters._id, // (!) TO DO: Use Model.update() with a generic filter
       update: jsonApiReq.bodyFields,
       user: context.get('base$user'),
     })

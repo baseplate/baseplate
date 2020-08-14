@@ -23,7 +23,7 @@ export default async function findModelAccessEntry(
     const userData = this.decodeModelAccessKey(req.params.id)
 
     if (userData === undefined) {
-      throw new EntryNotFoundError({id: req.params.id})
+      throw new EntryNotFoundError()
     }
 
     let user = null
@@ -32,7 +32,7 @@ export default async function findModelAccessEntry(
       const UserModel = this.base$modelStore.get(userData.modelName)
 
       if (!UserModel) {
-        throw new EntryNotFoundError({id: req.params.id})
+        throw new EntryNotFoundError()
       }
 
       user = <User>new UserModel({_id: userData.id})
@@ -44,7 +44,7 @@ export default async function findModelAccessEntry(
     })
 
     if (entries.length === 0) {
-      throw new EntryNotFoundError({id: req.params.id})
+      throw new EntryNotFoundError()
     }
 
     const references = await jsonApiReq.resolveRelationships({

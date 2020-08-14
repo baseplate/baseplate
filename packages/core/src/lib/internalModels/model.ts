@@ -71,7 +71,7 @@ export default class Base$Model extends BaseModel {
     const Model = this.base$modelStore.get(id)
 
     if (!Model) {
-      throw new EntryNotFoundError({id})
+      throw new EntryNotFoundError()
     }
 
     return new this({

@@ -6,6 +6,15 @@ export type HeadersMap = {
   [key: string]: string
 }
 
+export enum Method {
+  delete = 'delete',
+  get = 'get',
+  options = 'options',
+  patch = 'patch',
+  post = 'post',
+  put = 'put',
+}
+
 export type ParamsMap = {
   [key: string]: string
 }
@@ -13,7 +22,7 @@ export type ParamsMap = {
 type HttpRequestParameters = {
   body: string
   headers: HeadersMap
-  method: string
+  method: Method
   params?: ParamsMap
   url: URL
 }
@@ -21,7 +30,7 @@ type HttpRequestParameters = {
 export default class HttpRequest {
   public body: any
   public headers: HeadersMap
-  public method: string
+  public method: Method
   public params: ParamsMap
   public url: URL
 
@@ -33,7 +42,7 @@ export default class HttpRequest {
       }),
       {}
     )
-    this.method = method.toLowerCase()
+    this.method = <Method>method.toLowerCase()
     this.params = params
     this.url = url
 

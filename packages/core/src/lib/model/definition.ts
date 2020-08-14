@@ -1,7 +1,7 @@
 import type BaseModel from './base'
 import {FieldDefinition} from '../fieldDefinition'
 
-export type InterfacesBlock = {[key in Interfaces]?: boolean}
+export type InterfacesBlock = {[key in Interfaces]?: boolean | string}
 
 export enum Interfaces {
   graphQLCreateResource = 'graphQLCreateResource',

@@ -22,8 +22,8 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const modelName = req.params.modelName
-    const Model = modelStore.getByPluralForm(modelName)
+    const {fieldName, modelName, ...queryParameters} = req.params
+    const Model = modelStore.get(modelName)
 
     if (!Model) {
       throw new ModelNotFoundError({name: modelName})
@@ -41,8 +41,6 @@ export default async function (
         : new UnauthorizedError()
     }
 
-    const {id, fieldName} = jsonApiReq.params
-
     if (
       !Model.base$schema.handlers[fieldName] ||
       (access.fields && !access.fields.has(fieldName))
@@ -55,12 +53,12 @@ export default async function (
 
     const entry = await Model.findOne({
       context,
-      filter: new QueryFilter({_id: id}),
+      filter: new QueryFilter(queryParameters),
       user: context.get('base$user'),
     })
 
     if (!entry) {
-      throw new EntryNotFoundError({id})
+      throw new EntryNotFoundError()
     }
 
     const fieldValue = entry.get(fieldName)

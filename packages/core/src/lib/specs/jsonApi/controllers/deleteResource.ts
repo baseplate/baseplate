@@ -15,22 +15,21 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const modelName = req.params.modelName
-    const Model = modelStore.getByPluralForm(modelName)
+    const {modelName, ...queryParameters} = req.params
+    const Model = modelStore.get(modelName)
 
     if (!Model) {
       throw new ModelNotFoundError({name: modelName})
     }
 
-    const {id} = jsonApiReq.params
     const {deleteCount} = await Model.delete({
       context,
-      filter: new QueryFilter({_id: id}),
+      filter: new QueryFilter(queryParameters),
       user: context.get('base$user'),
     })
 
     if (deleteCount === 0) {
-      throw new EntryNotFoundError({id})
+      throw new EntryNotFoundError()
     }
 
     const jsonApiRes = new JsonApiResponse({
