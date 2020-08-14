@@ -142,7 +142,6 @@ export default class BaseModel {
   static base$graphQL?: GraphQLModelCache
   static base$handle?: string
   static base$handlePlural?: string
-  static base$interfacePaths?: {[key in Interfaces]: string}
   static base$interfaces?: InterfacesBlock
   static base$label?: string
   static base$modelStore?: ModelStore

@@ -98,8 +98,8 @@ function getMutations(Model: typeof BaseModel) {
   const entryType = getObjectType(Model)
   const mutations: Map<string, Mutation> = new Map()
 
-  if (Model.base$interfacePaths.graphQLCreateResource) {
-    const mutationName = Model.base$interfacePaths.graphQLCreateResource
+  if (typeof Model.base$interfaces.graphQLCreateResource === 'string') {
+    const mutationName = Model.base$interfaces.graphQLCreateResource
     const createInputType = new GraphQLInputObjectType({
       name: `${mutationName}InputType`,
       fields: getInputFieldsWithRequiredConstraints(Model),
@@ -131,8 +131,8 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfacePaths.graphQLDeleteResource) {
-    const mutationName = Model.base$interfacePaths.graphQLDeleteResource
+  if (typeof Model.base$interfaces.graphQLDeleteResource === 'string') {
+    const mutationName = Model.base$interfaces.graphQLDeleteResource
 
     logger.debug('Adding GraphQL mutation: %s', mutationName, {
       model: Model.base$handle,
@@ -159,8 +159,8 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfacePaths.graphQLUpdateResource) {
-    const mutationName = Model.base$interfacePaths.graphQLUpdateResource
+  if (typeof Model.base$interfaces.graphQLUpdateResource === 'string') {
+    const mutationName = Model.base$interfaces.graphQLUpdateResource
     const updateInputType = new GraphQLInputObjectType({
       name: `${mutationName}UpdateType`,
       fields: getInputFields(Model),
@@ -197,8 +197,8 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfacePaths.graphQLUpdateResources) {
-    const mutationName = Model.base$interfacePaths.graphQLUpdateResources
+  if (typeof Model.base$interfaces.graphQLUpdateResources === 'string') {
+    const mutationName = Model.base$interfaces.graphQLUpdateResources
     const filterInputType = new GraphQLInputObjectType({
       name: `Update${mutationName}FilterType`,
       fields: {
@@ -304,8 +304,8 @@ function getQueries(Model: typeof BaseModel) {
   if (!type) return queries
 
   // Plural field: retrieves a list of entries.
-  if (Model.base$interfacePaths.graphQLFindResources) {
-    const queryName = Model.base$interfacePaths.graphQLFindResources
+  if (typeof Model.base$interfaces.graphQLFindResources === 'string') {
+    const queryName = Model.base$interfaces.graphQLFindResources
 
     logger.debug('Adding GraphQL query: %s', queryName, {
       model: Model.base$handle,
@@ -346,8 +346,8 @@ function getQueries(Model: typeof BaseModel) {
   }
 
   // Singular field: retrieves a single entry.
-  if (Model.base$interfacePaths.graphQLFindResource) {
-    const queryName = Model.base$interfacePaths.graphQLFindResource
+  if (typeof Model.base$interfaces.graphQLFindResource === 'string') {
+    const queryName = Model.base$interfaces.graphQLFindResource
 
     logger.debug('Adding GraphQL query: %s', queryName, {
       model: Model.base$handle,

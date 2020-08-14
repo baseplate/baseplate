@@ -156,7 +156,7 @@ export class ModelStore {
 
     Object.defineProperties(NewModel, modelProperties)
     Object.defineProperties(NewModel, {
-      base$interfacePaths: {
+      base$interfaces: {
         value: this.buildInterfacesBlock(NewModel, source),
       },
     })

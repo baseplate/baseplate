@@ -62,51 +62,54 @@ const restEntryPoint: EntryPoint = {
     })
 
     modelStore.getAll().forEach((Model) => {
-      if (Model.base$interfacePaths.restCreateResource) {
+      if (typeof Model.base$interfaces.restCreateResource === 'string') {
         router.post(
-          Model.base$interfacePaths.restCreateResource,
+          Model.base$interfaces.restCreateResource,
           JsonApiCreateResource.bind(Model)
         )
       }
 
-      if (Model.base$interfacePaths.restDeleteResource) {
+      if (typeof Model.base$interfaces.restDeleteResource === 'string') {
         router.delete(
-          Model.base$interfacePaths.restDeleteResource,
+          Model.base$interfaces.restDeleteResource,
           JsonApiDeleteResource.bind(Model)
         )
       }
 
-      if (Model.base$interfacePaths.restFindResource) {
+      if (typeof Model.base$interfaces.restFindResource === 'string') {
         router.get(
-          Model.base$interfacePaths.restFindResource,
+          Model.base$interfaces.restFindResource,
           JsonApiFindResource.bind(Model)
         )
       }
 
-      if (Model.base$interfacePaths.restFindResourceField) {
+      if (typeof Model.base$interfaces.restFindResourceField === 'string') {
         router.get(
-          Model.base$interfacePaths.restFindResourceField,
+          Model.base$interfaces.restFindResourceField,
           JsonApiFindResourceField.bind(Model)
         )
       }
 
-      if (Model.base$interfacePaths.restFindResourceFieldRelationship) {
+      if (
+        typeof Model.base$interfaces.restFindResourceFieldRelationship ===
+        'string'
+      ) {
         router.get(
-          Model.base$interfacePaths.restFindResourceFieldRelationship,
+          Model.base$interfaces.restFindResourceFieldRelationship,
           JsonApiFindResourceFieldRelationship.bind(Model)
         )
       }
 
-      if (Model.base$interfacePaths.restFindResources) {
+      if (typeof Model.base$interfaces.restFindResources === 'string') {
         router.get(
-          Model.base$interfacePaths.restFindResources,
+          Model.base$interfaces.restFindResources,
           JsonApiFindResources.bind(Model)
         )
       }
 
-      if (Model.base$interfacePaths.restUpdateResource) {
+      if (typeof Model.base$interfaces.restUpdateResource === 'string') {
         router.patch(
-          Model.base$interfacePaths.restUpdateResource,
+          Model.base$interfaces.restUpdateResource,
           JsonApiUpdateResource.bind(Model)
         )
       }
