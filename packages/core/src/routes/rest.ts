@@ -1,5 +1,6 @@
 import Context from '../lib/context'
 import endpointStore from '../lib/endpointStore'
+import {EntryNotFoundError} from '../lib/errors'
 import type EntryPoint from '../lib/entryPoint'
 import getUserFromToken from '../lib/acl/getUserFromToken'
 import HttpRequest, {
@@ -13,7 +14,9 @@ import JsonApiFindResource from '../lib/specs/jsonApi/controllers/findResource'
 import JsonApiFindResourceField from '../lib/specs/jsonApi/controllers/findResourceField'
 import JsonApiFindResourceFieldRelationship from '../lib/specs/jsonApi/controllers/findResourceFieldRelationship'
 import JsonApiFindResources from '../lib/specs/jsonApi/controllers/findResources'
+import JsonApiResponse from '../lib/specs/jsonApi/response'
 import JsonApiUpdateResource from '../lib/specs/jsonApi/controllers/updateResource'
+import JsonApiURL from '../lib/specs/jsonApi/url'
 import parseAuthorizationHeader from '../lib/acl/parseAuthorizationHeader'
 import modelStore from '../lib/modelStore'
 import Router from '../lib/router'
@@ -31,7 +34,13 @@ const restEntryPoint: EntryPoint = {
     const route = router.match(req.method, req.url.pathname)
 
     if (!route) {
-      return res.status(404).end()
+      const jsonApiRes = new JsonApiResponse({
+        errors: [new EntryNotFoundError()],
+        res,
+        url: new JsonApiURL(req.url),
+      })
+
+      return jsonApiRes.end()
     }
 
     req.params = <HttpParams>route.parameters
@@ -53,12 +62,10 @@ const restEntryPoint: EntryPoint = {
     })
 
     modelStore.getAll().forEach((Model) => {
-      const routes = Model.base$routes || {}
-
       if (Model.base$interfacePaths.restCreateResource) {
         router.post(
           Model.base$interfacePaths.restCreateResource,
-          JsonApiCreateResource,
+          JsonApiCreateResource.bind(Model),
           {modelName: Model.base$handle}
         )
       }
@@ -66,7 +73,7 @@ const restEntryPoint: EntryPoint = {
       if (Model.base$interfacePaths.restDeleteResource) {
         router.delete(
           Model.base$interfacePaths.restDeleteResource,
-          JsonApiDeleteResource,
+          JsonApiDeleteResource.bind(Model),
           {modelName: Model.base$handle}
         )
       }
@@ -74,7 +81,7 @@ const restEntryPoint: EntryPoint = {
       if (Model.base$interfacePaths.restFindResource) {
         router.get(
           Model.base$interfacePaths.restFindResource,
-          JsonApiFindResource,
+          JsonApiFindResource.bind(Model),
           {modelName: Model.base$handle}
         )
       }
@@ -82,7 +89,7 @@ const restEntryPoint: EntryPoint = {
       if (Model.base$interfacePaths.restFindResourceField) {
         router.get(
           Model.base$interfacePaths.restFindResourceField,
-          JsonApiFindResourceField,
+          JsonApiFindResourceField.bind(Model),
           {modelName: Model.base$handle}
         )
       }
@@ -90,7 +97,7 @@ const restEntryPoint: EntryPoint = {
       if (Model.base$interfacePaths.restFindResourceFieldRelationship) {
         router.get(
           Model.base$interfacePaths.restFindResourceFieldRelationship,
-          JsonApiFindResourceFieldRelationship,
+          JsonApiFindResourceFieldRelationship.bind(Model),
           {modelName: Model.base$handle}
         )
       }
@@ -98,25 +105,27 @@ const restEntryPoint: EntryPoint = {
       if (Model.base$interfacePaths.restFindResources) {
         router.get(
           Model.base$interfacePaths.restFindResources,
-          JsonApiFindResources,
+          JsonApiFindResources.bind(Model),
           {modelName: Model.base$handle}
         )
       }
 
       if (Model.base$interfacePaths.restUpdateResource) {
-        router.post(
+        router.patch(
           Model.base$interfacePaths.restUpdateResource,
-          JsonApiUpdateResource,
+          JsonApiUpdateResource.bind(Model),
           {modelName: Model.base$handle}
         )
       }
 
-      for (const path in routes) {
-        const route = routes[path]
+      const customRoutes = Model.base$routes || {}
+
+      for (const path in customRoutes) {
+        const route = customRoutes[path]
 
         for (const method in route) {
           if (method in HttpMethod && typeof route[method] === 'function') {
-            router.add(<HttpMethod>method, path, route[method])
+            router.add(<HttpMethod>method, path, route[method].bind(Model))
           }
         }
       }

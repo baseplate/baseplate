@@ -46,7 +46,8 @@ forEachDataConnector((app: App, loadModels: Function) => {
       await app.routesRest.handler(req, res)
 
       expect(res.statusCode).toBe(404)
-      expect(res.$body).toBeUndefined()
+      expect(res.$body.errors).toBeInstanceOf(Array)
+      expect(res.$body.errors[0].title).toBe('Resource not found')
     })
 
     test('Returns an error when trying to update a resource that does not exist', async () => {
@@ -67,7 +68,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res.statusCode).toBe(404)
       expect(res.$body.errors.length).toBe(1)
       expect(res.$body.errors[0].status).toBe(404)
-      expect(res.$body.errors[0].title).toBe('Entry not found')
+      expect(res.$body.errors[0].title).toBe('Resource not found')
     })
 
     test('Returns an error when the requesting client does not have update access to the model', async () => {

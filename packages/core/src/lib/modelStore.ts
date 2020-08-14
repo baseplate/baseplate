@@ -32,11 +32,15 @@ export class ModelStore {
     const interfaces: InterfacesBlock = {}
 
     for (const name of Object.keys(Interfaces) as Interfaces[]) {
-      if (sourceInterfaces[name] !== undefined) {
+      if (typeof sourceInterfaces[name] === 'string') {
         interfaces[name] = sourceInterfaces[name]
-      } else if (Model.base$isInternal()) {
+      } else if (sourceInterfaces[name] === false) {
         interfaces[name] = null
       } else {
+        if (sourceInterfaces[name] === undefined && Model.base$isInternal()) {
+          interfaces[name] = null
+        }
+
         switch (name) {
           case Interfaces.graphQLCreateResource:
             interfaces[name] = camelize(`create_${Model.base$handle}`, false)

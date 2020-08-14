@@ -90,7 +90,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
 
       expect(res.$body.data.updateAuthor).toBeNull()
       expect(res.$body.errors).toBeInstanceOf(Array)
-      expect(res.$body.errors[0].message).toBe('Entry not found')
+      expect(res.$body.errors[0].message).toBe('Resource not found')
     })
 
     test('Returns an error when the requesting client does not have update access to the model', async () => {

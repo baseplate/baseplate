@@ -46,7 +46,8 @@ forEachDataConnector((app: App, loadModels: Function) => {
       await app.routesRest.handler(req, res)
 
       expect(res.statusCode).toBe(404)
-      expect(res.$body).toBeUndefined()
+      expect(res.$body.errors).toBeInstanceOf(Array)
+      expect(res.$body.errors[0].title).toBe('Resource not found')
     })
 
     test('Returns an error when the requesting client does not have read access to the model', async () => {
