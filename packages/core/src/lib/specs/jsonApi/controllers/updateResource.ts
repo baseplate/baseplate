@@ -1,10 +1,9 @@
-import {ModelNotFoundError} from '../../../errors'
+import type BaseModel from '../../../model/base'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
-import modelStore from '../../../modelStore'
 
 export default async function (
   req: HttpRequest,
@@ -14,16 +13,10 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const {modelName, ...queryParamters} = req.params
-    const Model = modelStore.get(modelName)
-
-    if (!Model) {
-      throw new ModelNotFoundError({name: modelName})
-    }
-
+    const Model = this as typeof BaseModel
     const entry = await Model.updateOneById({
       context,
-      id: queryParamters._id, // (!) TO DO: Use Model.update() with a generic filter
+      id: req.params._id, // (!) TO DO: Use Model.update() with a generic filter
       update: jsonApiReq.bodyFields,
       user: context.get('base$user'),
     })

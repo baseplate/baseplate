@@ -1,10 +1,10 @@
-import {EntryNotFoundError, ModelNotFoundError} from '../../../errors'
+import type BaseModel from '../../../model/base'
 import Context from '../../../context'
+import {EntryNotFoundError} from '../../../errors'
 import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
-import modelStore from '../../../modelStore'
 import QueryFilter from '../../../queryFilter/'
 
 export default async function (
@@ -15,18 +15,12 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const {modelName, ...queryParameters} = req.params
-    const Model = modelStore.get(modelName)
-
-    if (!Model) {
-      throw new ModelNotFoundError({name: modelName})
-    }
-
+    const Model = this as typeof BaseModel
     const fieldSet = jsonApiReq.fields[Model.base$handle]
     const {entries} = await Model.find({
       context,
       fieldSet,
-      filter: new QueryFilter(queryParameters),
+      filter: new QueryFilter(req.params),
       user: context.get('base$user'),
     })
 

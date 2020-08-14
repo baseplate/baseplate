@@ -1,8 +1,8 @@
+import type BaseModel from '../../../model/base'
 import {
   EntryFieldNotFoundError,
   EntryNotFoundError,
   ForbiddenError,
-  ModelNotFoundError,
   UnauthorizedError,
 } from '../../../errors'
 import Context from '../../../context'
@@ -10,7 +10,6 @@ import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
-import modelStore from '../../../modelStore'
 import QueryFilter from '../../../queryFilter/'
 
 export default async function (
@@ -21,13 +20,8 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const {fieldName, modelName, ...queryParameters} = req.params
-    const Model = modelStore.get(modelName)
-
-    if (!Model) {
-      throw new ModelNotFoundError({name: modelName})
-    }
-
+    const {fieldName, ...queryParameters} = req.params
+    const Model = this as typeof BaseModel
     const access = await Model.base$getAccess({
       accessType: 'read',
       context,

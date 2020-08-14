@@ -65,56 +65,49 @@ const restEntryPoint: EntryPoint = {
       if (Model.base$interfacePaths.restCreateResource) {
         router.post(
           Model.base$interfacePaths.restCreateResource,
-          JsonApiCreateResource.bind(Model),
-          {modelName: Model.base$handle}
+          JsonApiCreateResource.bind(Model)
         )
       }
 
       if (Model.base$interfacePaths.restDeleteResource) {
         router.delete(
           Model.base$interfacePaths.restDeleteResource,
-          JsonApiDeleteResource.bind(Model),
-          {modelName: Model.base$handle}
+          JsonApiDeleteResource.bind(Model)
         )
       }
 
       if (Model.base$interfacePaths.restFindResource) {
         router.get(
           Model.base$interfacePaths.restFindResource,
-          JsonApiFindResource.bind(Model),
-          {modelName: Model.base$handle}
+          JsonApiFindResource.bind(Model)
         )
       }
 
       if (Model.base$interfacePaths.restFindResourceField) {
         router.get(
           Model.base$interfacePaths.restFindResourceField,
-          JsonApiFindResourceField.bind(Model),
-          {modelName: Model.base$handle}
+          JsonApiFindResourceField.bind(Model)
         )
       }
 
       if (Model.base$interfacePaths.restFindResourceFieldRelationship) {
         router.get(
           Model.base$interfacePaths.restFindResourceFieldRelationship,
-          JsonApiFindResourceFieldRelationship.bind(Model),
-          {modelName: Model.base$handle}
+          JsonApiFindResourceFieldRelationship.bind(Model)
         )
       }
 
       if (Model.base$interfacePaths.restFindResources) {
         router.get(
           Model.base$interfacePaths.restFindResources,
-          JsonApiFindResources.bind(Model),
-          {modelName: Model.base$handle}
+          JsonApiFindResources.bind(Model)
         )
       }
 
       if (Model.base$interfacePaths.restUpdateResource) {
         router.patch(
           Model.base$interfacePaths.restUpdateResource,
-          JsonApiUpdateResource.bind(Model),
-          {modelName: Model.base$handle}
+          JsonApiUpdateResource.bind(Model)
         )
       }
 
