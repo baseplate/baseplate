@@ -1,6 +1,7 @@
-import type {BaseHandler, RawDefinition} from './field'
+import type {BaseHandler} from './field'
 import {CustomError, EntryValidationError, FieldValidationError} from './errors'
-import {Schema} from './schema'
+import {isPlainObject} from './utils/'
+import type {Schema} from './schema'
 
 interface ValidateFieldParameters {
   field: BaseHandler
@@ -19,7 +20,7 @@ export function validateField({field, path, value}: ValidateFieldParameters) {
         throw new Error('Validation failed')
       }
     } catch (error) {
-      if (error instanceof FieldValidationError) {
+      if (error instanceof CustomError) {
         throw error
       }
 
@@ -58,24 +59,24 @@ interface ValidateObjectParameters {
   ignoreFields?: Array<string>
   object: any
   path?: Array<string>
-  schema: Schema | Record<string, RawDefinition>
+  schema: Schema
   validateMetaFields?: boolean
 }
 
 export function validateObject({
   allowUnknownFields = false,
-  enforceRequiredFields = false,
+  enforceRequiredFields = true,
   ignoreFields = [],
   object,
   path = [],
-  schema: schemaOrListOfFields,
+  schema,
   validateMetaFields = true,
 }: ValidateObjectParameters) {
+  if (!isPlainObject(object)) {
+    throw new EntryValidationError({path})
+  }
+
   const fieldErrors: Array<CustomError> = []
-  const schema =
-    schemaOrListOfFields instanceof Schema
-      ? schemaOrListOfFields
-      : new Schema({fields: schemaOrListOfFields, loadFieldHandlers: true})
 
   // Looking for fields that are in the object but shouldn't be or don't have
   // the right format.

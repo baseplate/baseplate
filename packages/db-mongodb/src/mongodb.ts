@@ -362,7 +362,7 @@ export class MongoDB extends DataConnector.DataConnector {
 
     const newIndexes: Map<string, any> = new Map()
 
-    Model.base$schema.indexes.forEach((index) => {
+    Model.base$schema.fieldIndexes.forEach((index) => {
       const hash = generateHash(JSON.stringify(index))
       const nameNodes = Object.keys(index.fields).reduce(
         (nodes, fieldName) =>
@@ -377,13 +377,6 @@ export class MongoDB extends DataConnector.DataConnector {
         name,
         sparse: Boolean(index.sparse),
         unique: Boolean(index.unique),
-      }
-
-      if (index.filter) {
-        options.partialFilterExpression = this.encodeQuery(
-          new QueryFilter(index.filter),
-          Model
-        )
       }
 
       newIndexes.set(hash, [index.fields, options])

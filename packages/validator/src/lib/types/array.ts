@@ -10,7 +10,6 @@ export interface Options extends BaseOptions {
 export default class FieldArray extends BaseHandler {
   children: Array<any>
   options: Options
-  type: 'array'
 
   static operators = {
     contains: {

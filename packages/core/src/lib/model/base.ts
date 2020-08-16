@@ -1,8 +1,7 @@
 import {
   CustomError,
   FieldHandler,
-  FieldIndexDefinition,
-  FieldIndexDefinitionWithOptions,
+  FieldIndexExtendedDefinition,
   FieldOperator,
   FieldValidationError,
   Schema,
@@ -140,11 +139,11 @@ export default class BaseModel {
   }
 
   static base$db?: DataConnector
-  static base$fields?: Record<string, FieldDefinition>
+  static base$fields: Record<string, FieldDefinition>
   static base$graphQL?: GraphQLModelCache
   static base$handle?: string
   static base$handlePlural?: string
-  static base$index?: FieldIndexDefinitionWithOptions[]
+  static base$index?: FieldIndexExtendedDefinition[]
   static base$interfaces?: InterfacesBlock
   static base$label?: string
   static base$modelStore?: ModelStore

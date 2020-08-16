@@ -116,8 +116,9 @@ export class ModelStore {
       : source.virtuals
     const schema = new Schema({
       fields: isModelClass(source) ? source.base$fields : source.fields,
-      handlers: types,
       index,
+      loadFieldHandlers: false,
+      types,
       virtuals,
     })
     const modelProperties = {
@@ -144,8 +145,7 @@ export class ModelStore {
         value: this,
       },
       base$routes: {
-        value:
-          (isModelClass(source) ? source.base$routes : source.routes) || {},
+        value: (isModelClass(source) && source.base$routes) || {},
       },
       base$schema: {
         value: schema,
@@ -227,7 +227,9 @@ export class ModelStore {
 
     loadedModels.forEach((Model) => {
       Model.base$schema.loadFieldHandlers()
-      Model.base$schema.validateOptions()
+      Model.base$schema.validate()
+
+      logger.debug('Validated model schema: %s', Model.base$handle)
     })
 
     return loadedModels

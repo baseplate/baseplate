@@ -7,10 +7,4 @@ import {
   ValidateParameters,
 } from '../field'
 
-export default class FieldObject extends BaseHandler {
-  cast({path, value}: CastParameters<object>) {
-    return value
-  }
-
-  validate({path, value}: ValidateParameters<object>) {}
-}
+export default class FieldObject extends BaseHandler {}

@@ -1,3 +1,8 @@
+import {
+  FieldIndexDefinition,
+  getSchemaFields as getIndexSchemaFields,
+} from './index'
+import {Schema} from './schema'
 import {validateObject} from './validator'
 
 export interface BaseConstructorParameters {
@@ -50,16 +55,17 @@ export class BaseHandler {
   validate({path, value}: ValidateParameters<any>) {}
 
   validateOptions() {
-    const schema = {
+    const fields = {
       ...baseOptionsSchema,
       ...(<typeof BaseHandler>this.constructor).options,
     }
 
     this.options = validateObject({
       allowUnknownFields: true,
+      enforceRequiredFields: false,
       object: this.options,
       path: this.path,
-      schema,
+      schema: new Schema({fields}),
     })
   }
 }
@@ -69,7 +75,7 @@ export interface BaseOptions {
   default?: any
   errorMessage?: string
   get?: Function
-  index?: IndexDefinition
+  index?: FieldIndexDefinition
   label?: string
   required?: boolean | Function
   set?: Function
@@ -89,8 +95,18 @@ export const baseOptionsSchema = {
     type: 'Mixed',
     validate: (input: any) => typeof input === 'function',
   },
-  // (!) TO DO: Runtime validation for index.
-  index: 'Mixed',
+  index: {
+    type: 'Mixed',
+    validate: (input: any) => {
+      if (typeof input === 'boolean') return true
+
+      const schema = new Schema(getIndexSchemaFields('field'))
+
+      validateObject({object: input, schema})
+
+      return true
+    },
+  },
   label: String,
   required: {
     type: 'Mixed',
@@ -130,22 +146,6 @@ export type CastQueryParameters = {
 export type ExtendedSchema<T> = {
   type: T
   [propName: string]: any
-}
-
-export interface Index {
-  fields: Record<string, 0 | 1>
-  filter?: object
-  sparse?: boolean
-  unique?: boolean
-}
-
-export type IndexDefinition = boolean | IndexDefinitionWithOptions
-
-export type IndexDefinitionWithOptions = {
-  fields?: Record<string, number>
-  filter?: object
-  sparse?: boolean
-  unique?: boolean
 }
 
 export interface NormalizedDefinition {

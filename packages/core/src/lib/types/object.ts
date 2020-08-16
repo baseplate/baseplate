@@ -21,9 +21,9 @@ export default class CoreFieldObject extends types.FieldObject {
       type === 'input'
         ? graphql.GraphQLInputObjectType
         : graphql.GraphQLObjectType
-    const children = Object.keys(this.children).reduce(
+    const children = Object.keys(this.children.handlers).reduce(
       (children, fieldName) => {
-        const child = this.children[fieldName]
+        const child = this.children.handlers[fieldName]
 
         if (!(child instanceof FieldHandler)) {
           return children

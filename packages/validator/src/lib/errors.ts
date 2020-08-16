@@ -1,3 +1,5 @@
+import {isPlainObject} from './utils/'
+
 export abstract class CustomError extends Error {
   childErrors?: Array<CustomError>
   detail?: string
@@ -17,10 +19,9 @@ export class CastError extends CustomError {
 
     super('Invalid field')
 
-    this.detail =
-      valueStr === '[object Object]'
-        ? `Value not accepted for attribute ${pathStr} (expected ${type})`
-        : `${valueStr} is not an accepted value for attribute ${pathStr} (expected ${type})`
+    this.detail = isPlainObject(valueStr)
+      ? `Value not accepted for attribute ${pathStr} (expected ${type})`
+      : `${valueStr} is not an accepted value for attribute ${pathStr} (expected ${type})`
     this.path = path
     this.statusCode = 400
   }
@@ -35,11 +36,12 @@ export class EntryValidationError extends CustomError {
     fieldErrors,
     path,
   }: {
-    fieldErrors: Array<CustomError>
+    fieldErrors?: Array<CustomError>
     path: string[]
   }) {
     super('Entry validation error')
 
+    this.detail = 'The value does not conform to the model schema'
     this.childErrors = fieldErrors
     this.path = path
     this.statusCode = 400
