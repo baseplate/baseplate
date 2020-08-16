@@ -7,7 +7,7 @@ import type EntryPoint from './lib/entryPoint'
 import * as errors from './lib/errors'
 import type {FieldDefinition} from './lib/fieldDefinition'
 import FieldSet from './lib/fieldSet'
-import HttpRequest from './lib/http/request'
+import HttpRequest, {Method as HttpMethod} from './lib/http/request'
 import HttpResponse from './lib/http/response'
 import {ModelDefinition} from './lib/model/definition'
 import modelStore from './lib/modelStore'
@@ -34,6 +34,7 @@ export {
   errors,
   FieldDefinition,
   FieldSet,
+  HttpMethod,
   HttpRequest,
   HttpResponse,
   InitializationParameters,

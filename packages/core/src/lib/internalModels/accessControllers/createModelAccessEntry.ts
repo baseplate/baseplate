@@ -1,3 +1,4 @@
+import type BaseModel from '../../model/base'
 import {ModelNotFoundError} from '../../errors'
 import Context from '../../context'
 import HttpRequest from '../../http/request'

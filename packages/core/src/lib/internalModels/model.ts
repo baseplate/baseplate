@@ -17,9 +17,14 @@ export default class Base$Model extends BaseModel {
     restFindResources: true,
   }
 
-  static async find({context}: {context: Context}) {
+  static async find({context, filter}: {context: Context; filter: any}) {
+    const searchId = filter.getId()
     const schemas = this.base$modelStore.getAll().map(async (Model) => {
       if (Model.base$isInternal()) {
+        return
+      }
+
+      if (searchId && Model.base$handle !== searchId) {
         return
       }
 
@@ -71,7 +76,7 @@ export default class Base$Model extends BaseModel {
     const Model = this.base$modelStore.get(id)
 
     if (!Model) {
-      throw new EntryNotFoundError({id})
+      throw new EntryNotFoundError()
     }
 
     return new this({

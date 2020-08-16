@@ -1,8 +1,8 @@
+import type BaseModel from '../../../model/base'
 import {
   EntryFieldNotFoundError,
   EntryNotFoundError,
   ForbiddenError,
-  ModelNotFoundError,
   UnauthorizedError,
 } from '../../../errors'
 import Context from '../../../context'
@@ -10,7 +10,6 @@ import HttpRequest from '../../../http/request'
 import HttpResponse from '../../../http/response'
 import JsonApiRequest from '../request'
 import JsonApiResponse from '../response'
-import modelStore from '../../../modelStore'
 import QueryFilter from '../../../queryFilter/'
 import {RelationshipData} from '../relationship'
 
@@ -22,13 +21,8 @@ export default async function (
   const jsonApiReq = new JsonApiRequest(req, context)
 
   try {
-    const modelName = req.params.modelName
-    const Model = modelStore.getByPluralForm(modelName)
-
-    if (!Model) {
-      throw new ModelNotFoundError({name: modelName})
-    }
-
+    const {fieldName, ...queryParameters} = req.params
+    const Model = this as typeof BaseModel
     const access = await Model.base$getAccess({
       accessType: 'read',
       context,
@@ -40,8 +34,6 @@ export default async function (
         ? new ForbiddenError()
         : new UnauthorizedError()
     }
-
-    const {id, fieldName} = jsonApiReq.params
 
     if (
       !Model.base$schema.handlers[fieldName] ||
@@ -55,12 +47,12 @@ export default async function (
 
     const entry = await Model.findOne({
       context,
-      filter: new QueryFilter({_id: id}),
+      filter: new QueryFilter(queryParameters),
       user: context.get('base$user'),
     })
 
     if (!entry) {
-      throw new EntryNotFoundError({id})
+      throw new EntryNotFoundError()
     }
 
     const fieldValue = entry.get(fieldName)

@@ -1,7 +1,8 @@
+import {FieldIndexDefinitionWithOptions, Virtual} from '@baseplate/validator'
 import type BaseModel from './base'
 import {FieldDefinition} from '../fieldDefinition'
 
-export type InterfacesBlock = {[key in Interfaces]?: boolean}
+export type InterfacesBlock = {[key in Interfaces]?: boolean | string}
 
 export enum Interfaces {
   graphQLCreateResource = 'graphQLCreateResource',
@@ -21,11 +22,13 @@ export enum Interfaces {
 
 export interface ObjectModelDefinition {
   fields: Record<string, FieldDefinition>
+  index?: FieldIndexDefinitionWithOptions[]
   name: string
   interfaces?: InterfacesBlock
   label?: string
   plural?: string
   routes?: Record<string, Record<string, Function>>
+  virtuals?: Record<string, Virtual>
 }
 
 export function isClass(

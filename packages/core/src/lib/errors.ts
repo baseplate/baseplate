@@ -1,13 +1,11 @@
 import {CustomError} from '@baseplate/validator'
 
 export class EntryNotFoundError extends CustomError {
-  detail: string
   statusCode: number
 
-  constructor({id}: {id: string}) {
-    super('Entry not found')
+  constructor() {
+    super('Resource not found')
 
-    this.detail = `Entry with ID \`${id}\` was not found`
     this.statusCode = 404
   }
 }

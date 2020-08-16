@@ -52,6 +52,8 @@ const graphQLEntryPoint: EntryPoint = {
 
     res.status(200).json(result)
   },
+
+  initialize() {},
 }
 
 export default graphQLEntryPoint

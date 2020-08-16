@@ -15,7 +15,7 @@ export class CastError extends CustomError {
     const pathStr = path.join('.')
     const valueStr = value.toString()
 
-    super(`Invalid ${pathStr}`)
+    super('Invalid field')
 
     this.detail =
       valueStr === '[object Object]'

@@ -20,6 +20,7 @@ import FieldSet from '../../fieldSet'
 import GraphQLDeleteResponse from './deleteResponse'
 import GraphQLError from './error'
 import GraphQLQueryFilterType from './queryFilter'
+import logger from '../../logger'
 import QueryFilter from '../../queryFilter/'
 
 export interface Mutation {
@@ -32,6 +33,10 @@ export interface Query {
   type: any
   args: object
   resolve: Function
+}
+
+export interface Virtual {
+  type: GraphQLScalarType
 }
 
 function dateResolver(
@@ -97,11 +102,15 @@ function getMutations(Model: typeof BaseModel) {
   const entryType = getObjectType(Model)
   const mutations: Map<string, Mutation> = new Map()
 
-  if (Model.base$interfaces.graphQLCreateResource) {
-    const mutationName = camelize(`create_${Model.base$handle}`, false)
+  if (typeof Model.base$interfaces.graphQLCreateResource === 'string') {
+    const mutationName = Model.base$interfaces.graphQLCreateResource
     const createInputType = new GraphQLInputObjectType({
-      name: camelize(`create_${Model.base$handle}_input_type`),
+      name: `${mutationName}InputType`,
       fields: getInputFieldsWithRequiredConstraints(Model),
+    })
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
     })
 
     mutations.set(mutationName, {
@@ -126,8 +135,12 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfaces.graphQLDeleteResource) {
-    const mutationName = camelize(`delete_${Model.base$handle}`, false)
+  if (typeof Model.base$interfaces.graphQLDeleteResource === 'string') {
+    const mutationName = Model.base$interfaces.graphQLDeleteResource
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
+    })
 
     mutations.set(mutationName, {
       type: GraphQLDeleteResponse,
@@ -150,11 +163,15 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfaces.graphQLUpdateResource) {
-    const mutationName = camelize(`update_${Model.base$handle}`, false)
+  if (typeof Model.base$interfaces.graphQLUpdateResource === 'string') {
+    const mutationName = Model.base$interfaces.graphQLUpdateResource
     const updateInputType = new GraphQLInputObjectType({
-      name: camelize(`update_${Model.base$handle}_update_type`),
+      name: `${mutationName}UpdateType`,
       fields: getInputFields(Model),
+    })
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
     })
 
     mutations.set(mutationName, {
@@ -184,18 +201,22 @@ function getMutations(Model: typeof BaseModel) {
     })
   }
 
-  if (Model.base$interfaces.graphQLUpdateResources) {
-    const mutationName = camelize(`update_${Model.base$handlePlural}`, false)
+  if (typeof Model.base$interfaces.graphQLUpdateResources === 'string') {
+    const mutationName = Model.base$interfaces.graphQLUpdateResources
     const filterInputType = new GraphQLInputObjectType({
-      name: camelize(`update_${Model.base$handlePlural}_filter_type`),
+      name: `Update${mutationName}FilterType`,
       fields: {
         ...getInputFields(Model),
         _id: {type: GraphQLID},
       },
     })
     const updateInputType = new GraphQLInputObjectType({
-      name: camelize(`update_${Model.base$handlePlural}_update_type`),
+      name: `Update${mutationName}UpdateType`,
       fields: getInputFields(Model),
+    })
+
+    logger.debug('Adding GraphQL mutation: %s', mutationName, {
+      model: Model.base$handle,
     })
 
     mutations.set(mutationName, {
@@ -287,8 +308,12 @@ function getQueries(Model: typeof BaseModel) {
   if (!type) return queries
 
   // Plural field: retrieves a list of entries.
-  if (Model.base$interfaces.graphQLFindResources) {
-    const queryName = camelize(Model.base$handlePlural)
+  if (typeof Model.base$interfaces.graphQLFindResources === 'string') {
+    const queryName = Model.base$interfaces.graphQLFindResources
+
+    logger.debug('Adding GraphQL query: %s', queryName, {
+      model: Model.base$handle,
+    })
 
     queries.set(queryName, {
       type: new GraphQLList(type),
@@ -325,8 +350,12 @@ function getQueries(Model: typeof BaseModel) {
   }
 
   // Singular field: retrieves a single entry.
-  if (Model.base$interfaces.graphQLFindResource) {
-    const queryName = camelize(Model.base$handle)
+  if (typeof Model.base$interfaces.graphQLFindResource === 'string') {
+    const queryName = Model.base$interfaces.graphQLFindResource
+
+    logger.debug('Adding GraphQL query: %s', queryName, {
+      model: Model.base$handle,
+    })
 
     queries.set(queryName, {
       type,
@@ -388,7 +417,8 @@ function getTypesFromFieldHandlers(
 ): Record<string, {type: any}> {
   const functionName =
     type === 'input' ? 'getGraphQLInputType' : 'getGraphQLOutputType'
-  const fields = Object.entries(handlers).reduce((fields, [name, handler]) => {
+
+  return Object.entries(handlers).reduce((fields, [name, handler]) => {
     const graphQLHandler = handler as GraphQLFieldHandler
 
     if (typeof graphQLHandler[functionName] === 'function') {
@@ -400,30 +430,36 @@ function getTypesFromFieldHandlers(
 
     return fields
   }, {})
-
-  return {...fields}
 }
 
 function getTypesFromVirtuals(
   Model: typeof BaseModel
-): Record<string, {type: GraphQLScalarType}> {
-  const {virtuals} = Model.base$schema
-  const virtualTypes = Object.keys(virtuals).reduce((result, name) => {
-    const virtualName = camelize(`${Model.base$handle}_Virtual`)
-    const type = new GraphQLScalarType({
-      name: virtualName,
-      serialize: null,
-    })
+): Record<string, Virtual> {
+  if (Model.base$graphQL && Model.base$graphQL.virtuals) {
+    return Model.base$graphQL.virtuals
+  }
 
-    return {
-      ...result,
-      [name]: {
-        type,
-      },
-    }
-  }, {})
+  const virtuals = Object.keys(Model.base$schema.virtuals).reduce(
+    (result, name) => {
+      const virtualName = camelize(`${Model.base$handle}_${name}_Virtual`)
+      const type = new GraphQLScalarType({
+        name: virtualName,
+        serialize: null,
+      })
 
-  return virtualTypes
+      return {
+        ...result,
+        [name]: {
+          type,
+        },
+      }
+    },
+    {}
+  )
+
+  Model.base$graphQL.virtuals = virtuals
+
+  return virtuals
 }
 
 export {getMutations, getObjectType, getQueries}

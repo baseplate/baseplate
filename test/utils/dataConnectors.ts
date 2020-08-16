@@ -34,6 +34,9 @@ export function forEachDataConnector(callback: Function) {
     const loadModels = (models: any[]) => {
       const loadedModels = app.modelStore.load(models)
 
+      app.routesGraphQL.initialize()
+      app.routesRest.initialize()
+
       return Promise.all(loadedModels.map((Model) => Model.base$sync()))
     }
 

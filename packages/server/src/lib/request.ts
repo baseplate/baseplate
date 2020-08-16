@@ -1,4 +1,4 @@
-import {HttpRequest} from '@baseplate/core'
+import {HttpMethod, HttpRequest} from '@baseplate/core'
 import {IncomingMessage} from 'http'
 import {URL} from 'url'
 
@@ -9,7 +9,7 @@ export default class ServerRequest extends HttpRequest {
     super({
       body,
       headers: <Record<string, string>>req.headers,
-      method: req.method,
+      method: <HttpMethod>req.method,
       url,
     })
   }

@@ -1,4 +1,4 @@
-import {classify, pluralize, titleize} from 'inflected'
+import {camelize, classify, pluralize, titleize} from 'inflected'
 import {Schema} from '@baseplate/validator'
 
 import AccessModel from './internalModels/access'
@@ -26,19 +26,82 @@ export class ModelStore {
     this.models = new Map()
   }
 
-  buildInterfacesBlock(source: ModelDefinition, handle: string) {
+  buildInterfacesBlock(Model: typeof BaseModel, source: ModelDefinition) {
     const sourceInterfaces: InterfacesBlock =
       (isModelClass(source) ? source.base$interfaces : source.interfaces) || {}
-    const modelInterfaces: InterfacesBlock = {}
+    const interfaces: InterfacesBlock = {}
 
     for (const name of Object.keys(Interfaces) as Interfaces[]) {
-      modelInterfaces[name] =
-        sourceInterfaces[name] !== undefined
-          ? sourceInterfaces[name]
-          : !handle.startsWith('base$')
+      if (typeof sourceInterfaces[name] === 'string') {
+        interfaces[name] = sourceInterfaces[name]
+      } else if (sourceInterfaces[name] === false) {
+        interfaces[name] = null
+      } else {
+        if (sourceInterfaces[name] === undefined && Model.base$isInternal()) {
+          interfaces[name] = null
+        }
+
+        switch (name) {
+          case Interfaces.graphQLCreateResource:
+            interfaces[name] = camelize(`create_${Model.base$handle}`, false)
+
+            break
+
+          case Interfaces.graphQLDeleteResource:
+            interfaces[name] = camelize(`delete_${Model.base$handle}`, false)
+
+            break
+
+          case Interfaces.graphQLFindResource:
+            interfaces[name] = camelize(Model.base$handle)
+
+            break
+
+          case Interfaces.graphQLFindResources:
+            interfaces[name] = camelize(Model.base$handlePlural)
+
+            break
+
+          case Interfaces.graphQLUpdateResource:
+            interfaces[name] = camelize(`update_${Model.base$handle}`, false)
+
+            break
+
+          case Interfaces.graphQLUpdateResources:
+            interfaces[name] = camelize(
+              `update_${Model.base$handlePlural}`,
+              false
+            )
+
+            break
+
+          case Interfaces.restDeleteResource:
+          case Interfaces.restFindResource:
+          case Interfaces.restUpdateResource:
+            interfaces[name] = `/${Model.base$handlePlural}/:_id`
+
+            break
+
+          case Interfaces.restCreateResource:
+          case Interfaces.restFindResources:
+            interfaces[name] = `/${Model.base$handlePlural}`
+
+            break
+
+          case Interfaces.restFindResourceField:
+            interfaces[name] = `/${Model.base$handlePlural}/:_id/:fieldName`
+
+            break
+
+          case Interfaces.restFindResourceFieldRelationship:
+            interfaces[
+              name
+            ] = `/${Model.base$handlePlural}/:_id/relationships/:fieldName`
+        }
+      }
     }
 
-    return modelInterfaces
+    return interfaces
   }
 
   private buildModel(
@@ -47,9 +110,15 @@ export class ModelStore {
     database: DataConnector
   ): typeof BaseModel {
     const handle = this.normalizeHandle(name)
+    const index = isModelClass(source) ? source.base$index : source.index
+    const virtuals = isModelClass(source)
+      ? source.base$virtuals
+      : source.virtuals
     const schema = new Schema({
       fields: isModelClass(source) ? source.base$fields : source.fields,
       handlers: types,
+      index,
+      virtuals,
     })
     const modelProperties = {
       base$db: {
@@ -62,9 +131,6 @@ export class ModelStore {
         value:
           (isModelClass(source) ? source.base$handlePlural : source.plural) ||
           pluralize(handle),
-      },
-      base$interfaces: {
-        value: this.buildInterfacesBlock(source, handle),
       },
       base$graphQL: {
         value: {},
@@ -94,7 +160,14 @@ export class ModelStore {
 
     logger.debug('Loading model: %s', handle)
 
-    return Object.defineProperties(NewModel, modelProperties)
+    Object.defineProperties(NewModel, modelProperties)
+    Object.defineProperties(NewModel, {
+      base$interfaces: {
+        value: this.buildInterfacesBlock(NewModel, source),
+      },
+    })
+
+    return NewModel
   }
 
   private normalizeHandle(handle: string) {
@@ -154,9 +227,7 @@ export class ModelStore {
 
     loadedModels.forEach((Model) => {
       Model.base$schema.loadFieldHandlers()
-
-      // (!) TO DO: Handle model validation.
-      // const errors = Model.base$schema.validateOptions()
+      Model.base$schema.validateOptions()
     })
 
     return loadedModels

@@ -1,9 +1,10 @@
+import {Method as HttpMethod} from './http/request'
 import logger from './logger'
 import normalizeRoute from './utils/normalizeRoute'
 
 export interface Endpoint {
   route: string
-  handler: Record<string, Function>
+  handler: Record<HttpMethod, Function>
 }
 
 export type EndpointDefinition = Record<string, string | Function>

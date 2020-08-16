@@ -215,6 +215,12 @@ export default class JsonApiResponse {
 
       const schema = (<typeof BaseModel>entry.constructor).base$schema
 
+      if (schema.virtuals[name]) {
+        attributes[name] = value
+
+        return
+      }
+
       if (schema.fields[name].type === 'reference') {
         const links = this.getRelationshipLinksBlock(entry, name)
         const data = Array.isArray(value)
