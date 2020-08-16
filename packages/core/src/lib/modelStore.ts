@@ -110,9 +110,15 @@ export class ModelStore {
     database: DataConnector
   ): typeof BaseModel {
     const handle = this.normalizeHandle(name)
+    const index = isModelClass(source) ? source.base$index : source.index
+    const virtuals = isModelClass(source)
+      ? source.base$virtuals
+      : source.virtuals
     const schema = new Schema({
       fields: isModelClass(source) ? source.base$fields : source.fields,
       handlers: types,
+      index,
+      virtuals,
     })
     const modelProperties = {
       base$db: {
@@ -221,9 +227,7 @@ export class ModelStore {
 
     loadedModels.forEach((Model) => {
       Model.base$schema.loadFieldHandlers()
-
-      // (!) TO DO: Handle model validation.
-      // const errors = Model.base$schema.validateOptions()
+      Model.base$schema.validateOptions()
     })
 
     return loadedModels

@@ -363,7 +363,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const newIndexes: Map<string, any> = new Map()
 
     Model.base$schema.indexes.forEach((index) => {
-      const hash = generateHash(JSON.stringify(index.fields))
+      const hash = generateHash(JSON.stringify(index))
       const nameNodes = Object.keys(index.fields).reduce(
         (nodes, fieldName) =>
           nodes.concat(`${fieldName}_${index.fields[fieldName]}`),
@@ -373,15 +373,20 @@ export class MongoDB extends DataConnector.DataConnector {
         0,
         MAX_INDEX_LENGTH
       )
+      const options: Record<string, any> = {
+        name,
+        sparse: Boolean(index.sparse),
+        unique: Boolean(index.unique),
+      }
 
-      newIndexes.set(hash, [
-        index.fields,
-        {
-          name,
-          sparse: Boolean(index.sparse),
-          unique: Boolean(index.unique),
-        },
-      ])
+      if (index.filter) {
+        options.partialFilterExpression = this.encodeQuery(
+          new QueryFilter(index.filter),
+          Model
+        )
+      }
+
+      newIndexes.set(hash, [index.fields, options])
     })
 
     const connection = await this.connect()
@@ -414,7 +419,7 @@ export class MongoDB extends DataConnector.DataConnector {
           // If an existing index doesn't exist in the `newIndexes` object, it
           // means it has been deleted from the schema and therefore we have to
           // drop it from the database.
-          logger.debug('Dropping index: %s', rawIndex.name)
+          logger.debug('Dropped index: %s', rawIndex.name)
 
           return collection.dropIndex(rawIndex.name)
         })
@@ -425,7 +430,7 @@ export class MongoDB extends DataConnector.DataConnector {
           try {
             await collection.createIndex(index[0], index[1])
 
-            logger.debug('Created index: %o', index[0])
+            logger.debug('Created index: %o (%s)', index[0], index[1])
           } catch (error) {
             logger.error(error)
           }

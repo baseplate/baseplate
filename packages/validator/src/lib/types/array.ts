@@ -48,7 +48,7 @@ export default class FieldArray extends BaseHandler {
     }
 
     value.forEach((childValue: any) => {
-      const isValid = this.children.some((childType) => {
+      const isValid = this.children.every((childType) => {
         try {
           validateField({
             field: childType,
@@ -63,10 +63,10 @@ export default class FieldArray extends BaseHandler {
       })
 
       if (!isValid) {
-        throw new CastError({
+        throw new FieldValidationError({
+          expected: this.children.map((child) => child.type).join(' or '),
           path,
-          type: this.children.map(({subType}) => subType).join(' or '),
-          value,
+          type: 'INVALID_MEMBER',
         })
       }
     })

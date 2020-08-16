@@ -20,6 +20,7 @@ interface FieldTypes {
 interface ConstructorParameters {
   fields: Record<string, RawFieldDefinition>
   handlers?: FieldTypes
+  index?: IndexDefinitionWithOptions[]
   loadFieldHandlers?: boolean
   virtuals?: Record<string, Virtual>
 }
@@ -34,6 +35,7 @@ export class Schema {
   constructor({
     fields,
     handlers = {primitives: basePrimitiveTypes, system: baseSystemTypes},
+    index = [],
     loadFieldHandlers,
     virtuals,
   }: ConstructorParameters) {
@@ -42,7 +44,9 @@ export class Schema {
     const fieldDefinitions = this.normalizeFields(fields)
 
     this.fields = fieldDefinitions
-    this.indexes = this.getIndexes(fieldDefinitions)
+    this.indexes = this.getFieldIndexes(fieldDefinitions).concat(
+      this.getSchemaIndexes(index)
+    )
     this.virtuals = virtuals || {}
 
     if (loadFieldHandlers) {
@@ -67,6 +71,14 @@ export class Schema {
     if (field.type === 'array') {
       return new this.types.system.array({
         ...field,
+        children: field.children.map(
+          (child: NormalizedFieldDefinition, index: number) =>
+            this.getHandlerForField(
+              child,
+              index.toString(),
+              fieldPath.concat(index.toString())
+            )
+        ),
         path: fieldPath,
       })
     }
@@ -103,34 +115,64 @@ export class Schema {
     throw new InvalidFieldTypeError({typeName: field.type})
   }
 
-  getIndexes(fields: Record<string, NormalizedFieldDefinition>): Index[] {
-    return Object.keys(fields).reduce((indexes: Index[], fieldName: string) => {
+  getFieldIndexes(fields: Record<string, NormalizedFieldDefinition>) {
+    let indexes: Index[] = []
+
+    Object.keys(fields).forEach((fieldName: string) => {
       const field = fields[fieldName]
+      const {children, index, type, unique} = field.options
 
-      if (field.type === 'object') {
-        return indexes.concat(this.getIndexes(field.children))
+      if (type === 'object') {
+        indexes = indexes.concat(this.getFieldIndexes(children))
+
+        return
       }
 
-      if (field.options.unique) {
-        return indexes.concat({
-          fields: {[fieldName]: 1},
-          unique: true,
-        })
+      if (!index && !unique) {
+        return
       }
 
-      if (field.options.index) {
-        return indexes.concat({
-          fields: {[fieldName]: 1},
-          sparse: Boolean(
-            field.options.index &&
-              field.options.index.toString() === '[object Object]' &&
-              (<IndexDefinitionWithOptions>field.options.index).sparse
-          ),
-        })
+      const newIndex: Index = {
+        fields: {[fieldName]: 1},
+        unique,
       }
 
-      return indexes
-    }, [])
+      if (index) {
+        const indexObject = index as IndexDefinitionWithOptions
+
+        newIndex.filter = indexObject.filter
+        newIndex.sparse = indexObject.sparse
+      }
+
+      indexes.push(newIndex)
+    })
+
+    return indexes
+  }
+
+  getSchemaIndexes(indexDefinitions: IndexDefinitionWithOptions[]) {
+    return indexDefinitions.map((indexDefinition) => {
+      const fields: Record<string, 0 | 1> = Object.entries(
+        indexDefinition.fields
+      ).reduce((fields, [name, sort]) => {
+        if (sort === 0 || sort === 1) {
+          return {
+            ...fields,
+            [name]: sort,
+          }
+        }
+
+        return fields
+      }, {})
+      const index: Index = {
+        fields,
+        unique: indexDefinition.unique,
+        sparse: indexDefinition.sparse,
+        filter: indexDefinition.filter,
+      }
+
+      return index
+    })
   }
 
   isValidPrimitive(input: any): input is keyof typeof basePrimitiveTypes {
@@ -188,12 +230,13 @@ export class Schema {
 
     if (Array.isArray(field.type)) {
       const {type, ...options} = field
-      const {primitives, references} = field.type.reduce(
-        (count, member) => {
-          if (this.isValidPrimitive(member)) {
-            count.primitives++
-          } else {
+      const children = field.type.map((child) => this.normalizeField(child))
+      const {primitives, references} = children.reduce(
+        (count, child) => {
+          if (child.type === 'reference') {
             count.references++
+          } else {
+            count.primitives++
           }
 
           return count
@@ -208,18 +251,21 @@ export class Schema {
 
         return {
           type: 'reference',
-          children: field.type.map(this.normalizeFieldType),
+          children: children.reduce(
+            (result, child) => result.concat(child.children),
+            []
+          ),
           options,
         }
       }
 
-      if (primitives.length > 1) {
+      if (primitives > 1) {
         throw new Error('Arrays cannot mix different primitives')
       }
 
       return {
         type: 'array',
-        children: this.normalizeField(field.type[0]),
+        children,
         options,
       }
     }

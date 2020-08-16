@@ -35,6 +35,10 @@ export interface Query {
   resolve: Function
 }
 
+export interface Virtual {
+  type: GraphQLScalarType
+}
+
 function dateResolver(
   root: any,
   args: object,
@@ -413,7 +417,8 @@ function getTypesFromFieldHandlers(
 ): Record<string, {type: any}> {
   const functionName =
     type === 'input' ? 'getGraphQLInputType' : 'getGraphQLOutputType'
-  const fields = Object.entries(handlers).reduce((fields, [name, handler]) => {
+
+  return Object.entries(handlers).reduce((fields, [name, handler]) => {
     const graphQLHandler = handler as GraphQLFieldHandler
 
     if (typeof graphQLHandler[functionName] === 'function') {
@@ -425,30 +430,36 @@ function getTypesFromFieldHandlers(
 
     return fields
   }, {})
-
-  return {...fields}
 }
 
 function getTypesFromVirtuals(
   Model: typeof BaseModel
-): Record<string, {type: GraphQLScalarType}> {
-  const {virtuals} = Model.base$schema
-  const virtualTypes = Object.keys(virtuals).reduce((result, name) => {
-    const virtualName = camelize(`${Model.base$handle}_Virtual`)
-    const type = new GraphQLScalarType({
-      name: virtualName,
-      serialize: null,
-    })
+): Record<string, Virtual> {
+  if (Model.base$graphQL && Model.base$graphQL.virtuals) {
+    return Model.base$graphQL.virtuals
+  }
 
-    return {
-      ...result,
-      [name]: {
-        type,
-      },
-    }
-  }, {})
+  const virtuals = Object.keys(Model.base$schema.virtuals).reduce(
+    (result, name) => {
+      const virtualName = camelize(`${Model.base$handle}_${name}_Virtual`)
+      const type = new GraphQLScalarType({
+        name: virtualName,
+        serialize: null,
+      })
 
-  return virtualTypes
+      return {
+        ...result,
+        [name]: {
+          type,
+        },
+      }
+    },
+    {}
+  )
+
+  Model.base$graphQL.virtuals = virtuals
+
+  return virtuals
 }
 
 export {getMutations, getObjectType, getQueries}

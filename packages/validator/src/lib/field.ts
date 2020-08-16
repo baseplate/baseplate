@@ -55,16 +55,12 @@ export class BaseHandler {
       ...(<typeof BaseHandler>this.constructor).options,
     }
 
-    try {
-      this.options = validateObject({
-        allowUnknownFields: true,
-        object: this.options,
-        path: this.path,
-        schema,
-      })
-    } catch (error) {
-      console.log('!!!', error)
-    }
+    this.options = validateObject({
+      allowUnknownFields: true,
+      object: this.options,
+      path: this.path,
+      schema,
+    })
   }
 }
 
@@ -146,7 +142,8 @@ export interface Index {
 export type IndexDefinition = boolean | IndexDefinitionWithOptions
 
 export type IndexDefinitionWithOptions = {
-  fields?: Record<string, 0 | 1>
+  fields?: Record<string, number>
+  filter?: object
   sparse?: boolean
   unique?: boolean
 }

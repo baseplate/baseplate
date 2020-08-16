@@ -1,6 +1,8 @@
 import {
   CustomError,
   FieldHandler,
+  FieldIndexDefinition,
+  FieldIndexDefinitionWithOptions,
   FieldOperator,
   FieldValidationError,
   Schema,
@@ -142,12 +144,14 @@ export default class BaseModel {
   static base$graphQL?: GraphQLModelCache
   static base$handle?: string
   static base$handlePlural?: string
+  static base$index?: FieldIndexDefinitionWithOptions[]
   static base$interfaces?: InterfacesBlock
   static base$label?: string
   static base$modelStore?: ModelStore
   static base$routes?: Record<string, Record<string, Function>>
   static base$schema?: Schema
   static base$settings?: {[key: string]: any}
+  static base$virtuals?: Record<string, Virtual>
 
   static base$authenticate?(options: AuthenticateParameters): AccessValue
 
