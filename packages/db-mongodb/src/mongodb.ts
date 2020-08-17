@@ -18,6 +18,15 @@ const logger = createLogger('mongodb')
 
 let connectionPool: Promise<MongoClient>
 
+interface MongoIndex {
+  fields: Record<string, -1 | 1 | 'text'>
+  options: {
+    sparse?: boolean
+    unique?: boolean
+    weights?: Record<string, number>
+  }
+}
+
 export interface Options {
   name: string
   uri: string
@@ -230,13 +239,19 @@ export class MongoDB extends DataConnector.DataConnector {
   }
 
   async find(
-    {fieldSet, filter, pageNumber = 1, pageSize}: DataConnector.FindParameters,
+    {
+      fieldSet,
+      filter,
+      pageNumber = 1,
+      pageSize,
+      sort = {},
+    }: DataConnector.FindParameters,
     Model: typeof BaseModel,
     context?: Context,
     cache = true
   ) {
     if (cache && context) {
-      const parameters = {fieldSet, filter, pageNumber, pageSize}
+      const parameters = {fieldSet, filter, pageNumber, pageSize, sort}
 
       return context.getFromCacheOrOrigin<DataConnector.FindReturnValue>(
         () => this.find(parameters, Model, context, false),
@@ -265,6 +280,7 @@ export class MongoDB extends DataConnector.DataConnector {
       .db(this.dbName)
       .collection(collectionName)
       .find(query, options)
+      .sort(sort)
     const count = await cursor.count()
     const results = await cursor.toArray()
     const decodedResults: DataConnector.Results = results.map(
@@ -357,30 +373,132 @@ export class MongoDB extends DataConnector.DataConnector {
     return decodedResult
   }
 
+  getIndexName(index: MongoIndex) {
+    const hash = generateHash(JSON.stringify(index))
+    const nameNodes = Object.keys(index.fields).reduce(
+      (nodes, fieldName) =>
+        nodes.concat(`${fieldName}_${index.fields[fieldName]}`),
+      []
+    )
+    const name = `base$${hash}$${nameNodes.join('_')}`.slice(
+      0,
+      MAX_INDEX_LENGTH
+    )
+
+    return name
+  }
+
+  async search(
+    {
+      fieldSet,
+      filter,
+      pageNumber = 1,
+      pageSize,
+      text,
+    }: DataConnector.SearchParameters,
+    Model: typeof BaseModel,
+    context?: Context,
+    cache = true
+  ) {
+    if (cache && context) {
+      const parameters = {fieldSet, filter, pageNumber, pageSize, text}
+
+      return context.getFromCacheOrOrigin<DataConnector.SearchReturnValue>(
+        () => this.search(parameters, Model, context, false),
+        JSON.stringify(parameters)
+      )
+    }
+
+    const connection = await this.connect()
+    const collectionName = this.getCollectionName(Model)
+    const options: Record<string, any> = {
+      projection: {
+        ...this.getProjectionFromFieldSet(fieldSet),
+        _searchScore: {$meta: 'textScore'},
+      },
+      sort: {_searchScore: {$meta: 'textScore'}},
+    }
+
+    if (pageSize) {
+      options.limit = pageSize
+      options.skip = (pageNumber - 1) * pageSize
+    }
+
+    const query = filter ? this.encodeQuery(filter, Model) : {}
+
+    options._searchScore = {$meta: 'textScore'}
+    query.$text = {$search: text, $diacriticSensitive: true}
+
+    logger.debug('search: %o', query, {
+      model: Model.base$handle,
+    })
+
+    const cursor = await connection
+      .db(this.dbName)
+      .collection(collectionName)
+      .find(query, options)
+    const count = await cursor.count()
+    const results = await cursor.toArray()
+    const scores: number[] = []
+    const decodedResults: DataConnector.Results = results.map(
+      (result: DataConnector.Result) => {
+        const {_searchScore, ...fields} = result
+
+        scores.push(_searchScore)
+
+        return this.encodeAndDecodeObjectIdsInEntry(fields, Model, 'decode')
+      }
+    )
+
+    return {count, results: decodedResults, scores}
+  }
+
   async sync(Model: typeof BaseModel) {
     logger.debug('Syncinc model %s', Model.base$handle)
 
-    const newIndexes: Map<string, any> = new Map()
+    const {fieldIndexes, schemaIndexes, searchIndexes} = Model.base$schema
+    const newIndexes: Map<string, MongoIndex> = new Map()
 
-    Model.base$schema.fieldIndexes.forEach((index) => {
-      const hash = generateHash(JSON.stringify(index))
-      const nameNodes = Object.keys(index.fields).reduce(
-        (nodes, fieldName) =>
-          nodes.concat(`${fieldName}_${index.fields[fieldName]}`),
-        []
-      )
-      const name = `base$${hash}$${nameNodes.join('_')}`.slice(
-        0,
-        MAX_INDEX_LENGTH
-      )
-      const options: Record<string, any> = {
-        name,
-        sparse: Boolean(index.sparse),
-        unique: Boolean(index.unique),
+    fieldIndexes.concat(schemaIndexes).forEach((index) => {
+      const newIndex: MongoIndex = {
+        fields: index.fields,
+        options: {},
       }
 
-      newIndexes.set(hash, [index.fields, options])
+      if (index.sparse === true) {
+        newIndex.options.sparse = index.sparse
+      }
+
+      if (index.unique === true) {
+        newIndex.options.unique = index.unique
+      }
+
+      const name = this.getIndexName(newIndex)
+
+      newIndexes.set(name, newIndex)
     })
+
+    if (searchIndexes.length > 0) {
+      const fields: Record<string, 'text'> = {}
+      const weights: Record<string, number> = {}
+
+      searchIndexes.forEach((searchIndex) => {
+        const dotPath = searchIndex.fieldPath.join('.')
+
+        fields[dotPath] = 'text'
+        weights[dotPath] = searchIndex.weight
+      })
+
+      const newIndex: MongoIndex = {
+        fields,
+        options: {
+          weights,
+        },
+      }
+      const name = this.getIndexName(newIndex)
+
+      newIndexes.set(name, newIndex)
+    }
 
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
@@ -398,13 +516,11 @@ export class MongoDB extends DataConnector.DataConnector {
             return
           }
 
-          const [, hash] = rawIndex.name.split('$')
-
           // If an existing index is also in the `newIndexes` object, it means
           // the index still stay unaltered. We simply need to remove the index
           // from `newIndexes` so that we don't try to create it again.
-          if (newIndexes.get(hash)) {
-            newIndexes.delete(hash)
+          if (newIndexes.get(rawIndex.name)) {
+            newIndexes.delete(rawIndex.name)
 
             return
           }
@@ -419,11 +535,16 @@ export class MongoDB extends DataConnector.DataConnector {
       )
 
       await Promise.all(
-        Array.from(newIndexes.values()).map(async (index) => {
+        Array.from(newIndexes.entries()).map(async ([hash, index]) => {
           try {
-            await collection.createIndex(index[0], index[1])
+            const options = {
+              ...index.options,
+              name: hash,
+            }
 
-            logger.debug('Created index: %o (%s)', index[0], index[1])
+            await collection.createIndex(index.fields, options)
+
+            logger.debug('Created index: %o (%o)', index.fields, options)
           } catch (error) {
             logger.error(error)
           }

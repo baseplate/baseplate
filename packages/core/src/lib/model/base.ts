@@ -21,11 +21,12 @@ import Context from '../context'
 import {
   DataConnector,
   FindParameters as DataConnectorFindParameters,
+  SearchParameters as DataConnectorSearchParameters,
   UpdateParameters as DataConnectorUpdateParameters,
 } from '../dataConnector/interface'
 import type {FieldDefinition} from '../fieldDefinition'
 import type {GraphQLModelCache} from '../specs/graphql/modelCache'
-import {Interfaces, InterfacesBlock} from './definition'
+import {InterfacesBlock} from './definition'
 import FieldSet from '../fieldSet'
 import type {ModelStore} from '../modelStore'
 import QueryFilter from '../queryFilter/'
@@ -94,6 +95,18 @@ export interface GetAccessParameters {
   accessType: AccessType
   context: Context
   user: UserModel
+}
+
+export interface SearchParameters {
+  authenticate?: boolean
+  cache?: boolean
+  context?: Context
+  fieldSet?: FieldSet
+  filter?: QueryFilter
+  pageNumber?: number
+  pageSize?: number
+  text: string
+  user?: UserModel
 }
 
 export interface UpdateParameters {
@@ -224,6 +237,14 @@ export default class BaseModel {
 
   static base$isInternal?() {
     return this.base$handle.startsWith('base$')
+  }
+
+  static async base$search(
+    parameters: SearchParameters,
+    context: Context,
+    cache?: boolean
+  ) {
+    return this.base$db.search(parameters, this, context, cache)
   }
 
   static base$sync() {
@@ -368,6 +389,61 @@ export default class BaseModel {
       ...parameters,
       filter: new QueryFilter({_id: id}),
     })
+  }
+
+  static async search({
+    authenticate = true,
+    cache = true,
+    context = new Context(),
+    fieldSet,
+    filter,
+    pageNumber,
+    pageSize: suppliedPageSize,
+    text,
+    user,
+  }: SearchParameters) {
+    const pageSize = suppliedPageSize || DEFAULT_PAGE_SIZE
+
+    if (authenticate) {
+      const access = await this.base$getAccess({
+        accessType: 'read',
+        context,
+        user,
+      })
+
+      if (access.fields) {
+        fieldSet = access.fields.intersectWith(fieldSet)
+      }
+
+      if (filter) {
+        filter.intersectWith(access.filter)
+      }
+    }
+
+    let opParameters: DataConnectorSearchParameters = {
+      fieldSet: FieldSet.unite(fieldSet, new FieldSet(INTERNAL_FIELDS)),
+      filter,
+      pageNumber,
+      pageSize,
+      text,
+    }
+
+    // (!) TO DO: Add beforeSearch
+    // if (typeof this.base$beforeFind === 'function') {
+    //   Object.assign(opParameters, this.base$beforeFind(opParameters))
+    // }
+
+    const {count, results, scores} = await this.base$search(
+      opParameters,
+      context,
+      cache
+    )
+    const entries = results.map(
+      (fields: Fields) => new this(fields, {fromDb: true})
+    )
+    const totalPages = Math.ceil(count / pageSize)
+
+    return {entries, pageSize, scores, totalEntries: count, totalPages}
   }
 
   static async update({

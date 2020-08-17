@@ -34,6 +34,7 @@ interface JsonApiResponseConstructorParameters {
   pageSize?: number
   relationships?: RelationshipData | Array<RelationshipData>
   res: HttpResponse
+  searchScores?: number[]
   statusCode?: number
   totalEntries?: number
   totalPages?: number
@@ -51,6 +52,7 @@ export default class JsonApiResponse {
   topLevelFieldSet: FieldSet
   totalEntries: number
   totalPages: number
+  searchScores: number[]
   statusCode: number
   url: JsonApiURL
 
@@ -63,6 +65,7 @@ export default class JsonApiResponse {
     pageSize,
     relationships,
     res,
+    searchScores,
     statusCode = 200,
     totalEntries,
     totalPages,
@@ -74,6 +77,7 @@ export default class JsonApiResponse {
     this.pageSize = pageSize
     this.relationships = relationships
     this.res = res
+    this.searchScores = searchScores
     this.topLevelFieldSet = fieldSet
     this.totalEntries = totalEntries
     this.totalPages = totalPages
@@ -113,8 +117,11 @@ export default class JsonApiResponse {
 
       try {
         const formattedEntries = await Promise.all(
-          entriesArray.map((entry) =>
-            this.formatEntry(entry, this.topLevelFieldSet)
+          entriesArray.map((entry, index) =>
+            this.formatEntry(entry, {
+              fieldSet: this.topLevelFieldSet,
+              searchScore: this.searchScores && this.searchScores[index],
+            })
           )
         )
 
@@ -194,7 +201,10 @@ export default class JsonApiResponse {
     }
   }
 
-  async formatEntry(entry: BaseModel, fieldSet?: FieldSet) {
+  async formatEntry(
+    entry: BaseModel,
+    {fieldSet, searchScore}: {fieldSet?: FieldSet; searchScore?: number} = {}
+  ) {
     const fields = await entry.toObject({
       fieldSet,
     })
@@ -254,6 +264,10 @@ export default class JsonApiResponse {
       formattedEntry.links = {
         self: `${this.url.path}/${entry.id}`,
       }
+    }
+
+    if (typeof searchScore === 'number') {
+      formattedEntry.meta.searchScore = searchScore
     }
 
     const jsonApiEntry = <JsonApiModel>entry

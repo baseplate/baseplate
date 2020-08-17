@@ -22,11 +22,6 @@ import {
 } from '../lib/types/'
 import {validateObject} from './validator'
 
-interface FieldTypes {
-  primitives: Record<string, typeof BaseHandler>
-  system: Record<string, typeof BaseHandler>
-}
-
 interface ConstructorParameters {
   fields?: Record<string, RawFieldDefinition>
   index?: SchemaIndexDefinition[]
@@ -37,12 +32,23 @@ interface ConstructorParameters {
   virtuals?: Record<string, Virtual>
 }
 
+interface FieldTypes {
+  primitives: Record<string, typeof BaseHandler>
+  system: Record<string, typeof BaseHandler>
+}
+
+interface SearchIndex {
+  fieldPath: string[]
+  weight: number
+}
+
 export class Schema {
   fields: Record<string, NormalizedFieldDefinition>
   handlers: Record<string, BaseHandler>
   fieldIndexes: Index[]
   path: string[]
   schemaIndexes: Index[]
+  searchIndexes: SearchIndex[]
   virtuals: Record<string, Virtual>
   types: FieldTypes
 
@@ -62,6 +68,7 @@ export class Schema {
     this.fields = fieldDefinitions
     this.fieldIndexes = this.getFieldIndexes(fieldDefinitions)
     this.path = path
+    this.searchIndexes = this.getSearchIndexes(fieldDefinitions)
     this.schemaIndexes = this.getSchemaIndexes(index)
     this.virtuals = virtuals || {}
 
@@ -134,12 +141,16 @@ export class Schema {
     }
 
     if (field.type === 'object') {
+      const children = new Schema({
+        normalizedFields: field.children,
+        path: fieldPath,
+        types: this.types,
+      })
+
+      this.searchIndexes = this.searchIndexes.concat(children.searchIndexes)
+
       return new this.types.system.object({
-        children: new Schema({
-          normalizedFields: field.children,
-          path: fieldPath,
-          types: this.types,
-        }),
+        children,
         options: {},
         path: fieldPath,
         type: 'object',
@@ -166,6 +177,22 @@ export class Schema {
 
       return index
     })
+  }
+
+  getSearchIndexes(fields: Record<string, NormalizedFieldDefinition>) {
+    const indexes = Object.keys(fields).reduce((indexes, fieldName: string) => {
+      const field = fields[fieldName]
+      const {search} = field.options
+
+      if (!search) return indexes
+
+      return indexes.concat({
+        fieldPath: this.path.concat(fieldName),
+        weight: search.weight,
+      })
+    }, [])
+
+    return indexes
   }
 
   isValidPrimitive(input: any): input is keyof typeof basePrimitiveTypes {

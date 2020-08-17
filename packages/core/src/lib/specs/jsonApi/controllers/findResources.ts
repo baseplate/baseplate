@@ -1,3 +1,4 @@
+import type {Await} from '../../../utils/types'
 import type BaseModel from '../../../model/base'
 import Context from '../../../context'
 import HttpRequest from '../../../http/request'
@@ -15,15 +16,23 @@ export default async function (
   try {
     const Model = this as typeof BaseModel
     const fieldSet = jsonApiReq.fields[Model.base$handle]
-    const {entries, pageSize, totalEntries, totalPages} = await Model.find({
+    const searchText = jsonApiReq.url.getQueryParameter('search')
+    const commonParameters = {
       context,
       fieldSet,
       filter: jsonApiReq.getQueryFilter(),
       pageNumber: jsonApiReq.pageNumber,
       pageSize: jsonApiReq.pageSize,
-      sort: jsonApiReq.sort,
       user: context.get('base$user'),
-    })
+    }
+    const data = searchText
+      ? await Model.search({...commonParameters, text: searchText})
+      : await Model.find({
+          ...commonParameters,
+          sort: jsonApiReq.sort,
+        })
+
+    const {entries, pageSize, totalEntries, totalPages} = data
     const references = await jsonApiReq.resolveRelationships({
       entries,
       Model,
@@ -36,6 +45,9 @@ export default async function (
       includeTopLevelLinks: true,
       pageSize,
       res,
+      searchScores: searchText
+        ? (data as Await<ReturnType<typeof BaseModel['search']>>).scores
+        : null,
       totalEntries,
       totalPages,
       url: jsonApiReq.url,

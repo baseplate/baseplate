@@ -102,6 +102,13 @@ export abstract class DataConnector {
     cache?: boolean
   ): Promise<Result>
 
+  abstract search(
+    props: SearchParameters,
+    Model: typeof BaseModel,
+    context?: Context,
+    cache?: boolean
+  ): Promise<SearchReturnValue>
+
   abstract sync(Model: typeof BaseModel): Promise<void>
 
   abstract update(
@@ -151,6 +158,20 @@ export interface FindParameters {
   pageNumber?: number
   pageSize?: number
   sort?: SortObject
+}
+
+export interface SearchParameters {
+  fieldSet?: FieldSet
+  filter?: QueryFilter
+  pageNumber?: number
+  pageSize?: number
+  text: string
+}
+
+export interface SearchReturnValue {
+  count: number
+  results: Results
+  scores: number[]
 }
 
 export interface UpdateParameters {
