@@ -9,10 +9,9 @@ export {
   BaseConstructorParameters as FieldConstructorParameters,
   BaseHandler as FieldHandler,
   CastQueryParameters as FieldCastQueryParameters,
-  IndexDefinition as FieldIndexDefinition,
-  IndexDefinitionWithOptions as FieldIndexDefinitionWithOptions,
   NormalizedDefinition as NormalizedFieldDefinition,
   Operator as FieldOperator,
 } from './lib/field'
+export {FieldIndexDefinition, FieldIndexExtendedDefinition} from './lib/index'
 export {Schema, Virtual} from './lib/schema'
 export {validateField, validateObject} from './lib/validator'

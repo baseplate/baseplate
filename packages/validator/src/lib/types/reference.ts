@@ -2,8 +2,6 @@ import {CastError, FieldValidationError} from '../errors'
 import {
   BaseConstructorParameters,
   BaseHandler,
-  BaseOptions,
-  CastParameters,
   ValidateParameters,
 } from '../field'
 
@@ -25,7 +23,7 @@ export default class FieldReference extends BaseHandler {
       .filter(Boolean)
   }
 
-  cast({path, value}: CastParameters<ReferenceValue>) {
+  cast({path, value}: {path: string[]; value: any}) {
     if (!value) return value
 
     const normalizedValue = Array.isArray(value) ? value : [value]

@@ -169,7 +169,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       await wipeModels(['author'], app)
     })
 
-    test('Hiding any items which the requesting client does not have read access to', async () => {
+    test('Hides any items which the requesting client does not have read access to', async () => {
       await createUser({
         accessLevel: 'user',
         app,

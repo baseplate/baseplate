@@ -41,7 +41,7 @@ export class Request extends HttpRequest {
     super({
       body: stringBody,
       headers,
-      method,
+      method: <HttpRequest['method']>method,
       url: urlObject,
     })
   }

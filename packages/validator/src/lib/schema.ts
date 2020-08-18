@@ -1,52 +1,75 @@
 import type {
   BaseHandler,
   ExtendedSchema,
-  Index,
-  IndexDefinitionWithOptions,
   NormalizedDefinition as NormalizedFieldDefinition,
   RawDefinition as RawFieldDefinition,
 } from './field'
-import {CustomError, InvalidFieldTypeError} from './errors'
+import {
+  FieldIndexExtendedDefinition,
+  getSchemaFields,
+  Index,
+  SchemaIndexDefinition,
+} from './index'
+import {isPlainObject} from './utils/'
+import {
+  CustomError,
+  EntryValidationError,
+  InvalidFieldTypeError,
+} from './errors'
 import {
   primitives as basePrimitiveTypes,
   system as baseSystemTypes,
 } from '../lib/types/'
+import {validateObject} from './validator'
+
+interface ConstructorParameters {
+  fields?: Record<string, RawFieldDefinition>
+  index?: SchemaIndexDefinition[]
+  loadFieldHandlers?: boolean
+  normalizedFields?: Record<string, NormalizedFieldDefinition>
+  path?: string[]
+  types?: FieldTypes
+  virtuals?: Record<string, Virtual>
+}
 
 interface FieldTypes {
   primitives: Record<string, typeof BaseHandler>
   system: Record<string, typeof BaseHandler>
 }
 
-interface ConstructorParameters {
-  fields: Record<string, RawFieldDefinition>
-  handlers?: FieldTypes
-  index?: IndexDefinitionWithOptions[]
-  loadFieldHandlers?: boolean
-  virtuals?: Record<string, Virtual>
+interface SearchIndex {
+  fieldPath: string[]
+  weight: number
 }
 
 export class Schema {
   fields: Record<string, NormalizedFieldDefinition>
   handlers: Record<string, BaseHandler>
-  indexes: Index[]
+  fieldIndexes: Index[]
+  path: string[]
+  schemaIndexes: Index[]
+  searchIndexes: SearchIndex[]
   virtuals: Record<string, Virtual>
   types: FieldTypes
 
   constructor({
     fields,
-    handlers = {primitives: basePrimitiveTypes, system: baseSystemTypes},
     index = [],
-    loadFieldHandlers,
+    loadFieldHandlers = true,
+    normalizedFields,
+    path = [],
+    types = {primitives: basePrimitiveTypes, system: baseSystemTypes},
     virtuals,
-  }: ConstructorParameters) {
-    this.types = handlers
+  }: ConstructorParameters = {}) {
+    this.types = types
 
-    const fieldDefinitions = this.normalizeFields(fields)
+    const fieldDefinitions = normalizedFields || this.normalizeFields(fields)
 
     this.fields = fieldDefinitions
-    this.indexes = this.getFieldIndexes(fieldDefinitions).concat(
-      this.getSchemaIndexes(index)
-    )
+    this.fieldIndexes = this.getFieldIndexes(fieldDefinitions)
+    this.path = path
+    this.searchIndexes = this.getSearchIndexes(fieldDefinitions)
+    this.schemaIndexes = this.getSchemaIndexes(index)
     this.virtuals = virtuals || {}
 
     if (loadFieldHandlers) {
@@ -54,10 +77,44 @@ export class Schema {
     }
   }
 
+  getFieldIndexes(fields: Record<string, NormalizedFieldDefinition>) {
+    let indexes: Index[] = []
+
+    Object.keys(fields).forEach((fieldName: string) => {
+      const field = fields[fieldName]
+      const {children, index, type, unique} = field.options
+
+      if (type === 'object') {
+        indexes = indexes.concat(this.getFieldIndexes(children))
+
+        return
+      }
+
+      if (!index && !unique) {
+        return
+      }
+
+      const newIndex: Index = {
+        fields: {[fieldName]: 1},
+        unique,
+      }
+
+      if (index) {
+        const indexObject = index as FieldIndexExtendedDefinition
+
+        newIndex.sparse = indexObject.sparse
+      }
+
+      indexes.push(newIndex)
+    })
+
+    return indexes
+  }
+
   getHandlerForField(
     field: NormalizedFieldDefinition,
     name: string,
-    fieldPath: string[] = []
+    fieldPath: string[] = this.path
   ): BaseHandler {
     fieldPath = fieldPath.concat(name)
 
@@ -84,24 +141,19 @@ export class Schema {
     }
 
     if (field.type === 'object') {
-      const children = Object.keys(field.children).reduce(
-        (handlers, fieldName) => {
-          return {
-            ...handlers,
-            [fieldName]: this.getHandlerForField(
-              <NormalizedFieldDefinition>field.children[fieldName],
-              fieldName,
-              fieldPath
-            ),
-          }
-        },
-        {}
-      )
+      const children = new Schema({
+        normalizedFields: field.children,
+        path: fieldPath,
+        types: this.types,
+      })
+
+      this.searchIndexes = this.searchIndexes.concat(children.searchIndexes)
 
       return new this.types.system.object({
         children,
         options: {},
         path: fieldPath,
+        type: 'object',
       })
     }
 
@@ -115,64 +167,32 @@ export class Schema {
     throw new InvalidFieldTypeError({typeName: field.type})
   }
 
-  getFieldIndexes(fields: Record<string, NormalizedFieldDefinition>) {
-    let indexes: Index[] = []
-
-    Object.keys(fields).forEach((fieldName: string) => {
-      const field = fields[fieldName]
-      const {children, index, type, unique} = field.options
-
-      if (type === 'object') {
-        indexes = indexes.concat(this.getFieldIndexes(children))
-
-        return
-      }
-
-      if (!index && !unique) {
-        return
-      }
-
-      const newIndex: Index = {
-        fields: {[fieldName]: 1},
-        unique,
-      }
-
-      if (index) {
-        const indexObject = index as IndexDefinitionWithOptions
-
-        newIndex.filter = indexObject.filter
-        newIndex.sparse = indexObject.sparse
-      }
-
-      indexes.push(newIndex)
-    })
-
-    return indexes
-  }
-
-  getSchemaIndexes(indexDefinitions: IndexDefinitionWithOptions[]) {
+  getSchemaIndexes(indexDefinitions: SchemaIndexDefinition[]) {
     return indexDefinitions.map((indexDefinition) => {
-      const fields: Record<string, 0 | 1> = Object.entries(
-        indexDefinition.fields
-      ).reduce((fields, [name, sort]) => {
-        if (sort === 0 || sort === 1) {
-          return {
-            ...fields,
-            [name]: sort,
-          }
-        }
-
-        return fields
-      }, {})
       const index: Index = {
-        fields,
+        fields: <Record<string, -1 | 1>>indexDefinition.fields,
         unique: indexDefinition.unique,
         sparse: indexDefinition.sparse,
-        filter: indexDefinition.filter,
       }
 
       return index
     })
+  }
+
+  getSearchIndexes(fields: Record<string, NormalizedFieldDefinition>) {
+    const indexes = Object.keys(fields).reduce((indexes, fieldName: string) => {
+      const field = fields[fieldName]
+      const {search} = field.options
+
+      if (!search) return indexes
+
+      return indexes.concat({
+        fieldPath: this.path.concat(fieldName),
+        weight: search.weight,
+      })
+    }, [])
+
+    return indexes
   }
 
   isValidPrimitive(input: any): input is keyof typeof basePrimitiveTypes {
@@ -270,7 +290,7 @@ export class Schema {
       }
     }
 
-    if (field.type && field.type.toString() === '[object Object]') {
+    if (isPlainObject(field.type)) {
       const {type, ...options} = field
 
       return {
@@ -280,7 +300,7 @@ export class Schema {
       }
     }
 
-    if (field && field.toString() === '[object Object]') {
+    if (isPlainObject(field)) {
       return {
         type: 'object',
         children: this.normalizeFields(field),
@@ -292,6 +312,8 @@ export class Schema {
   normalizeFields(
     fields: Record<string, RawFieldDefinition>
   ): Record<string, NormalizedFieldDefinition> {
+    if (!fields) return {}
+
     return Object.entries(fields).reduce((normalizedFields, [name, field]) => {
       const normalizedField = this.normalizeField(field)
 
@@ -317,7 +339,12 @@ export class Schema {
     return field
   }
 
-  validateOptions() {
+  validate() {
+    this.validateFieldIndexes()
+    this.validateSchemaIndexes()
+  }
+
+  validateFieldIndexes() {
     const errors: CustomError[] = []
 
     Object.values(this.handlers).forEach((handler) => {
@@ -328,7 +355,24 @@ export class Schema {
       }
     })
 
-    return errors
+    if (errors.length > 0) {
+      throw new EntryValidationError({
+        fieldErrors: errors.reduce(
+          (errors, error) => errors.concat(error.childErrors),
+          []
+        ),
+        path: this.path,
+      })
+    }
+  }
+
+  validateSchemaIndexes() {
+    this.schemaIndexes.forEach((index) => {
+      validateObject({
+        object: index,
+        schema: new Schema(getSchemaFields('schema')),
+      })
+    })
   }
 }
 

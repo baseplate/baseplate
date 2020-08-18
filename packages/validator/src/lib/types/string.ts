@@ -1,5 +1,5 @@
+import {BaseHandler, BaseOptions} from '../field'
 import {CastError, FieldValidationError} from '../errors'
-import {BaseConstructorParameters, BaseHandler, BaseOptions} from '../field'
 
 export interface Options extends BaseOptions {
   lowerCase?: boolean
@@ -7,14 +7,15 @@ export interface Options extends BaseOptions {
   match?: RegExp
   maxLength?: number
   minLength?: number
+  search?: {
+    weight: number
+  }
   trim?: boolean
   upperCase?: boolean
 }
 
 export default class FieldString extends BaseHandler {
   options: Options
-  subType: 'string'
-  type: 'primitive'
 
   static operators = {
     eq: {
@@ -35,11 +36,18 @@ export default class FieldString extends BaseHandler {
     },
     maxLength: Number,
     minLength: Number,
+    search: {
+      weight: {
+        min: 1,
+        max: 10,
+        type: Number,
+      },
+    },
     trim: Boolean,
     upperCase: Boolean,
   }
 
-  cast({path, value}: {path: Array<string>; value: any}) {
+  cast({path, value}: {path: string[]; value: any}) {
     const {lowerCase, trim, upperCase} = this.options
 
     if (typeof value === 'string') {

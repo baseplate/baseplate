@@ -1,6 +1,4 @@
-import {FieldIndexDefinitionWithOptions, Virtual} from '@baseplate/validator'
 import type BaseModel from './base'
-import {FieldDefinition} from '../fieldDefinition'
 
 export type InterfacesBlock = {[key in Interfaces]?: boolean | string}
 
@@ -21,14 +19,14 @@ export enum Interfaces {
 }
 
 export interface ObjectModelDefinition {
-  fields: Record<string, FieldDefinition>
-  index?: FieldIndexDefinitionWithOptions[]
+  fields: typeof BaseModel['base$fields']
+  index?: typeof BaseModel['base$index']
   name: string
-  interfaces?: InterfacesBlock
-  label?: string
+  interfaces?: typeof BaseModel['base$interfaces']
+  label?: typeof BaseModel['base$label']
   plural?: string
-  routes?: Record<string, Record<string, Function>>
-  virtuals?: Record<string, Virtual>
+  routes?: typeof BaseModel['base$handlePlural']
+  virtuals?: typeof BaseModel['base$virtuals']
 }
 
 export function isClass(

@@ -1,4 +1,4 @@
-import {validateObject} from '@baseplate/validator'
+import {Schema, validateObject} from '@baseplate/validator'
 
 import {UnauthorizedError} from '../../errors'
 import Context from '../../context'
@@ -61,9 +61,8 @@ async function post(req: HttpRequest, res: HttpResponse, context: Context) {
     const data = req.body
 
     validateObject({
-      enforceRequiredFields: true,
       object: data,
-      schema: tokenEndpointSchema,
+      schema: new Schema({fields: tokenEndpointSchema}),
     })
 
     const RefreshTokenModel = this.base$modelStore.get('base$refreshtoken')

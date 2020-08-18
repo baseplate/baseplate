@@ -127,7 +127,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       await wipeModels(['author'], app)
     })
 
-    test('Hiding any items which the requesting client does not have read access to', async () => {
+    test('Hides any items which the requesting client does not have read access to', async () => {
       await createUser({
         accessLevel: 'user',
         app,
@@ -296,6 +296,93 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res.$body.data[0].id).toBe(authors[1].id)
       expect(res.$body.data[0].attributes.firstName).toEqual(author2.firstName)
       expect(res.$body.data[0].attributes.lastName).toEqual(author2.lastName)
+
+      await wipeModels(['author'], app)
+    })
+
+    test('Respects a sort parameter', async () => {
+      const accessToken = await getAccessToken({
+        app,
+        username: 'baseplate-admin',
+        password: 'baseplate',
+      })
+      const author1 = {
+        firstName: 'Jane',
+        lastName: 'Austen',
+      }
+      const author2 = {
+        firstName: 'Charles',
+        lastName: 'Dickens',
+      }
+      const author3 = {
+        firstName: 'Charles',
+        lastName: 'Darwin',
+      }
+      const authors = await createEntries('author', app, [
+        author1,
+        author2,
+        author3,
+      ])
+
+      const req1 = new Request({
+        accessToken,
+        method: 'get',
+        url: '/authors?sort=firstName',
+      })
+      const res1 = new Response()
+
+      await app.routesRest.handler(req1, res1)
+
+      expect(res1.$body.data.length).toBe(3)
+      expect(res1.$body.data[0].id).toBe(authors[1].id)
+      expect(res1.$body.data[0].attributes.firstName).toEqual(author2.firstName)
+      expect(res1.$body.data[0].attributes.lastName).toEqual(author2.lastName)
+      expect(res1.$body.data[1].id).toBe(authors[2].id)
+      expect(res1.$body.data[1].attributes.firstName).toEqual(author3.firstName)
+      expect(res1.$body.data[1].attributes.lastName).toEqual(author3.lastName)
+      expect(res1.$body.data[2].id).toBe(authors[0].id)
+      expect(res1.$body.data[2].attributes.firstName).toEqual(author1.firstName)
+      expect(res1.$body.data[2].attributes.lastName).toEqual(author1.lastName)
+
+      const req2 = new Request({
+        accessToken,
+        method: 'get',
+        url: '/authors?sort=lastName',
+      })
+      const res2 = new Response()
+
+      await app.routesRest.handler(req2, res2)
+
+      expect(res2.$body.data.length).toBe(3)
+      expect(res2.$body.data[0].id).toBe(authors[0].id)
+      expect(res2.$body.data[0].attributes.firstName).toEqual(author1.firstName)
+      expect(res2.$body.data[0].attributes.lastName).toEqual(author1.lastName)
+      expect(res2.$body.data[1].id).toBe(authors[2].id)
+      expect(res2.$body.data[1].attributes.firstName).toEqual(author3.firstName)
+      expect(res2.$body.data[1].attributes.lastName).toEqual(author3.lastName)
+      expect(res2.$body.data[2].id).toBe(authors[1].id)
+      expect(res2.$body.data[2].attributes.firstName).toEqual(author2.firstName)
+      expect(res2.$body.data[2].attributes.lastName).toEqual(author2.lastName)
+
+      const req3 = new Request({
+        accessToken,
+        method: 'get',
+        url: '/authors?sort=firstName,-lastName',
+      })
+      const res3 = new Response()
+
+      await app.routesRest.handler(req3, res3)
+
+      expect(res3.$body.data.length).toBe(3)
+      expect(res3.$body.data[0].id).toBe(authors[1].id)
+      expect(res3.$body.data[0].attributes.firstName).toEqual(author2.firstName)
+      expect(res3.$body.data[0].attributes.lastName).toEqual(author2.lastName)
+      expect(res3.$body.data[1].id).toBe(authors[2].id)
+      expect(res3.$body.data[1].attributes.firstName).toEqual(author3.firstName)
+      expect(res3.$body.data[1].attributes.lastName).toEqual(author3.lastName)
+      expect(res3.$body.data[2].id).toBe(authors[0].id)
+      expect(res3.$body.data[2].attributes.firstName).toEqual(author1.firstName)
+      expect(res3.$body.data[2].attributes.lastName).toEqual(author1.lastName)
 
       await wipeModels(['author'], app)
     })

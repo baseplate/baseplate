@@ -10,7 +10,6 @@ export interface Options extends BaseOptions {
 export default class FieldArray extends BaseHandler {
   children: Array<any>
   options: Options
-  type: 'array'
 
   static operators = {
     contains: {
@@ -18,7 +17,7 @@ export default class FieldArray extends BaseHandler {
     },
   }
 
-  cast({path, value}: {path: Array<string>; value: any}) {
+  cast({path, value}: {path: string[]; value: any}) {
     if (Array.isArray(value)) {
       return value
     }

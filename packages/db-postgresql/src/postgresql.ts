@@ -453,6 +453,14 @@ export class PostgreSQL extends DataConnector.DataConnector {
     return results[0] || null
   }
 
+  async search() {
+    return {
+      count: 0,
+      results: <any>[],
+      scores: <any>[],
+    }
+  }
+
   async sync(Model: typeof BaseModel) {
     logger.debug('Syncing model: %s', Model.base$handle)
 

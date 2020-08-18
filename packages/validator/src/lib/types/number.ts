@@ -29,7 +29,7 @@ export default class FieldNumber extends BaseHandler {
     },
   }
 
-  cast({path, value}: {path: Array<string>; value: any}) {
+  cast({path, value}: {path: string[]; value: any}) {
     if (typeof value === 'number') {
       return value
     }
