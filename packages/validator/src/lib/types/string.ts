@@ -47,7 +47,7 @@ export default class FieldString extends BaseHandler {
     upperCase: Boolean,
   }
 
-  cast({path, value}: {path: Array<string>; value: any}) {
+  cast({path, value}: {path: string[]; value: any}) {
     const {lowerCase, trim, upperCase} = this.options
 
     if (typeof value === 'string') {

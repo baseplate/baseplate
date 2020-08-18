@@ -4,7 +4,7 @@ import {BaseHandler} from '../field'
 export default class FieldBoolean extends BaseHandler {
   operators = {}
 
-  cast({path, value}: {path: Array<string>; value: any}) {
+  cast({path, value}: {path: string[]; value: any}) {
     if (value === undefined || value === null) {
       return false
     }

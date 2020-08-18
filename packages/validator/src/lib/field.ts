@@ -44,7 +44,7 @@ export class BaseHandler {
 
   static options: Record<string, any>
 
-  cast({value}: CastParameters<any>) {
+  cast({path, value}: {path: string[]; value: any}) {
     return value
   }
 
@@ -132,11 +132,6 @@ export type BasicOrExtendedSchema =
   | string
   | object
   | ExtendedSchema<Function | string | object>
-
-export type CastParameters<T> = {
-  path: string[]
-  value: T
-}
 
 export type CastQueryParameters = {
   path: string[]

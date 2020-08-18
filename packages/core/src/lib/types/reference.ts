@@ -1,5 +1,6 @@
 import {camelize} from 'inflected'
 import {
+  CastError,
   FieldCastQueryParameters,
   FieldConstructorParameters,
   types,
@@ -21,6 +22,24 @@ export default class CoreFieldReference extends types.FieldReference {
     this.models = props.children.map(({type}: {type: string}) =>
       modelStore.get(type)
     )
+  }
+
+  cast({path, value}: {path: string[]; value: any}) {
+    if (!(value instanceof BaseModel)) {
+      return super.cast({path, value})
+    }
+
+    const isValid = this.models.some((Model) => value instanceof Model)
+
+    if (!isValid) {
+      throw new CastError({path, type: this.modelNames.join(', '), value})
+    }
+
+    // (!) TO DO: Cast to instance of BaseModel instead.
+    return {
+      type: (<typeof BaseModel>value.constructor).base$handle,
+      id: value.id,
+    }
   }
 
   castQuery({value}: FieldCastQueryParameters) {
