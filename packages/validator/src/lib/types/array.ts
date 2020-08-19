@@ -1,4 +1,4 @@
-import {CastError, FieldValidationError} from '../errors'
+import {FieldValidationError} from '../errors'
 import {BaseHandler, BaseOptions} from '../field'
 import {validateField} from '../validator'
 
@@ -18,18 +18,14 @@ export default class FieldArray extends BaseHandler {
   }
 
   cast({path, value}: {path: string[]; value: any}) {
-    if (Array.isArray(value)) {
-      return value
-    }
-
     const type = `array of ${this.children
       .map(({subType}) => subType)
       .join(' or ')}`
 
-    throw new CastError({path, type, value})
-  }
+    if (!Array.isArray(value)) {
+      throw new FieldValidationError({path, type})
+    }
 
-  validate({path, value}: {path: Array<string>; value: any}) {
     const {maxLength, minLength} = this.options
 
     if (typeof maxLength === 'number' && value.length > maxLength) {
@@ -69,5 +65,7 @@ export default class FieldArray extends BaseHandler {
         })
       }
     })
+
+    return value
   }
 }

@@ -1,4 +1,4 @@
-import {CastError} from '../errors'
+import {FieldValidationError} from '../errors'
 import {BaseHandler} from '../field'
 
 export default class FieldBoolean extends BaseHandler {
@@ -13,6 +13,6 @@ export default class FieldBoolean extends BaseHandler {
       return value
     }
 
-    throw new CastError({path, type: 'boolean', value})
+    throw new FieldValidationError({path, type: 'boolean'})
   }
 }

@@ -1,5 +1,5 @@
-import {BaseConstructorParameters, BaseHandler, BaseOptions} from '../field'
-import {CastError, FieldValidationError} from '../errors'
+import {BaseHandler, BaseOptions} from '../field'
+import {FieldValidationError} from '../errors'
 
 export interface Options extends BaseOptions {
   enum?: Array<number>
@@ -30,22 +30,18 @@ export default class FieldNumber extends BaseHandler {
   }
 
   cast({path, value}: {path: string[]; value: any}) {
-    if (typeof value === 'number') {
-      return value
-    }
-
     if (typeof value === 'string') {
       const parsedNumber = Number.parseFloat(value)
 
       if (parsedNumber.toString() === value) {
-        return parsedNumber
+        value = parsedNumber
       }
     }
 
-    throw new CastError({path, type: 'number', value})
-  }
+    if (typeof value !== 'number') {
+      throw new FieldValidationError({path, type: 'number'})
+    }
 
-  validate({path, value}: {path: Array<string>; value: any}) {
     const {enum: enumValues, max, min} = this.options
 
     if (Array.isArray(enumValues)) {
@@ -76,5 +72,7 @@ export default class FieldNumber extends BaseHandler {
         path,
       })
     }
+
+    return value
   }
 }

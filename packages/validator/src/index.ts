@@ -1,5 +1,4 @@
 export {
-  CastError,
   CustomError,
   EntryValidationError,
   FieldValidationError,

@@ -8,25 +8,6 @@ export abstract class CustomError extends Error {
   title: string
 }
 
-export class CastError extends CustomError {
-  detail: string
-  path: string[]
-  statusCode: number
-
-  constructor({path, type, value}: {path: string[]; type: string; value: any}) {
-    const pathStr = path.join('.')
-    const valueStr = value.toString()
-
-    super('Invalid field')
-
-    this.detail = isPlainObject(valueStr)
-      ? `Value not accepted for attribute ${pathStr} (expected ${type})`
-      : `${valueStr} is not an accepted value for attribute ${pathStr} (expected ${type})`
-    this.path = path
-    this.statusCode = 400
-  }
-}
-
 export class EntryValidationError extends CustomError {
   childErrors: Array<CustomError>
   path: string[]

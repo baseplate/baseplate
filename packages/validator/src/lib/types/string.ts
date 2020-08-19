@@ -1,5 +1,5 @@
 import {BaseHandler, BaseOptions} from '../field'
-import {CastError, FieldValidationError} from '../errors'
+import {FieldValidationError} from '../errors'
 
 export interface Options extends BaseOptions {
   lowerCase?: boolean
@@ -48,29 +48,29 @@ export default class FieldString extends BaseHandler {
   }
 
   cast({path, value}: {path: string[]; value: any}) {
-    const {lowerCase, trim, upperCase} = this.options
-
-    if (typeof value === 'string') {
-      let castedValue = value
-
-      if (trim) {
-        castedValue = castedValue.trim()
-      }
-
-      if (upperCase) {
-        castedValue = castedValue.toUpperCase()
-      } else if (lowerCase) {
-        castedValue = castedValue.toLowerCase()
-      }
-
-      return castedValue
+    if (typeof value !== 'string') {
+      throw new FieldValidationError({path, type: 'string'})
     }
 
-    throw new CastError({path, type: 'string', value})
-  }
+    const {
+      enum: enumValues,
+      lowerCase,
+      match,
+      maxLength,
+      minLength,
+      trim,
+      upperCase,
+    } = this.options
 
-  validate({path, value}: {path: Array<string>; value: any}) {
-    const {enum: enumValues, match, maxLength, minLength} = this.options
+    if (trim) {
+      value = value.trim()
+    }
+
+    if (upperCase) {
+      value = value.toUpperCase()
+    } else if (lowerCase) {
+      value = value.toLowerCase()
+    }
 
     if (Array.isArray(enumValues)) {
       const isValid = enumValues.some((acceptedValue) => {
@@ -107,5 +107,7 @@ export default class FieldString extends BaseHandler {
         path,
       })
     }
+
+    return value
   }
 }

@@ -1,8 +1,8 @@
 import {camelize} from 'inflected'
 import {
-  CastError,
   FieldCastQueryParameters,
   FieldConstructorParameters,
+  FieldValidationError,
   types,
 } from '@baseplate/validator'
 import type GraphQL from 'graphql'
@@ -32,7 +32,7 @@ export default class CoreFieldReference extends types.FieldReference {
     const isValid = this.models.some((Model) => value instanceof Model)
 
     if (!isValid) {
-      throw new CastError({path, type: this.modelNames.join(', '), value})
+      throw new FieldValidationError({path, type: this.modelNames.join(', ')})
     }
 
     // (!) TO DO: Cast to instance of BaseModel instead.

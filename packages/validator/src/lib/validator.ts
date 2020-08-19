@@ -46,10 +46,6 @@ export function validateField({field, path, value}: ValidateFieldParameters) {
     value = field.cast({path, value})
   }
 
-  if (typeof field.validate === 'function') {
-    field.validate({path, value})
-  }
-
   return value
 }
 

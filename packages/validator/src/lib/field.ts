@@ -52,8 +52,6 @@ export class BaseHandler {
     return value
   }
 
-  validate({path, value}: ValidateParameters<any>) {}
-
   validateOptions() {
     const fields = {
       ...baseOptionsSchema,
