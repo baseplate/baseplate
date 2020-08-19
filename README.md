@@ -1,6 +1,6 @@
 # 🏗 Baseplate
 
-> ✋&nbsp;  If you just want to experiment with Baseplate, you might want to check out one of the [example projects](https://github.com/baseplate/examples). If you're looking to work on the framework itself, read on.
+> ✋&nbsp; If you just want to experiment with Baseplate, you might want to check out one of the [example projects](https://github.com/baseplate/examples). If you're looking to work on the framework itself, read on.
 
 ## Introduction
 
@@ -8,10 +8,10 @@ This repository contains the API component of Baseplate. It is a [monorepo](http
 
 - 🧠&nbsp; **`core`**: The core application logic.
 - 📀&nbsp; **`db-mongodb`**: A database connector for [MongoDB](https://www.mongodb.com/).
-- 💿&nbsp; **`db-postgresql`**: A database connector for [PostgreSQL](https://www.postgresql.org/).
+- 💿&nbsp; **`db-postgresql`**: A database connector for [PostgreSQL](https://www.postgresql.org/) (**not ready**).
+- 📖&nbsp; **`schema`**: A module for representing model schemas and validating documents against them. Can run both server-side and client-side.
 - ⚙️&nbsp; **`server`**: A web server to run Baseplate.
 - ☁️&nbsp; **`serverless`**: Wrapper functions for running Baseplate in a serverless setup (**not ready**).
-- 📖&nbsp; **`validator`**: A module for performing validation on documents against a schema. Can run both server-side and client-side.
 
 Baseplate uses a modular architecture, allowing developers to pick just the components they need for any given project.
 
@@ -20,26 +20,27 @@ For example, if you wanted to run Baseplate with a MongoDB database and deploy i
 <details>
    <summary>✏️&nbsp; Example</summary>
 
-   ```ts
-   import baseplateServer from "@baseplate/server"
-   import * as baseplateCore from "@baseplate/mongodb"
+```ts
+import baseplateServer from '@baseplate/server'
+import * as baseplateCore from '@baseplate/mongodb'
 
-   import Actor from "./models/Actor"
-   import Movie from "./models/Movie"
+import Actor from './models/Actor'
+import Movie from './models/Movie'
 
-   baseplateCore.initialize({
-     models: [Actor, Movie]
-   })
+baseplateCore.initialize({
+  models: [Actor, Movie],
+})
 
-   baseplateServer(baseplateCore)
-     .start({
-       host: 'localhost',
-       port: 8000,
-     })
-     .then(() => {
-       console.log("🦄")
-     })
-   ```
+baseplateServer(baseplateCore)
+  .start({
+    host: 'localhost',
+    port: 8000,
+  })
+  .then(() => {
+    console.log('🦄')
+  })
+```
+
 </details>
 
 ## Installation
@@ -61,7 +62,7 @@ For example, if you wanted to run Baseplate with a MongoDB database and deploy i
    ```sh
    npm run watch
    ```
-   
+
 ## Testing
 
 To start the test suite, run `npm run test`. If you're working on a test and you want it to run automatically as you change the code, you can run the test suite in watch mode with `npm run test:watch`.

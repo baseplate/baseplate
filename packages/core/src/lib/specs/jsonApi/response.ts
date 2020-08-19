@@ -1,4 +1,4 @@
-import {CustomError} from '@baseplate/validator'
+import {CustomError} from '@baseplate/schema'
 
 import BaseModel from '../../model/base'
 import FieldSet from '../../fieldSet'

@@ -11,7 +11,7 @@ import {
   GraphQLString,
   FieldNode,
 } from 'graphql'
-import {FieldHandler} from '@baseplate/validator'
+import {FieldHandler} from '@baseplate/schema'
 
 import {GraphQLFieldHandler} from './fieldType'
 import type BaseModel from '../../model/base'

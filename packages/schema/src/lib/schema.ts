@@ -10,7 +10,7 @@ import {
   Index,
   SchemaIndexDefinition,
 } from './index'
-import {isPlainObject} from './utils/'
+import {isPlainObject} from './utils'
 import {
   CustomError,
   EntryValidationError,
@@ -19,7 +19,7 @@ import {
 import {
   primitives as basePrimitiveTypes,
   system as baseSystemTypes,
-} from '../lib/types/'
+} from './types'
 import {validateObject} from './validator'
 
 interface ConstructorParameters {

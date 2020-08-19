@@ -3,7 +3,7 @@ export {
   EntryValidationError,
   FieldValidationError,
 } from './lib/errors'
-export * as types from './lib/types/'
+export * as types from './lib/types'
 export {
   BaseConstructorParameters as FieldConstructorParameters,
   BaseHandler as FieldHandler,

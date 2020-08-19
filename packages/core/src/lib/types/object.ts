@@ -1,5 +1,5 @@
 import {camelize} from 'inflected'
-import {FieldHandler, types} from '@baseplate/validator'
+import {FieldHandler, types} from '@baseplate/schema'
 import type GraphQL from 'graphql'
 
 import AccessModel from '../internalModels/access'

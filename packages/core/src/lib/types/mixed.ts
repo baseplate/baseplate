@@ -1,5 +1,5 @@
 import {camelize} from 'inflected'
-import {FieldConstructorParameters, types} from '@baseplate/validator'
+import {FieldConstructorParameters, types} from '@baseplate/schema'
 import type GraphQL from 'graphql'
 
 export default class CoreFieldMixed extends types.FieldMixed {

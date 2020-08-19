@@ -1,4 +1,4 @@
-import {types} from '@baseplate/validator'
+import {types} from '@baseplate/schema'
 
 import FieldArray from './array'
 import FieldBoolean from './boolean'

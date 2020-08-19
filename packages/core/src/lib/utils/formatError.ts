@@ -1,4 +1,4 @@
-import {CustomError} from '@baseplate/validator'
+import {CustomError} from '@baseplate/schema'
 
 type FormattedError = {
   detail?: string

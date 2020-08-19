@@ -1,5 +1,5 @@
 import {camelize, classify, pluralize, titleize} from 'inflected'
-import {Schema} from '@baseplate/validator'
+import {Schema} from '@baseplate/schema'
 
 import AccessModel from './internalModels/access'
 import BaseModel from './model/base'

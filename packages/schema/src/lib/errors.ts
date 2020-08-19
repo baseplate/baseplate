@@ -1,4 +1,4 @@
-import {isPlainObject} from './utils/'
+import {isPlainObject} from './utils'
 
 export abstract class CustomError extends Error {
   childErrors?: Array<CustomError>

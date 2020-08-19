@@ -4,7 +4,7 @@ import {
   FieldConstructorParameters,
   FieldValidationError,
   types,
-} from '@baseplate/validator'
+} from '@baseplate/schema'
 import type GraphQL from 'graphql'
 
 import AccessModel from '../internalModels/access'

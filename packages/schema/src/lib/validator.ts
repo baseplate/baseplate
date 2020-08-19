@@ -1,6 +1,6 @@
 import type {BaseHandler} from './field'
 import {CustomError, EntryValidationError, FieldValidationError} from './errors'
-import {isPlainObject} from './utils/'
+import {isPlainObject} from './utils'
 import type {Schema} from './schema'
 
 interface ValidateFieldParameters {

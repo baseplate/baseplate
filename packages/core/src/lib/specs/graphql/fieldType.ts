@@ -1,5 +1,5 @@
 import type BaseModel from '../../model/base'
-import {FieldHandler} from '@baseplate/validator'
+import {FieldHandler} from '@baseplate/schema'
 import type GraphQL from 'graphql'
 
 export abstract class GraphQLFieldHandler extends FieldHandler {

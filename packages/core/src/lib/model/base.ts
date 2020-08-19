@@ -7,7 +7,7 @@ import {
   Schema,
   validateObject,
   Virtual,
-} from '@baseplate/validator'
+} from '@baseplate/schema'
 
 import AccessModel, {AccessType} from '../internalModels/access'
 import type {AccessValue} from '../accessValue'

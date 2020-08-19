@@ -1,4 +1,4 @@
-import {CustomError} from '@baseplate/validator'
+import {CustomError} from '@baseplate/schema'
 
 export class EntryNotFoundError extends CustomError {
   statusCode: number

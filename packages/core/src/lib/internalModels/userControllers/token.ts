@@ -1,4 +1,4 @@
-import {Schema, validateObject} from '@baseplate/validator'
+import {Schema, validateObject} from '@baseplate/schema'
 
 import {UnauthorizedError} from '../../errors'
 import Context from '../../context'
