@@ -48,7 +48,15 @@ export class BaseHandler {
     return value
   }
 
-  castQuery({path, value}: CastQueryParameters) {
+  castQuery({field}: CastQueryParameters) {
+    return field
+  }
+
+  deserialize(value: any) {
+    return value
+  }
+
+  serialize({path, value}: {path: string[]; value: any}) {
     return value
   }
 
@@ -132,8 +140,9 @@ export type BasicOrExtendedSchema =
   | ExtendedSchema<Function | string | object>
 
 export type CastQueryParameters = {
+  context?: any
+  field: any
   path: string[]
-  value: any
 }
 
 export type ExtendedSchema<T> = {

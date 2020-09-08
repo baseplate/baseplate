@@ -9,6 +9,7 @@ import {
   errors,
   FieldSet,
   QueryFilter,
+  QueryFilterField,
 } from '@baseplate/core'
 
 const MAX_INDEX_LENGTH = 120
@@ -121,7 +122,6 @@ export class MongoDB extends DataConnector.DataConnector {
   }
 
   private encodeQuery(query: QueryFilter, Model: typeof BaseModel) {
-    const encodedQuery = query.clone()
     const transformFn = ({
       name,
       operator,
@@ -131,21 +131,34 @@ export class MongoDB extends DataConnector.DataConnector {
       operator: string
       value: any
     }) => {
+      const fieldHandler = Model.base$schema.handlers[name]
+
       if (name === '_id') {
         return this.encodeObjectId(value)
       }
 
-      if (value instanceof BaseModel) {
-        return {
-          id: this.encodeObjectId(value.id),
-          type: (<typeof BaseModel>value.constructor).base$handle,
-        }
+      if (fieldHandler && fieldHandler.type === 'reference') {
+        const isMultiReference = Array.isArray(value)
+        const elements = (isMultiReference ? value : [value]).map(
+          (element: any) => {
+            if (element instanceof BaseModel) {
+              return {
+                id: this.encodeObjectId(element.id),
+                type: (<typeof BaseModel>element.constructor).base$handle,
+              }
+            }
+
+            return element
+          }
+        )
+
+        return isMultiReference ? elements : elements[0]
       }
 
-      return Model.base$transformQueryField({name, operator, value})
+      return value
     }
 
-    return encodedQuery.toObject({
+    return query.toObject({
       fieldTransform: transformFn,
     })
   }
@@ -175,23 +188,35 @@ export class MongoDB extends DataConnector.DataConnector {
     return projection
   }
 
-  async createOne(
-    entry: DataConnector.Result,
-    Model: typeof BaseModel
-  ): Promise<DataConnector.Result> {
-    const connection = await this.connect()
+  async createOne(entry: BaseModel): Promise<DataConnector.Result> {
+    const Model = <typeof BaseModel>entry.constructor
     const collectionName = this.getCollectionName(Model)
-    const encodedEntry = this.encodeAndDecodeObjectIdsInEntry(
-      entry,
-      Model,
-      'encode'
-    )
 
     try {
+      const serializedEntry = await entry.toObject({
+        serialize: ({field, value}: any) => {
+          if (field.type === 'reference') {
+            return Array.isArray(value)
+              ? value.map((item) => ({
+                  ...item,
+                  id: this.encodeObjectId(item.id),
+                }))
+              : {...value, id: this.encodeObjectId(value.id)}
+          }
+
+          return value
+        },
+      })
+      console.log(
+        '-> Creating',
+        collectionName,
+        require('util').inspect(serializedEntry, {depth: Infinity})
+      )
+      const connection = await this.connect()
       const {ops} = await connection
         .db(this.dbName)
         .collection(collectionName)
-        .insertOne(encodedEntry)
+        .insertOne(serializedEntry)
       const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
         ops[0],
         Model,
@@ -271,6 +296,12 @@ export class MongoDB extends DataConnector.DataConnector {
     }
 
     const query = filter ? this.encodeQuery(filter, Model) : {}
+
+    console.log(
+      '-> Find',
+      collectionName,
+      require('util').inspect(query, {depth: Infinity})
+    )
 
     logger.debug('find: %o', query, {
       model: Model.base$handle,

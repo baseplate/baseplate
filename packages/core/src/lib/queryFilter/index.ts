@@ -8,7 +8,15 @@ export default class QueryFilter {
   root: Branch | Fork
 
   constructor(node?: any, prefix: string = '$') {
+    console.log(
+      '----> QF IN:',
+      require('util').inspect(node, {depth: Infinity})
+    )
     this.root = node ? QueryFilter.parse(node, prefix) : null
+    console.log(
+      '----> QF OUT:',
+      require('util').inspect(this.root, {depth: Infinity})
+    )
   }
 
   static fromInternals(root: Branch | Fork) {
@@ -162,6 +170,12 @@ export default class QueryFilter {
     prefix = '$',
   }: {fieldTransform?: Function; prefix?: string} = {}) {
     return this.serialize(prefix, fieldTransform)
+  }
+
+  async traverse(callback: Function) {
+    if (this.root) {
+      await this.root.traverse(callback)
+    }
   }
 
   uniteWith(subject: QueryFilter) {

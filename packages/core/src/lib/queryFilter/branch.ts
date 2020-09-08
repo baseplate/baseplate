@@ -18,7 +18,23 @@ export default class Branch {
       return null
     }
 
-    const fields = Object.entries(input).reduce((result, [key, value]) => {
+    const inputTree: Record<string, any> = {}
+
+    Object.entries(input).forEach(([key, value]) => {
+      let pointer = inputTree
+
+      const keyNodes = key.split('.')
+      const keyTail = keyNodes.pop()
+
+      keyNodes.forEach((keyNode) => {
+        pointer[keyNode] = pointer[keyNode] || {}
+        pointer = pointer[keyNode]
+      })
+
+      pointer[keyTail] = value
+    })
+
+    const fields = Object.entries(inputTree).reduce((result, [key, value]) => {
       return {
         ...result,
         [key]: Field.parse(key, value, path.concat(key), prefix),
@@ -48,5 +64,13 @@ export default class Branch {
       }),
       {}
     )
+  }
+
+  async traverse(callback: Function) {
+    await callback(this)
+
+    const values = Object.values(this.fields)
+
+    await Promise.all(values.map((field) => field.traverse(callback)))
   }
 }

@@ -271,27 +271,25 @@ export class PostgreSQL extends DataConnector.DataConnector {
     await pool.query(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
   }
 
-  async createOne(
-    entry: DataConnector.Result,
-    Model: typeof BaseModel
-  ): Promise<DataConnector.Result> {
-    const tableName = this.getTableName(Model)
-    const {data, internals} = this.getColumnsFromEntry(entry)
-    const payload = {
-      data,
-      ...internals,
-    }
-    const columns = Object.keys(payload)
-      .map((key) => `"${key}"`)
-      .join(', ')
-    const values = Object.keys(payload).map((_, index) => `$${index + 1}`)
-    const query = `INSERT INTO ${tableName} (${columns}) VALUES(${values}) RETURNING _id`
-    const {rows} = await pool.query(query, Object.values(payload))
+  async createOne(entry: BaseModel): Promise<DataConnector.Result> {
+    return {}
+    // const tableName = this.getTableName(Model)
+    // const {data, internals} = this.getColumnsFromEntry(entry)
+    // const payload = {
+    //   data,
+    //   ...internals,
+    // }
+    // const columns = Object.keys(payload)
+    //   .map((key) => `"${key}"`)
+    //   .join(', ')
+    // const values = Object.keys(payload).map((_, index) => `$${index + 1}`)
+    // const query = `INSERT INTO ${tableName} (${columns}) VALUES(${values}) RETURNING _id`
+    // const {rows} = await pool.query(query, Object.values(payload))
 
-    return {
-      _id: rows[0]._id,
-      ...entry,
-    }
+    // return {
+    //   _id: rows[0]._id,
+    //   ...entry,
+    // }
   }
 
   async delete(filter: QueryFilter, Model: typeof BaseModel) {

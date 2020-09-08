@@ -32,17 +32,17 @@ export async function createUser({
       return AccessModel.create(
         {
           ...permissions[modelName],
-          user: {
-            id: user.id,
-            type: 'base$user',
-          },
+          user,
           model: modelName,
         },
         {authenticate: false}
       )
     })
 
-    await Promise.all(ops)
+    // ----> remove
+    const f = await Promise.all(ops)
+
+    console.log(require('util').inspect(f, {depth: Infinity}))
   }
 
   return user

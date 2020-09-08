@@ -76,7 +76,8 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(res.$body.errors[0].title).toBe('Resource not found')
     })
 
-    test('Returns an error when the requesting client does not have read access to the model', async () => {
+    test.only('Returns an error when the requesting client does not have read access to the model', async () => {
+      console.log('---> createUser before')
       await createUser({
         accessLevel: 'user',
         app,
@@ -89,12 +90,14 @@ forEachDataConnector((app: App, loadModels: Function) => {
           },
         },
       })
+      console.log('---> createUser after')
 
       const accessToken = await getAccessToken({
         app,
         username: 'baseplate-user1',
         password: 'baseplate',
       })
+      console.log('---> accessToken after', accessToken)
       const req1 = new Request({
         accessToken,
         method: 'get',

@@ -24,4 +24,9 @@ export default class Fork {
       [prefix + this.operator]: branches,
     }
   }
+
+  async traverse(callback: Function) {
+    await callback(this)
+    await Promise.all(this.branches.map((branch) => branch.traverse(callback)))
+  }
 }

@@ -93,12 +93,17 @@ export class InvalidQueryFilterOperatorError extends CustomError {
 }
 
 export class InvalidQueryFilterParameterError extends CustomError {
+  detail?: string
   path: Array<string>
   statusCode: number
 
-  constructor({path = []}: {path?: Array<string>} = {}) {
+  constructor({
+    detail,
+    path = [],
+  }: {detail?: string; path?: Array<string>} = {}) {
     super('Invalid query parameter')
 
+    this.detail = detail
     this.path = path
     this.statusCode = 400
   }

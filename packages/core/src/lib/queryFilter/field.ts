@@ -90,4 +90,15 @@ export default class Field {
       [name]: valueWithOperatorAndNegation,
     }
   }
+
+  async traverse(callback: Function) {
+    await callback(this)
+
+    return this
+  }
 }
+
+export type FieldTransformParameters = Pick<
+  Field,
+  'name' | 'operator' | 'value'
+>
