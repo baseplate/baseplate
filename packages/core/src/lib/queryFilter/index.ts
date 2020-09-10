@@ -7,16 +7,8 @@ const BRANCH_OPERATORS = ['and', 'nor', 'or']
 export default class QueryFilter {
   root: Branch | Fork
 
-  constructor(node?: any, prefix: string = '$') {
-    console.log(
-      '----> QF IN:',
-      require('util').inspect(node, {depth: Infinity})
-    )
-    this.root = node ? QueryFilter.parse(node, prefix) : null
-    console.log(
-      '----> QF OUT:',
-      require('util').inspect(this.root, {depth: Infinity})
-    )
+  constructor(node?: any, operatorPrefix: string = '$') {
+    this.root = node ? QueryFilter.parse(node, operatorPrefix) : null
   }
 
   static fromInternals(root: Branch | Fork) {
@@ -27,15 +19,13 @@ export default class QueryFilter {
     return instance
   }
 
-  static parse(node: any, prefix: string = '$') {
-    const root = node ? this.parseNode(node, prefix, []) : null
-
-    return root
+  static parse(node: any, operatorPrefix: string = '$') {
+    return node ? this.parseNode(node, operatorPrefix, []) : null
   }
 
   static parseNode(
     node: any,
-    prefix: string,
+    operatorPrefix: string,
     path: Array<string>
   ): Branch | Fork {
     if (!node) {
@@ -46,11 +36,15 @@ export default class QueryFilter {
     let normalizedBranchOperator: string
 
     const operatorMatch = Object.keys(node).find((key) => {
-      const isOperator = prefix && key.substring(0, prefix.length) === prefix
+      const isOperator =
+        operatorPrefix &&
+        key.substring(0, operatorPrefix.length) === operatorPrefix
 
       if (!isOperator) return false
 
-      normalizedBranchOperator = key.substring(prefix.length).toLowerCase()
+      normalizedBranchOperator = key
+        .substring(operatorPrefix.length)
+        .toLowerCase()
 
       if (BRANCH_OPERATORS.includes(normalizedBranchOperator)) {
         isBranchOperator = true
@@ -72,13 +66,13 @@ export default class QueryFilter {
 
       return new Fork(
         node[operatorMatch].map((childNode: any) =>
-          this.parseNode(childNode, prefix, path.concat(operatorMatch))
+          this.parseNode(childNode, operatorPrefix, path.concat(operatorMatch))
         ),
         normalizedBranchOperator
       )
     }
 
-    return Branch.parse(node, path, prefix)
+    return Branch.parse(node, path, operatorPrefix)
   }
 
   cleanDeadBranches() {
@@ -153,12 +147,12 @@ export default class QueryFilter {
     }
   }
 
-  serialize(prefix: string, fieldTransform?: Function) {
+  serialize(operatorPrefix: string, fieldTransform?: Function) {
     if (!this.root) {
       return {}
     }
 
-    return this.root.serialize(prefix, fieldTransform)
+    return this.root.serialize(operatorPrefix, fieldTransform)
   }
 
   toJSON() {
@@ -167,9 +161,9 @@ export default class QueryFilter {
 
   toObject({
     fieldTransform,
-    prefix = '$',
-  }: {fieldTransform?: Function; prefix?: string} = {}) {
-    return this.serialize(prefix, fieldTransform)
+    operatorPrefix = '$',
+  }: {fieldTransform?: Function; operatorPrefix?: string} = {}) {
+    return this.serialize(operatorPrefix, fieldTransform)
   }
 
   async traverse(callback: Function) {

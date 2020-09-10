@@ -207,11 +207,6 @@ export class MongoDB extends DataConnector.DataConnector {
           return value
         },
       })
-      console.log(
-        '-> Creating',
-        collectionName,
-        require('util').inspect(serializedEntry, {depth: Infinity})
-      )
       const connection = await this.connect()
       const {ops} = await connection
         .db(this.dbName)
@@ -297,12 +292,6 @@ export class MongoDB extends DataConnector.DataConnector {
 
     const query = filter ? this.encodeQuery(filter, Model) : {}
 
-    console.log(
-      '-> Find',
-      collectionName,
-      require('util').inspect(query, {depth: Infinity})
-    )
-
     logger.debug('find: %o', query, {
       model: Model.base$handle,
     })
@@ -343,7 +332,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const results = await connection
       .db(this.dbName)
       .collection(collectionName)
-      .find(query.toObject({prefix: '$'}), options)
+      .find(query.toObject({operatorPrefix: '$'}), options)
       .toArray()
     const decodedResults: DataConnector.Results = results.map(
       (result: DataConnector.Result) =>
@@ -394,7 +383,7 @@ export class MongoDB extends DataConnector.DataConnector {
     const result = await connection
       .db(this.dbName)
       .collection(collectionName)
-      .findOne(query.toObject({prefix: '$'}), options)
+      .findOne(query.toObject({operatorPrefix: '$'}), options)
     const decodedResult = this.encodeAndDecodeObjectIdsInEntry(
       result,
       Model,

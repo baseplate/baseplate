@@ -4,13 +4,11 @@ import jwt from 'jsonwebtoken'
 import * as tokenRoute from './userControllers/token'
 import {AccessValue} from '../accessValue'
 import {ForbiddenError} from '../errors'
-import BaseModel, {
-  AuthenticateParameters,
-  FindOneByIdParameters,
-} from '../model/base'
+import BaseModel, {AuthenticateParameters} from '../model/base'
 import Context from '../context'
 import HttpRequest from '../http/request'
 import HttpResponse from '../http/response'
+import JsonApiEntry from '../specs/jsonApi/entry'
 import JsonApiRequest from '../specs/jsonApi/request'
 import JsonApiResponse from '../specs/jsonApi/response'
 import QueryFilter from '../queryFilter/'
@@ -128,16 +126,14 @@ export default class Base$User extends BaseModel {
     }
   }
 
-  isAdmin() {
-    return this.get('accessLevel') === 'admin'
+  base$jsonApiFormat(formattedEntry: JsonApiEntry) {
+    formattedEntry.attributes.password = undefined
+
+    return formattedEntry
   }
 
-  async toObject(options: object) {
-    const object = await super.toObject(options)
-
-    delete object.password
-
-    return object
+  isAdmin() {
+    return this.get('accessLevel') === 'admin'
   }
 
   validatePassword(password: string) {

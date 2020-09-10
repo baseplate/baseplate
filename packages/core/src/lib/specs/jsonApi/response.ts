@@ -32,7 +32,7 @@ interface JsonApiResponseConstructorParameters {
   includedReferences?: Array<IncludedRelationship>
   includeTopLevelLinks?: boolean
   pageSize?: number
-  relationships?: RelationshipData | Array<RelationshipData>
+  relationships?: BaseModel | Array<BaseModel>
   res: HttpResponse
   searchScores?: number[]
   statusCode?: number
@@ -47,7 +47,7 @@ export default class JsonApiResponse {
   includedReferences: Array<IncludedRelationship>
   includeTopLevelLinks: boolean
   pageSize: number
-  relationships: RelationshipData | Array<RelationshipData>
+  relationships: BaseModel | Array<BaseModel>
   res: HttpResponse
   topLevelFieldSet: FieldSet
   totalEntries: number
@@ -140,11 +140,8 @@ export default class JsonApiResponse {
       const relationshipsArray = Array.isArray(this.relationships)
         ? this.relationships
         : [this.relationships]
-      const formattedRelationships = relationshipsArray.map((entry) =>
-        this.formatRelationshipObject({
-          id: entry.id,
-          type: (<typeof BaseModel>entry.constructor).base$handle,
-        })
+      const formattedRelationships = relationshipsArray.map(
+        this.formatRelationshipObject
       )
 
       response.data = Array.isArray(this.relationships)
@@ -154,8 +151,8 @@ export default class JsonApiResponse {
 
     if (this.includedReferences.length > 0) {
       response.included = await Promise.all(
-        this.includedReferences.map((a) => {
-          return this.formatEntry(a.entry)
+        this.includedReferences.map((reference) => {
+          return this.formatEntry(reference.entry)
         })
       )
     }
@@ -325,13 +322,11 @@ export default class JsonApiResponse {
     return this.res.status(statusCode).json(body, 'application/vnd.api+json')
   }
 
-  formatRelationshipObject(object: RelationshipData) {
-    const result = {
-      type: object.type,
-      id: object.id,
+  formatRelationshipObject(entry: BaseModel) {
+    return {
+      type: (<typeof BaseModel>entry.constructor).base$handle,
+      id: entry.id,
     }
-
-    return result
   }
 
   getLinksBlock() {

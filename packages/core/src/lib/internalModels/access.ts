@@ -95,12 +95,12 @@ export default class Base$Access extends BaseModel {
     })
   }
 
-  static encodeModelAccessKey(user: Record<string, any>) {
+  static encodeModelAccessKey(user: BaseModel) {
     if (!user) {
       return 'public'
     }
 
-    return `${user.type}_${user.id}`
+    return `${(<typeof BaseModel>user.constructor).base$handle}_${user.id}`
   }
 
   public static async getAccess({
@@ -176,11 +176,7 @@ export default class Base$Access extends BaseModel {
     )
     const entries = results
       .filter((result: DatabaseAccess) => result.model === modelName)
-      .map((result: DatabaseAccess) => {
-        const id = this.encodeModelAccessKey(result.user)
-
-        return new this({...result, _id: id})
-      })
+      .map((result: any) => new this(result))
 
     return entries
   }

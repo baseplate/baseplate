@@ -8,11 +8,15 @@ import {
   wipeModels,
 } from '../../../../../test/utils'
 
-import Author from '../../../../../test/models/Author'
-import Book from '../../../../../test/models/Book'
-import Genre from '../../../../../test/models/Genre'
+import makeAuthor from '../../../../../test/models/author'
+import makeBook from '../../../../../test/models/book'
+import makeGenre from '../../../../../test/models/genre'
 
 forEachDataConnector((app: App, loadModels: Function) => {
+  const Author = makeAuthor(app.BaseModel)
+  const Book = makeBook(app.BaseModel)
+  const Genre = makeGenre(app.BaseModel)
+
   describe('Updating access to resources', () => {
     beforeAll(async () => {
       await loadModels([Author, Book, Genre])

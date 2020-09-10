@@ -20,9 +20,11 @@ export default async function createModelAccessEntry(
       throw new ModelNotFoundError({name: req.params.modelName})
     }
 
+    const UserModel = this.base$modelStore.get(jsonApiReq.bodyFields.user.type)
     const modelAccess = await this.create(
       {
         ...jsonApiReq.bodyFields,
+        user: new UserModel({_id: jsonApiReq.bodyFields.user.id}),
         model: req.params.modelName,
       },
       {context, user: context.get('base$user')}

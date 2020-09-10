@@ -29,18 +29,10 @@ export default class CoreFieldReference extends types.FieldReference {
   }
 
   cast({path, value}: {path: string[]; value: any}): BaseModel {
-    console.log(
-      '-----> REF CAST',
-      this.models,
-      value,
-      value instanceof BaseModel
-    )
     const acceptedModelNames = this.modelNames.join(', ')
 
     if (value instanceof BaseModel) {
       const isValidModel = this.models.some((Model) => value instanceof Model)
-
-      console.log('------> isValidModel', value, isValidModel)
 
       if (!isValidModel) {
         throw new FieldValidationError({path, type: acceptedModelNames})
@@ -132,11 +124,7 @@ export default class CoreFieldReference extends types.FieldReference {
 
     const Model = modelStore.get(value.type)
 
-    const a = new Model({_id: value.id})
-
-    console.log('-------> DESERIALIZE', value, a instanceof BaseModel)
-
-    return a
+    return new Model({_id: value.id})
   }
 
   // (!) TO DO
@@ -168,25 +156,13 @@ export default class CoreFieldReference extends types.FieldReference {
       const referencesArray = Array.isArray(references)
         ? references
         : [references]
-      const referenceModels = referencesArray.map(async ({id, type}) => {
-        if (
-          !id ||
-          !type ||
-          typeof id !== 'string' ||
-          typeof type !== 'string'
-        ) {
-          return null
-        }
-
-        const ReferencedModel = this.models.find(
-          (Model) => Model.base$handle === type
-        )
-
-        if (!ReferencedModel) {
+      const referenceModels = referencesArray.map(async (entry: BaseModel) => {
+        if (!(entry instanceof BaseModel)) {
           return null
         }
 
         const Access = <typeof AccessModel>modelStore.get('base$access')
+        const ReferencedModel = <typeof BaseModel>entry.constructor
         const access = await Access.getAccess({
           accessType: 'read',
           context,
@@ -198,7 +174,9 @@ export default class CoreFieldReference extends types.FieldReference {
           return null
         }
 
-        const filter = new QueryFilter({_id: id}).intersectWith(access.filter)
+        const filter = new QueryFilter({_id: entry.id}).intersectWith(
+          access.filter
+        )
 
         return ReferencedModel.findOne({
           context,

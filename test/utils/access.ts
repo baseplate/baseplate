@@ -39,10 +39,7 @@ export async function createUser({
       )
     })
 
-    // ----> remove
-    const f = await Promise.all(ops)
-
-    console.log(require('util').inspect(f, {depth: Infinity}))
+    await Promise.all(ops)
   }
 
   return user

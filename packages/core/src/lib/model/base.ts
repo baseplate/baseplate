@@ -152,17 +152,7 @@ export default class BaseModel {
     this.base$lastSync = undefined
     this.base$updatedAt = undefined
 
-    const augmentedFields = {
-      ...fields,
-      ...this.base$runFieldSetters(fields),
-      ...this.base$runVirtualSetters(fields),
-    }
-    const fieldsWithDefaults = {
-      ...augmentedFields,
-      ...this.base$getFieldDefaults(augmentedFields),
-    }
-
-    this.base$hydrate(fieldsWithDefaults, {fromDb})
+    this.base$hydrate(fields, {fromDb})
   }
 
   static base$db?: DataConnector
@@ -323,9 +313,7 @@ export default class BaseModel {
       })
     }
 
-    const instance = new this(fields)
-
-    return instance.save()
+    return new this(fields).save()
   }
 
   static async delete({
@@ -549,21 +537,6 @@ export default class BaseModel {
    */
 
   async base$create() {
-    // const fields = await (<typeof BaseModel>this.constructor).base$validate({
-    //   ...this.base$fields,
-    //   ...this.base$unknownFields,
-    // })
-    // const fieldsAfterSetters = await this.base$runFieldSetters(fields)
-    // const fieldsAfterVirtuals = await this.base$runVirtualSetters(
-    //   fieldsAfterSetters
-    // )
-    // const entry = {
-    //   ...fieldsAfterSetters,
-    //   ...this.base$getFieldDefaults(fieldsAfterSetters),
-    //   ...fieldsAfterVirtuals,
-    //   _createdAt: new Date(),
-    // }
-
     Object.keys({...this.base$fields, ...this.base$virtuals}).forEach(
       (fieldName) => {
         this.base$dirtyFields.delete(fieldName)
@@ -621,7 +594,7 @@ export default class BaseModel {
     Object.entries(fields).forEach(([name, value]) => {
       const handler = schema.handlers[name]
 
-      if (handler) {
+      if (fromDb && handler) {
         value = handler.deserialize(value)
       }
 
@@ -646,108 +619,65 @@ export default class BaseModel {
     }
   }
 
-  base$runFieldSetters(fields: Fields) {
-    const fieldsWithSetters: Fields = {}
+  async base$runFieldSetters(fields: Fields) {
+    const transformedFields: Fields = {}
 
-    Object.keys(fields).forEach((fieldName) => {
-      const fieldSchema = (<typeof BaseModel>this.constructor).base$schema
-        .handlers[fieldName]
+    await Promise.all(
+      Object.keys(fields).map(async (fieldName) => {
+        const fieldSchema = (<typeof BaseModel>this.constructor).base$schema
+          .handlers[fieldName]
 
-      if (fieldSchema && typeof fieldSchema.options.set === 'function') {
-        try {
-          fieldsWithSetters[fieldName] = fieldSchema.options.set(
-            fields[fieldName]
-          )
-        } catch (error) {
-          if (error instanceof CustomError) {
-            throw error
+        let value = fields[fieldName]
+
+        if (fieldSchema && typeof fieldSchema.options.set === 'function') {
+          try {
+            value = await fieldSchema.options.set(fields[fieldName])
+          } catch (error) {
+            if (error instanceof CustomError) {
+              throw error
+            }
+
+            throw new FieldValidationError({
+              detail: fieldSchema.options.errorMessage,
+              path: [fieldName],
+            })
           }
-
-          throw new FieldValidationError({
-            detail: fieldSchema.options.errorMessage,
-            path: [fieldName],
-          })
-        }
-      }
-    })
-
-    return fieldsWithSetters
-  }
-
-  // async base$runFieldSetters(fields: Fields) {
-  //   const transformedFields: Fields = {}
-
-  //   await Promise.all(
-  //     Object.keys(fields).map(async (fieldName) => {
-  //       const fieldSchema = (<typeof BaseModel>this.constructor).base$schema
-  //         .handlers[fieldName]
-
-  //       let value = fields[fieldName]
-
-  //       if (fieldSchema && typeof fieldSchema.options.set === 'function') {
-  //         try {
-  //           value = await fieldSchema.options.set(fields[fieldName])
-  //         } catch (error) {
-  //           if (error instanceof CustomError) {
-  //             throw error
-  //           }
-
-  //           throw new FieldValidationError({
-  //             detail: fieldSchema.options.errorMessage,
-  //             path: [fieldName],
-  //           })
-  //         }
-  //       }
-
-  //       transformedFields[fieldName] = value
-  //     })
-  //   )
-
-  //   return transformedFields
-  // }
-
-  base$runVirtualSetters(fields: Fields) {
-    const schemaVirtuals =
-      (<typeof BaseModel>this.constructor).base$schema.virtuals || {}
-    const fieldsAfterSetters = Object.keys(schemaVirtuals).reduce(
-      async (fieldsAfterSetters, name) => {
-        const virtualSchema = schemaVirtuals[name]
-
-        if (!virtualSchema || typeof virtualSchema.set !== 'function') {
-          return fieldsAfterSetters
         }
 
-        return {
-          ...fieldsAfterSetters,
-          [name]: virtualSchema.set(fieldsAfterSetters),
-        }
-      },
-      fields
+        transformedFields[fieldName] = value
+      })
     )
 
-    return fieldsAfterSetters
+    return transformedFields
   }
 
-  // base$runVirtualSetters(fields: Fields) {
-  //   const schemaVirtuals =
-  //     (<typeof BaseModel>this.constructor).base$schema.virtuals || {}
-  //   const fieldsAfterSetters = Object.keys(this.base$virtuals).reduce(
-  //     async (fieldsAfterSetters, name) => {
-  //       const virtualSchema = schemaVirtuals[name]
+  async base$runVirtualSetters(virtuals: Fields) {
+    const virtualSchemas =
+      (<typeof BaseModel>this.constructor).base$schema.virtuals || {}
+    const transformedVirtuals: Fields = {}
 
-  //       if (!virtualSchema || typeof virtualSchema.set !== 'function') {
-  //         return fieldsAfterSetters
-  //       }
+    await Promise.all(
+      Object.keys(virtuals).map(async (name) => {
+        const schema = virtualSchemas[name]
 
-  //       const newFieldsAfterSetters = await fieldsAfterSetters
+        if (schema && typeof schema.set === 'function') {
+          try {
+            transformedVirtuals[name] = await schema.set(virtuals[name])
+          } catch (error) {
+            if (error instanceof CustomError) {
+              throw error
+            }
 
-  //       return virtualSchema.set(newFieldsAfterSetters)
-  //     },
-  //     fields
-  //   )
+            throw new FieldValidationError({
+              path: [name],
+            })
+          }
+        }
+      })
+    )
 
-  //   return fieldsAfterSetters
-  // }
+    return transformedVirtuals
+  }
 
   async base$update() {
     const fields = await (<typeof BaseModel>this.constructor).base$validate(
@@ -857,8 +787,6 @@ export default class BaseModel {
         const field = Model.base$schema.fields[name]
         const handler = Model.base$schema.handlers[name]
 
-        console.log('----> toObject', name, typeof field, typeof handler)
-
         let value = await this.get(name)
 
         if (serialize) {
@@ -866,14 +794,10 @@ export default class BaseModel {
 
           if (typeof serialize === 'function') {
             value = serialize({field, value})
-
-            console.log('-----> NEW VALUE', value)
           }
         }
 
-        if (value !== undefined) {
-          fields[name] = value
-        }
+        fields[name] = value
       })
     )
 
@@ -892,19 +816,35 @@ export default class BaseModel {
 
             const value = await virtual.get(fields)
 
-            if (value !== undefined) {
-              virtuals[name] = value
-            }
+            virtuals[name] = value
           }
         )
       )
     }
 
-    return {
+    const virtualsAfterSetters = await this.base$runVirtualSetters(virtuals)
+    const fieldsAfterSetters = await this.base$runFieldSetters(fields)
+    const object = {
       ...(includeModelInstance ? {__model: this} : null),
-      ...fields,
-      ...virtuals,
+      ...fieldsAfterSetters,
+      ...virtualsAfterSetters,
       _id: this.id,
     }
+    const objectWithDefaults = {
+      ...object,
+      ...this.base$getFieldDefaults(object),
+    }
+
+    // Removing `undefined` fields.
+    return Object.entries(objectWithDefaults).reduce((result, [key, value]) => {
+      if (value === undefined) {
+        return result
+      }
+
+      return {
+        ...result,
+        [key]: value,
+      }
+    }, {})
   }
 }

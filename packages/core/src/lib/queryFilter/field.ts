@@ -23,7 +23,7 @@ export default class Field {
     name: string,
     input: any,
     path: Array<string>,
-    prefix: string
+    operatorPrefix: string
   ): Field {
     if (!isPlainObject(input)) {
       return new this(name, input, 'eq')
@@ -33,7 +33,7 @@ export default class Field {
       input
     ).reduce(
       (stats, key) => {
-        if (key.startsWith(prefix)) {
+        if (key.startsWith(operatorPrefix)) {
           stats.operators++
         } else {
           stats.fields++
@@ -59,12 +59,17 @@ export default class Field {
 
     const key = Object.keys(input)[0]
     const operator =
-      key.substring(0, prefix.length) === prefix &&
-      key.substring(prefix.length).toLowerCase()
+      key.substring(0, operatorPrefix.length) === operatorPrefix &&
+      key.substring(operatorPrefix.length).toLowerCase()
     const isNegated = operator === 'not'
 
     if (isNegated) {
-      const innerField = this.parse(name, input[key], path.concat(key), prefix)
+      const innerField = this.parse(
+        name,
+        input[key],
+        path.concat(key),
+        operatorPrefix
+      )
 
       return new this(name, innerField.value, innerField.operator, isNegated)
     }
@@ -76,14 +81,17 @@ export default class Field {
     return new Field(this.name, this.value, this.operator, this.isNegated)
   }
 
-  serialize(prefix: string, fieldTransform?: Function): Record<string, any> {
+  serialize(
+    operatorPrefix: string,
+    fieldTransform?: Function
+  ): Record<string, any> {
     const {isNegated, name, operator, value} = this
     const transformedValue = fieldTransform
       ? fieldTransform({name, operator, value})
       : value
-    const valueWithOperator = {[prefix + operator]: transformedValue}
+    const valueWithOperator = {[operatorPrefix + operator]: transformedValue}
     const valueWithOperatorAndNegation = isNegated
-      ? {[`${prefix}not`]: valueWithOperator}
+      ? {[`${operatorPrefix}not`]: valueWithOperator}
       : valueWithOperator
 
     return {

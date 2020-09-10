@@ -1,5 +1,7 @@
-export default {
-  name: "genre",
+import {BaseModel} from '../../packages/core/src'
+
+export default (ModelClass: typeof BaseModel) => ({
+  name: 'genre',
   fields: {
     name: {
       type: String,
@@ -7,6 +9,6 @@ export default {
     },
 
     // A model can reference itself.
-    parentGenre: "genre",
+    parentGenre: 'genre',
   },
-};
+})

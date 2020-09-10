@@ -9,11 +9,15 @@ import {
   wipeModels,
 } from '../../../../test/utils'
 
-import Author from '../../../../test/models/Author'
-import Book from '../../../../test/models/Book'
-import Genre from '../../../../test/models/Genre'
+import makeAuthor from '../../../../test/models/author'
+import makeBook from '../../../../test/models/book'
+import makeGenre from '../../../../test/models/genre'
 
 forEachDataConnector((app: App, loadModels: Function) => {
+  const Author = makeAuthor(app.BaseModel)
+  const Book = makeBook(app.BaseModel)
+  const Genre = makeGenre(app.BaseModel)
+
   describe('JSON:API – Finding resources', () => {
     beforeAll(async () => {
       await createUser({
@@ -138,7 +142,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
             read: {
               filter: {
                 firstName: {
-                  $ne: 'Leo',
+                  _ne: 'Leo',
                 },
               },
             },
@@ -405,12 +409,12 @@ forEachDataConnector((app: App, loadModels: Function) => {
       const book1 = {
         title: 'War and Peace',
         isbn: 123,
-        author: {type: 'author', id: authors[0].id},
+        author: authors[0].id,
       }
       const book2 = {
         title: 'Blindness',
         isbn: 234,
-        author: {type: 'author', id: authors[1].id},
+        author: authors[1].id,
       }
       const books = await createEntries('book', app, [book1, book2])
       const req = new Request({
@@ -462,7 +466,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
             read: {
               filter: {
                 lastName: {
-                  $ne: 'Saramago',
+                  _ne: 'Saramago',
                 },
               },
             },
@@ -490,12 +494,12 @@ forEachDataConnector((app: App, loadModels: Function) => {
       const book1 = {
         title: 'War and Peace',
         isbn: 123,
-        author: {type: 'author', id: authors[0].id},
+        author: authors[0].id,
       }
       const book2 = {
         title: 'Blindness',
         isbn: 234,
-        author: {type: 'author', id: authors[1].id},
+        author: authors[1].id,
       }
       const books = await createEntries('book', app, [book1, book2])
       const req = new Request({
