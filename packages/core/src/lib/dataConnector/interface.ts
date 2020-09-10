@@ -72,7 +72,7 @@ export abstract class DataConnector {
     })
   }
 
-  abstract createOne(entry: Result, Model: typeof BaseModel): Promise<Result>
+  abstract createOne(entry: BaseModel): Promise<Result>
 
   abstract delete(
     filter: QueryFilter,

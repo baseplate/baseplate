@@ -55,19 +55,9 @@ export default async function (
       throw new EntryNotFoundError()
     }
 
-    const fieldValue = entry.get(fieldName)
-    const isReferenceArray = Array.isArray(fieldValue)
-    const referenceArray = isReferenceArray ? fieldValue : [fieldValue]
-    const referenceEntries = referenceArray.map(
-      ({id, type}: RelationshipData) => {
-        const ReferenceModel = Model.base$modelStore.get(type)
-
-        return new ReferenceModel({_id: id})
-      }
-    )
     const jsonApiRes = new JsonApiResponse({
       includeTopLevelLinks: true,
-      relationships: isReferenceArray ? referenceEntries : referenceEntries[0],
+      relationships: entry.get(fieldName),
       res,
       url: jsonApiReq.url,
     })

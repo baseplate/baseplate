@@ -137,8 +137,8 @@ export default class JsonApiRequest {
     return fields
   }
 
-  getQueryFilter(prefix = '$') {
-    return new QueryFilter(this.url.getQueryParameter('filter'), prefix)
+  getQueryFilter(operatorPrefix = '$') {
+    return new QueryFilter(this.url.getQueryParameter('filter'), operatorPrefix)
   }
 
   // Takes an entry, a name of a relationship and an include map. Fetches the
@@ -176,60 +176,60 @@ export default class JsonApiRequest {
     const relationshipValue = Array.isArray(fieldValue)
       ? fieldValue
       : [fieldValue]
-    const queue = relationshipValue.filter(Boolean).map(async ({id, type}) => {
-      const ReferencedModel = modelStore.get(type)
+    const queue = relationshipValue
+      .filter(Boolean)
+      .map(async (entry: BaseModel) => {
+        const Model = <typeof BaseModel>entry.constructor
+        const access = await Access.getAccess({
+          accessType: 'read',
+          context: this.context,
+          modelName: Model.base$handle,
+          user,
+        })
 
-      if (!ReferencedModel) {
-        return {
-          error: new ModelNotFoundError({name: type}),
-        }
-      }
-
-      const access = await Access.getAccess({
-        accessType: 'read',
-        context: this.context,
-        modelName: ReferencedModel.base$handle,
-        user,
-      })
-
-      if (access.toObject() === false) {
-        return {
-          error: new ForbiddenError(),
-        }
-      }
-
-      const fieldSet = FieldSet.intersect(access.fields, this.fields[type])
-      const filter = new QueryFilter({_id: id}).intersectWith(access.filter)
-      const referencedEntry = await ReferencedModel.findOne({
-        context: this.context,
-        fieldSet,
-        filter,
-        user,
-      })
-
-      if (includeMap && typeof includeMap === 'object') {
-        const childReferenceQueue = Object.keys(includeMap).map(
-          (childFieldName) => {
-            return this.resolveRelationship({
-              Access,
-              entry: referencedEntry,
-              fieldName: childFieldName,
-              includeMap: includeMap[childFieldName],
-              modelStore,
-              referencesHash,
-              user,
-            })
+        if (access.toObject() === false) {
+          return {
+            error: new ForbiddenError(),
           }
+        }
+
+        const fieldSet = FieldSet.intersect(
+          access.fields,
+          this.fields[Model.base$handle]
         )
+        const filter = new QueryFilter({_id: entry.id}).intersectWith(
+          access.filter
+        )
+        const referencedEntry = await Model.findOne({
+          context: this.context,
+          fieldSet,
+          filter,
+          user,
+        })
 
-        await Promise.all(childReferenceQueue)
-      }
+        if (includeMap && typeof includeMap === 'object') {
+          const childReferenceQueue = Object.keys(includeMap).map(
+            (childFieldName) => {
+              return this.resolveRelationship({
+                Access,
+                entry: referencedEntry,
+                fieldName: childFieldName,
+                includeMap: includeMap[childFieldName],
+                modelStore,
+                referencesHash,
+                user,
+              })
+            }
+          )
 
-      return {
-        fieldSet,
-        entry: referencedEntry,
-      }
-    })
+          await Promise.all(childReferenceQueue)
+        }
+
+        return {
+          fieldSet,
+          entry: referencedEntry,
+        }
+      })
     const includedReferences: Array<IncludedRelationship> = await Promise.all(
       queue
     )
@@ -264,7 +264,9 @@ export default class JsonApiRequest {
       const schema = (<typeof Model>entry.constructor).base$schema
 
       Object.keys(includeMap).forEach((fieldName) => {
-        if (schema.fields[fieldName].type !== 'reference') {
+        const fieldSchema = schema.fields[fieldName]
+
+        if (!fieldSchema || fieldSchema.type !== 'reference') {
           errors[fieldName] = new InvalidQueryParameterError({
             name: 'include',
             value: fieldName,
@@ -283,6 +285,8 @@ export default class JsonApiRequest {
             referencesHash,
             user,
           }).then((relationship) => {
+            if (!relationship) return
+
             const normalizedRelationship = Array.isArray(relationship)
               ? relationship
               : [relationship]

@@ -32,10 +32,7 @@ export async function createUser({
       return AccessModel.create(
         {
           ...permissions[modelName],
-          user: {
-            id: user.id,
-            type: 'base$user',
-          },
+          user,
           model: modelName,
         },
         {authenticate: false}

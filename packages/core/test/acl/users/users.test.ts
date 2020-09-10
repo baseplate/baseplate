@@ -9,11 +9,15 @@ import {
   wipeModels,
 } from '../../../../../test/utils'
 
-import Author from '../../../../../test/models/Author'
-import Book from '../../../../../test/models/Book'
-import Genre from '../../../../../test/models/Genre'
+import makeAuthor from '../../../../../test/models/author'
+import makeBook from '../../../../../test/models/book'
+import makeGenre from '../../../../../test/models/genre'
 
 forEachDataConnector((app: App, loadModels: Function) => {
+  const Author = makeAuthor(app.BaseModel)
+  const Book = makeBook(app.BaseModel)
+  const Genre = makeGenre(app.BaseModel)
+
   describe('User Management', () => {
     beforeAll(async () => {
       await loadModels([Author, Book, Genre])
@@ -76,7 +80,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(typeof res2.$body.data[0].id).toBe('string')
       expect(res2.$body.data[0].attributes.accessLevel).toBe('user')
       expect(res2.$body.data[0].attributes.username).toBe(newUser.username)
-      expect(res2.$body.data[0].attributes.password).not.toBeDefined()
+      expect(res2.$body.data[0].attributes.password).toBeUndefined()
 
       const req3 = new Request({
         body: {
@@ -186,7 +190,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
       expect(typeof res.$body.data.id).toBe('string')
       expect(res.$body.data.attributes.accessLevel).toBe('user')
       expect(res.$body.data.attributes.username).toBe('baseplate-user')
-      expect(res.$body.data.attributes.password).not.toBeDefined()
+      expect(res.$body.data.attributes.password).toBeUndefined()
 
       await wipeModels(['base$user'], app)
     })
@@ -246,7 +250,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         expect(typeof createdUser.id).toBe('string')
         expect(createdUser.attributes.accessLevel).toBe('user')
         expect(createdUser.attributes.username).toBe(newUser.username)
-        expect(createdUser.attributes.password).not.toBeDefined()
+        expect(createdUser.attributes.password).toBeUndefined()
 
         await wipeModels(['base$user'], app)
       })

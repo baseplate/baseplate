@@ -30,6 +30,9 @@ import {InterfacesBlock} from './definition'
 import FieldSet from '../fieldSet'
 import type {ModelStore} from '../modelStore'
 import QueryFilter from '../queryFilter/'
+import QueryFilterBranch from '../queryFilter/branch'
+import QueryFilterField from '../queryFilter/field'
+import QueryFilterFork from '../queryFilter/fork'
 import type SortObject from '../sortObject'
 import UserModel from '../internalModels/user'
 
@@ -129,6 +132,7 @@ export interface ToObjectParameters {
   fieldSet?: FieldSet
   includeModelInstance?: boolean
   includeVirtuals?: boolean
+  serialize?: boolean | Function
 }
 
 export default class BaseModel {
@@ -239,6 +243,40 @@ export default class BaseModel {
     return this.base$handle.startsWith('base$')
   }
 
+  static base$processQuery(query: QueryFilter, context: Context) {
+    return query.traverse(
+      async (node: QueryFilterBranch | QueryFilterField | QueryFilterFork) => {
+        if (!(node instanceof QueryFilterField)) {
+          return
+        }
+
+        const {name, operator} = node
+        const fieldHandler = this.base$schema.handlers[name]
+
+        // (!) TO DO: Decide what to do about unknown fields present in a query.
+        if (!fieldHandler) {
+          return
+        }
+
+        const fieldOperators: Record<string, FieldOperator> =
+          (<typeof FieldHandler>fieldHandler.constructor).operators ||
+          (<typeof FieldHandler>fieldHandler.constructor).defaultOperators
+
+        if (!fieldOperators[operator]) {
+          throw new InvalidQueryFilterOperatorError({operator, path: [name]})
+        }
+
+        const newNode = await fieldHandler.castQuery({
+          context,
+          field: node,
+          path: [name],
+        })
+
+        Object.assign(node, newNode)
+      }
+    )
+  }
+
   static async base$search(
     parameters: SearchParameters,
     context: Context,
@@ -249,33 +287,6 @@ export default class BaseModel {
 
   static base$sync() {
     return this.base$db.sync(this)
-  }
-
-  static base$transformQueryField({
-    name,
-    operator,
-    value,
-  }: {
-    name: string
-    operator: string
-    value: any
-  }) {
-    const fieldHandler = this.base$schema.handlers[name]
-
-    // (!) TO DO: Decide what to do about unknown fields present in a query.
-    if (!fieldHandler) {
-      return value
-    }
-
-    const fieldOperators: Record<string, FieldOperator> =
-      (<typeof FieldHandler>fieldHandler.constructor).operators ||
-      (<typeof FieldHandler>fieldHandler.constructor).defaultOperators
-
-    if (!fieldOperators[operator]) {
-      throw new InvalidQueryFilterOperatorError({operator, path: [name]})
-    }
-
-    return fieldHandler.castQuery({path: [name], value})
   }
 
   static base$validate(
@@ -302,9 +313,7 @@ export default class BaseModel {
       })
     }
 
-    const instance = new this(fields)
-
-    return instance.base$create()
+    return new this(fields).save()
   }
 
   static async delete({
@@ -368,6 +377,8 @@ export default class BaseModel {
     if (typeof this.base$beforeFind === 'function') {
       Object.assign(opParameters, this.base$beforeFind(opParameters))
     }
+
+    await this.base$processQuery(filter, context)
 
     const {count, results} = await this.base$find(opParameters, context, cache)
     const entries = results.map(
@@ -526,33 +537,16 @@ export default class BaseModel {
    */
 
   async base$create() {
-    const fields = await (<typeof BaseModel>this.constructor).base$validate(
-      {
-        ...this.base$fields,
-        ...this.base$unknownFields,
-      },
-      {enforceRequiredFields: true}
-    )
-    const fieldsAfterSetters = await this.base$runFieldSetters(fields)
-    const fieldsAfterVirtuals = await this.base$runVirtualSetters(
-      fieldsAfterSetters
-    )
-    const entry = {
-      ...fieldsAfterSetters,
-      ...this.base$getFieldDefaults(fieldsAfterSetters),
-      ...fieldsAfterVirtuals,
-      _createdAt: new Date(),
-    }
-
     Object.keys({...this.base$fields, ...this.base$virtuals}).forEach(
       (fieldName) => {
         this.base$dirtyFields.delete(fieldName)
       }
     )
 
+    this.base$createdAt = new Date()
+
     const result = await (<typeof BaseModel>this.constructor).base$db.createOne(
-      entry,
-      <typeof BaseModel>this.constructor
+      this
     )
 
     this.base$hydrate(result, {fromDb: true})
@@ -598,6 +592,12 @@ export default class BaseModel {
     this.base$unknownFields = {}
 
     Object.entries(fields).forEach(([name, value]) => {
+      const handler = schema.handlers[name]
+
+      if (fromDb && handler) {
+        value = handler.deserialize(value)
+      }
+
       if (name === '_id') {
         this.id = value.toString()
       } else if (name === '_createdAt') {
@@ -651,25 +651,32 @@ export default class BaseModel {
     return transformedFields
   }
 
-  base$runVirtualSetters(fields: Fields) {
-    const schemaVirtuals =
+  async base$runVirtualSetters(virtuals: Fields) {
+    const virtualSchemas =
       (<typeof BaseModel>this.constructor).base$schema.virtuals || {}
-    const fieldsAfterSetters = Object.keys(this.base$virtuals).reduce(
-      async (fieldsAfterSetters, name) => {
-        const virtualSchema = schemaVirtuals[name]
+    const transformedVirtuals: Fields = {}
 
-        if (!virtualSchema || typeof virtualSchema.set !== 'function') {
-          return fieldsAfterSetters
+    await Promise.all(
+      Object.keys(virtuals).map(async (name) => {
+        const schema = virtualSchemas[name]
+
+        if (schema && typeof schema.set === 'function') {
+          try {
+            transformedVirtuals[name] = await schema.set(virtuals[name])
+          } catch (error) {
+            if (error instanceof CustomError) {
+              throw error
+            }
+
+            throw new FieldValidationError({
+              path: [name],
+            })
+          }
         }
-
-        const newFieldsAfterSetters = await fieldsAfterSetters
-
-        return virtualSchema.set(newFieldsAfterSetters)
-      },
-      fields
+      })
     )
 
-    return fieldsAfterSetters
+    return transformedVirtuals
   }
 
   async base$update() {
@@ -729,8 +736,24 @@ export default class BaseModel {
     }
   }
 
-  save() {
-    return this.id ? this.base$update() : this.base$create()
+  async save() {
+    if (this.id) {
+      return this.base$update()
+    }
+
+    const Model = <typeof BaseModel>this.constructor
+
+    this.base$fields = await Model.base$validate({
+      ...this.base$fields,
+      ...this.base$unknownFields,
+    })
+    this.base$createdAt = new Date()
+
+    const result = await Model.base$db.createOne(this)
+
+    this.base$hydrate(result, {fromDb: true})
+
+    return this
   }
 
   set(fieldName: string, value: any) {
@@ -746,7 +769,9 @@ export default class BaseModel {
     fieldSet,
     includeModelInstance,
     includeVirtuals = true,
+    serialize,
   }: ToObjectParameters = {}): Promise<Fields> {
+    const Model = <typeof BaseModel>this.constructor
     const fields: Fields = {
       _createdAt: this.base$createdAt,
       _updatedAt: this.base$updatedAt,
@@ -755,19 +780,29 @@ export default class BaseModel {
 
     await Promise.all(
       Object.keys(this.base$fields).map(async (name) => {
-        if (fieldSet && name[0] !== '_' && !fieldSet.has(name)) {
+        if (name[0] !== '_' && fieldSet && !fieldSet.has(name)) {
           return
         }
 
-        const value = await this.get(name)
+        const field = Model.base$schema.fields[name]
+        const handler = Model.base$schema.handlers[name]
+
+        let value = await this.get(name)
+
+        if (serialize) {
+          value = handler.serialize({path: [name], value})
+
+          if (typeof serialize === 'function') {
+            value = serialize({field, value})
+          }
+        }
 
         fields[name] = value
       })
     )
 
     if (includeVirtuals) {
-      const schemaVirtuals =
-        (<typeof BaseModel>this.constructor).base$schema.virtuals || {}
+      const schemaVirtuals = Model.base$schema.virtuals || {}
 
       await Promise.all(
         Object.entries(schemaVirtuals).map(
@@ -787,11 +822,29 @@ export default class BaseModel {
       )
     }
 
-    return {
+    const virtualsAfterSetters = await this.base$runVirtualSetters(virtuals)
+    const fieldsAfterSetters = await this.base$runFieldSetters(fields)
+    const object = {
       ...(includeModelInstance ? {__model: this} : null),
-      ...fields,
-      ...virtuals,
+      ...fieldsAfterSetters,
+      ...virtualsAfterSetters,
       _id: this.id,
     }
+    const objectWithDefaults = {
+      ...object,
+      ...this.base$getFieldDefaults(object),
+    }
+
+    // Removing `undefined` fields.
+    return Object.entries(objectWithDefaults).reduce((result, [key, value]) => {
+      if (value === undefined) {
+        return result
+      }
+
+      return {
+        ...result,
+        [key]: value,
+      }
+    }, {})
   }
 }

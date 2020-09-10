@@ -1,4 +1,6 @@
-export default {
+import {BaseModel} from '../../packages/core/src'
+
+export default (ModelClass: typeof BaseModel) => ({
   // This property is required when defining models using the object syntax.
   name: 'book',
   fields: {
@@ -20,4 +22,4 @@ export default {
     // that a book can have many genres.
     genre: ['Genre'],
   },
-}
+})

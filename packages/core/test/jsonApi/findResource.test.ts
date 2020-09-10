@@ -9,11 +9,15 @@ import {
   wipeModels,
 } from '../../../../test/utils'
 
-import Author from '../../../../test/models/Author'
-import Book from '../../../../test/models/Book'
-import Genre from '../../../../test/models/Genre'
+import makeAuthor from '../../../../test/models/author'
+import makeBook from '../../../../test/models/book'
+import makeGenre from '../../../../test/models/genre'
 
 forEachDataConnector((app: App, loadModels: Function) => {
+  const Author = makeAuthor(app.BaseModel)
+  const Book = makeBook(app.BaseModel)
+  const Genre = makeGenre(app.BaseModel)
+
   describe('JSON:API – Finding resource', () => {
     const author1 = {
       firstName: 'Leo',
@@ -47,8 +51,8 @@ forEachDataConnector((app: App, loadModels: Function) => {
 
       authors = await createEntries('author', app, [author1, author2])
       books = await createEntries('book', app, [
-        {...book1, author: {type: 'author', id: authors[0].id}},
-        {...book2, author: {type: 'author', id: authors[1].id}},
+        {...book1, author: authors[0]},
+        {...book2, author: authors[1]},
       ])
     })
 
@@ -131,7 +135,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
             read: {
               filter: {
                 lastName: {
-                  $ne: 'Saramago',
+                  _ne: 'Saramago',
                 },
               },
             },
@@ -306,7 +310,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
             read: {
               filter: {
                 lastName: {
-                  $ne: 'Saramago',
+                  _ne: 'Saramago',
                 },
               },
             },
@@ -547,7 +551,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
         const url = `/books/${books[0].id}/relationships/author`
         const accessToken = await getAccessToken({
           app,
-          username: 'baseplate-user9',
+          username: 'baseplate-user12',
           password: 'baseplate',
         })
         const req = new Request({

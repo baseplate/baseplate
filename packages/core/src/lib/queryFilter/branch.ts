@@ -9,7 +9,11 @@ export default class Branch {
     this.fields = fields
   }
 
-  static parse(input: any, path: Array<string> = [], prefix: string): Branch {
+  static parse(
+    input: any,
+    path: Array<string> = [],
+    operatorPrefix: string
+  ): Branch {
     if (!isPlainObject(input)) {
       throw new InvalidQueryFilterError()
     }
@@ -18,10 +22,26 @@ export default class Branch {
       return null
     }
 
-    const fields = Object.entries(input).reduce((result, [key, value]) => {
+    const inputTree: Record<string, any> = {}
+
+    Object.entries(input).forEach(([key, value]) => {
+      let pointer = inputTree
+
+      const keyNodes = key.split('.')
+      const keyTail = keyNodes.pop()
+
+      keyNodes.forEach((keyNode) => {
+        pointer[keyNode] = pointer[keyNode] || {}
+        pointer = pointer[keyNode]
+      })
+
+      pointer[keyTail] = value
+    })
+
+    const fields = Object.entries(inputTree).reduce((result, [key, value]) => {
       return {
         ...result,
-        [key]: Field.parse(key, value, path.concat(key), prefix),
+        [key]: Field.parse(key, value, path.concat(key), operatorPrefix),
       }
     }, {})
 
@@ -40,13 +60,24 @@ export default class Branch {
     return new Branch(fields)
   }
 
-  serialize(prefix: string, fieldTransform?: Function): Record<string, any> {
+  serialize(
+    operatorPrefix: string,
+    fieldTransform?: Function
+  ): Record<string, any> {
     return Object.values(this.fields).reduce(
       (result, field) => ({
         ...result,
-        ...field.serialize(prefix, fieldTransform),
+        ...field.serialize(operatorPrefix, fieldTransform),
       }),
       {}
     )
+  }
+
+  async traverse(callback: Function) {
+    await callback(this)
+
+    const values = Object.values(this.fields)
+
+    await Promise.all(values.map((field) => field.traverse(callback)))
   }
 }

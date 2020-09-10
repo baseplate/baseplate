@@ -15,13 +15,21 @@ export default class Fork {
     return new Fork(branches, this.operator)
   }
 
-  serialize(prefix: string, fieldTransform?: Function): Record<string, any> {
+  serialize(
+    operatorPrefix: string,
+    fieldTransform?: Function
+  ): Record<string, any> {
     const branches = this.branches
       .filter(Boolean)
-      .map((branch) => branch.serialize(prefix, fieldTransform))
+      .map((branch) => branch.serialize(operatorPrefix, fieldTransform))
 
     return {
-      [prefix + this.operator]: branches,
+      [operatorPrefix + this.operator]: branches,
     }
+  }
+
+  async traverse(callback: Function) {
+    await callback(this)
+    await Promise.all(this.branches.map((branch) => branch.traverse(callback)))
   }
 }

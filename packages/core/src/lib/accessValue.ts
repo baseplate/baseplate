@@ -138,7 +138,7 @@ export class AccessValue {
     const object: AccessValueObject = {}
 
     if (this.filter) {
-      object.filter = this.filter.toObject({prefix: filterPrefix})
+      object.filter = this.filter.toObject({operatorPrefix: filterPrefix})
     }
 
     if (this.fields) {

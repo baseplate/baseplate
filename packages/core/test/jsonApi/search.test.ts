@@ -274,7 +274,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
             read: {
               filter: {
                 title: {
-                  $ne: 'The Red Ball',
+                  _ne: 'The Red Ball',
                 },
               },
             },
@@ -479,7 +479,7 @@ forEachDataConnector((app: App, loadModels: Function) => {
             read: {
               filter: {
                 title: {
-                  $ne: 'The Red Ball',
+                  _ne: 'The Red Ball',
                 },
               },
             },
