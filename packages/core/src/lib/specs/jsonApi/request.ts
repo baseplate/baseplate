@@ -264,7 +264,9 @@ export default class JsonApiRequest {
       const schema = (<typeof Model>entry.constructor).base$schema
 
       Object.keys(includeMap).forEach((fieldName) => {
-        if (schema.fields[fieldName].type !== 'reference') {
+        const fieldSchema = schema.fields[fieldName]
+
+        if (!fieldSchema || fieldSchema.type !== 'reference') {
           errors[fieldName] = new InvalidQueryParameterError({
             name: 'include',
             value: fieldName,
@@ -283,6 +285,8 @@ export default class JsonApiRequest {
             referencesHash,
             user,
           }).then((relationship) => {
+            if (!relationship) return
+
             const normalizedRelationship = Array.isArray(relationship)
               ? relationship
               : [relationship]

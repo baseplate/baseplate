@@ -304,6 +304,48 @@ forEachDataConnector((app: App, loadModels: Function) => {
       await wipeModels(['author'], app)
     })
 
+    test('Respects a query filter with fields from relationships', async () => {
+      const accessToken = await getAccessToken({
+        app,
+        username: 'baseplate-admin',
+        password: 'baseplate',
+      })
+      const author1 = {
+        firstName: 'Leo',
+        lastName: 'Tolstoy',
+      }
+      const author2 = {
+        firstName: 'José',
+        lastName: 'Saramago',
+      }
+      const authors = await createEntries('author', app, [author1, author2])
+      const book1 = {
+        title: 'War and Peace',
+        isbn: 123,
+        author: authors[0].id,
+      }
+      const book2 = {
+        title: 'Blindness',
+        isbn: 234,
+        author: authors[1].id,
+      }
+      const books = await createEntries('book', app, [book1, book2])
+      const req = new Request({
+        accessToken,
+        method: 'get',
+        url: '/books?filter={"author.firstName":{"$ne":"Leo"}}',
+      })
+      const res = new Response()
+
+      await app.routesRest.handler(req, res)
+
+      expect(res.$body.data.length).toBe(1)
+      expect(res.$body.data[0].id).toBe(books[1].id)
+      expect(res.$body.data[0].attributes.title).toEqual(book2.title)
+
+      await wipeModels(['author', 'book'], app)
+    })
+
     test('Respects a sort parameter', async () => {
       const accessToken = await getAccessToken({
         app,
