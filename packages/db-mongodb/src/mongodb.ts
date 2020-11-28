@@ -281,7 +281,7 @@ export class MongoDB extends DataConnector.DataConnector {
 
     const connection = await this.connect()
     const collectionName = this.getCollectionName(Model)
-    const options: FindOneOptions = {
+    const options: FindOneOptions<any> = {
       projection: this.getProjectionFromFieldSet(fieldSet),
     }
 

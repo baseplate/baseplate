@@ -19,7 +19,7 @@ export default async function (
       user: context.get('base$user'),
     })
     const jsonApiRes = new JsonApiResponse({
-      entries: [entry],
+      entries: entry,
       res,
       statusCode: 201,
       url: jsonApiReq.url,
