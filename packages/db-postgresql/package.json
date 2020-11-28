@@ -1,13 +1,13 @@
 {
   "name": "@baseplate/postgres",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
     "dist"
   ],
   "dependencies": {
-    "@baseplate/core": "^0.7.1",
+    "@baseplate/core": "^0.7.2",
     "@types/pg": "^7.14.3",
     "pg": "^8.2.1"
   },
