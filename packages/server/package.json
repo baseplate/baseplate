@@ -1,6 +1,6 @@
 {
   "name": "@baseplate/server",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -20,10 +20,13 @@
     "nodemon": "^2.0.4"
   },
   "dependencies": {
-    "@baseplate/core": "^0.7.5",
+    "@baseplate/core": "^0.7.6",
     "@types/dotenv": "^8.2.0",
     "dotenv": "^8.2.0"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "0725fb14459ef18feec00d8dcdfcb0b6cc4cd7d2"
+  "gitHead": "e455a7af80d50a5c5a0ecbe3a44f08b4cbcbe132",
+  "publishConfig": {
+    "access": "public"
+  }
 }

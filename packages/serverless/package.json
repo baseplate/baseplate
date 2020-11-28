@@ -1,10 +1,13 @@
 {
   "name": "@baseplate/serverless",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "main": "index.js",
   "directories": {
     "lib": "lib"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "0725fb14459ef18feec00d8dcdfcb0b6cc4cd7d2"
+  "gitHead": "e455a7af80d50a5c5a0ecbe3a44f08b4cbcbe132",
+  "publishConfig": {
+    "access": "public"
+  }
 }
