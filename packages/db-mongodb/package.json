@@ -1,13 +1,13 @@
 {
   "name": "@baseplate/mongodb",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
     "dist"
   ],
   "dependencies": {
-    "@baseplate/core": "^0.7.0",
+    "@baseplate/core": "^0.7.1",
     "@types/mongodb": "^3.5.25",
     "mongodb": "^3.5.7",
     "short-hash": "^1.0.0"
