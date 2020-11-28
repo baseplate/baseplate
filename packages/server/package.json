@@ -1,6 +1,6 @@
 {
   "name": "@baseplate/server",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -20,12 +20,12 @@
     "nodemon": "^2.0.4"
   },
   "dependencies": {
-    "@baseplate/core": "^0.7.2",
+    "@baseplate/core": "^0.7.3",
     "@types/dotenv": "^8.2.0",
     "dotenv": "^8.2.0"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
+  "gitHead": "d260417cdeb957d9a6709fd10141a1d95f7ada41",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }

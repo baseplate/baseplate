@@ -1,13 +1,13 @@
 {
   "name": "@baseplate/mongodb",
-  "version": "0.7.2",
+  "version": "0.7.3",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
     "dist"
   ],
   "dependencies": {
-    "@baseplate/core": "^0.7.2",
+    "@baseplate/core": "^0.7.3",
     "@types/mongodb": "^3.5.25",
     "mongodb": "^3.5.7",
     "short-hash": "^1.0.0"
@@ -22,7 +22,7 @@
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "d703116e85568e21ed0f401e68153926f4431fb6",
+  "gitHead": "d260417cdeb957d9a6709fd10141a1d95f7ada41",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }
