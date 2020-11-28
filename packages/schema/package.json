@@ -1,6 +1,6 @@
 {
   "name": "@baseplate/schema",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -14,8 +14,5 @@
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "0725fb14459ef18feec00d8dcdfcb0b6cc4cd7d2",
-  "publishConfig": {
-    "registry": "https://npm.pkg.github.com/"
-  }
+  "gitHead": "0725fb14459ef18feec00d8dcdfcb0b6cc4cd7d2"
 }
