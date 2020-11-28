@@ -1,6 +1,6 @@
 {
   "name": "@baseplate/core",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
@@ -17,7 +17,7 @@
     "lib": "lib"
   },
   "dependencies": {
-    "@baseplate/schema": "^0.4.3",
+    "@baseplate/schema": "^0.4.4",
     "@types/bcryptjs": "^2.4.2",
     "@types/cookie": "^0.4.0",
     "@types/graphql": "^14.5.0",
@@ -33,7 +33,7 @@
     "winston": "^3.3.3"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "d260417cdeb957d9a6709fd10141a1d95f7ada41",
+  "gitHead": "0725fb14459ef18feec00d8dcdfcb0b6cc4cd7d2",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }

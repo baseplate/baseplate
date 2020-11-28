@@ -1,13 +1,13 @@
 {
   "name": "@baseplate/postgres",
-  "version": "0.7.3",
+  "version": "0.7.4",
   "main": "dist/index",
   "types": "dist/index",
   "files": [
     "dist"
   ],
   "dependencies": {
-    "@baseplate/core": "^0.7.3",
+    "@baseplate/core": "^0.7.4",
     "@types/pg": "^7.14.3",
     "pg": "^8.2.1"
   },
@@ -19,7 +19,7 @@
     "watch": "tsc --build tsconfig.build.json --preserveWatchOutput --watch"
   },
   "repository": "github:baseplate/baseplate",
-  "gitHead": "d260417cdeb957d9a6709fd10141a1d95f7ada41",
+  "gitHead": "0725fb14459ef18feec00d8dcdfcb0b6cc4cd7d2",
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
   }
